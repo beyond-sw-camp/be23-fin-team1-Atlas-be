@@ -1,0 +1,66 @@
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+src/main/resgemources/application-local.yaml
+docker-compose.yml
+
+### SETTINGS ###
+application-local.yaml
+application-local.yml
+docker*.yaml
+docker-compose.yml
+docker*.yal
+docker-compose.yaml
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Local Memo ###
+memo.md
+memo.text
+technical-notes.md
+
+# local docs artifacts
+docs/
+
+### OS / Editor Temp ###
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+*.swp
+*.swo
+*~
