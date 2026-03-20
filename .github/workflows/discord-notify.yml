@@ -1,0 +1,80 @@
+name: Discord Notify
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - closed
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Discord notification
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          REPOSITORY: ${{ github.repository }}
+          PR_ACTION: ${{ github.event.action }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          PUSH_COMPARE_URL: ${{ github.event.compare }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL secret is not set."
+            exit 1
+          fi
+
+          if [ "$EVENT_NAME" = "push" ]; then
+            MESSAGE="🚀 **main 브랜치에 push 발생**\n저장소: \`$REPOSITORY\`\n작성자: **$ACTOR**\n링크: $PUSH_COMPARE_URL"
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
+            if [ "$PR_ACTION" = "opened" ]; then
+              MESSAGE="📌 **PR 생성**\n제목: **$PR_TITLE**\n작성자: **$ACTOR**\n브랜치: \`$PR_HEAD\` → \`$PR_BASE\`\n링크: $PR_URL"
+            elif [ "$PR_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ]; then
+              MESSAGE="✅ **PR 머지 완료**\n제목: **$PR_TITLE**\n작성자: **$ACTOR**\n브랜치: \`$PR_HEAD\` → \`$PR_BASE\`\n링크: $PR_URL"
+            else
+              exit 0
+            fi
+          else
+            exit 0
+          fi
+
+          HOUR=$(TZ='Asia/Seoul' date +%H)
+          DOW=$(TZ='Asia/Seoul' date +%u)   # 1=월 ... 7=일
+          QUIET=false
+
+          # 주말은 하루 종일 조용한 뱃지
+          if [ "$DOW" -eq 6 ] || [ "$DOW" -eq 7 ]; then
+            QUIET=true
+          fi
+
+          # 평일은 18:00 ~ 다음날 08:00 조용한 뱃지
+          if [ "$DOW" -ge 1 ] && [ "$DOW" -le 5 ]; then
+            if [ "$HOUR" -ge 18 ] || [ "$HOUR" -lt 8 ]; then
+              QUIET=true
+            fi
+          fi
+
+          if [ "$QUIET" = true ]; then
+            PAYLOAD=$(jq -n \
+              --arg content "$MESSAGE" \
+              --argjson flags 4096 \
+              '{content: $content, flags: $flags}')
+          else
+            PAYLOAD=$(jq -n \
+              --arg content "$MESSAGE" \
+              '{content: $content}')
+          fi
+
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "$DISCORD_WEBHOOK_URL"
