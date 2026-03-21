@@ -17,9 +17,13 @@ jobs:
       - name: Send Discord notification
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
           EVENT_NAME: ${{ github.event_name }}
           ACTOR: ${{ github.actor }}
           REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          PUSH_COMPARE_URL: ${{ github.event.compare }}
+          HEAD_COMMIT_MSG: ${{ github.event.head_commit.message }}
 
           PR_ACTION: ${{ github.event.action }}
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -27,9 +31,6 @@ jobs:
           PR_BASE: ${{ github.event.pull_request.base.ref }}
           PR_HEAD: ${{ github.event.pull_request.head.ref }}
           PR_MERGED: ${{ github.event.pull_request.merged }}
-
-          PUSH_COMPARE_URL: ${{ github.event.compare }}
-          REF_NAME: ${{ github.ref_name }}
         run: |
           if [ -z "$DISCORD_WEBHOOK_URL" ]; then
             echo "DISCORD_WEBHOOK_URL secret is not set."
@@ -53,64 +54,66 @@ jobs:
           fi
 
           if [ "$EVENT_NAME" = "push" ]; then
-            TITLE="🚀 main 브랜치 push"
-            DESCRIPTION="main 브랜치에 변경이 반영되었습니다."
+            TITLE="${HEAD_COMMIT_MSG:-🚀 main 브랜치 push}"
             URL="$PUSH_COMPARE_URL"
+            DESCRIPTION="main 브랜치에 변경이 반영되었습니다."
 
             PAYLOAD=$(jq -n \
               --arg title "$TITLE" \
+              --arg url "$URL" \
               --arg description "$DESCRIPTION" \
               --arg repo "$REPOSITORY" \
               --arg actor "$ACTOR" \
               --arg branch "$REF_NAME" \
-              --arg url "$URL" \
               '{
                 embeds: [
                   {
                     title: $title,
+                    url: $url,
                     description: $description,
                     fields: [
                       { name: "저장소", value: $repo, inline: true },
                       { name: "작성자", value: $actor, inline: true },
-                      { name: "브랜치", value: $branch, inline: true },
-                      { name: "링크", value: $url, inline: false }
+                      { name: "브랜치", value: $branch, inline: true }
                     ]
                   }
                 ]
               }')
-          
+
           elif [ "$EVENT_NAME" = "pull_request" ]; then
             if [ "$PR_ACTION" = "opened" ]; then
-              TITLE="📌 PR 생성"
+              FOOTER_TEXT="📌 PR 생성"
               DESCRIPTION="새 Pull Request가 생성되었습니다."
             elif [ "$PR_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ]; then
-              TITLE="✅ PR 머지 완료"
+              FOOTER_TEXT="✅ PR 머지 완료"
               DESCRIPTION="Pull Request가 머지되었습니다."
             else
               exit 0
             fi
 
             PAYLOAD=$(jq -n \
-              --arg title "$TITLE" \
+              --arg title "$PR_TITLE" \
+              --arg url "$PR_URL" \
               --arg description "$DESCRIPTION" \
-              --arg pr_title "$PR_TITLE" \
               --arg actor "$ACTOR" \
+              --arg repo "$REPOSITORY" \
               --arg head "$PR_HEAD" \
               --arg base "$PR_BASE" \
-              --arg repo "$REPOSITORY" \
-              --arg url "$PR_URL" \
+              --arg footer_text "$FOOTER_TEXT" \
               '{
                 embeds: [
                   {
                     title: $title,
+                    url: $url,
                     description: $description,
                     fields: [
-                      { name: "제목", value: $pr_title, inline: false },
                       { name: "작성자", value: $actor, inline: true },
                       { name: "저장소", value: $repo, inline: true },
-                      { name: "브랜치", value: ($head + " → " + $base), inline: false },
-                      { name: "링크", value: $url, inline: false }
-                    ]
+                      { name: "브랜치", value: ($head + " → " + $base), inline: false }
+                    ],
+                    footer: {
+                      text: $footer_text
+                    }
                   }
                 ]
               }')
