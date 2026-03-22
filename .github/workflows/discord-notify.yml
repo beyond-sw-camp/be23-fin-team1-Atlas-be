@@ -72,9 +72,9 @@ jobs:
                     url: $url,
                     description: $description,
                     fields: [
-                      { name: "저장소", value: $repo, inline: true },
-                      { name: "작성자", value: $actor, inline: true },
-                      { name: "브랜치", value: $branch, inline: true }
+                      { name: "📦 저장소", value: $repo, inline: false },
+                      { name: "👤 작성자", value: $actor, inline: false },
+                      { name: "🌿 브랜치", value: $branch, inline: false }
                     ]
                   }
                 ]
@@ -109,7 +109,7 @@ jobs:
                     fields: [
                       { name: "📦 저장소", value: $repo, inline: false },
                       { name: "👤 작성자", value: $actor, inline: false },
-                      { name: "🌿 브랜치", value: $branch, inline: false }
+                      { name: "🌿 브랜치", value: ($head + " → " + $base), inline: false }
                     ],
                     footer: {
                       text: $footer_text
