@@ -5,7 +5,7 @@
 플랫폼 구조는 범용 공급망을 지향하지만, MVP 검증 시나리오는 식자재 공급망으로 설정한다. 이를 통해 메인 발주사, 1차 협력사, 2차 협력사, 3차 협력사 구조를 공통으로 다루면서도 실제 데모에서는 품목, 인증, 원산지, 유통기한, 보관 조건 등 구체적인 리스크를 명확하게 보여준다.
 
 <detail>
-## 프로젝트 한눈에 보기
+<summary>프로젝트 한눈에 보기</summary>
 
 | 항목 | 내용 |
 | --- | --- |
@@ -392,7 +392,7 @@ CT-->>MB: "분산 발주 전략 비교 화면 제공"
 </detail>
 
 <detail>
-### 📄 요구사항명세서
+<summary>📄 요구사항명세서</summary>
 [요구사항 명세서](https://docs.google.com/spreadsheets/d/1-9XXxS_f5A81Zk5Z6et8IepxUo-Pm2fp-omdqqYuDvY/edit?gid=0#gid=0)
 
 </detail>
