@@ -1,0 +1,55 @@
+server:
+  port: 8080
+  tomcat:
+    max-swallow-size: 50MB
+
+spring:
+  application:
+    name: atlas
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://${DB_HOST}:3306/atlas?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: ${DB_USERNAME}
+    password: ${DB_PW}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    show-sql: true
+
+  data:
+    redis:
+      host: my-redis
+      port: 6379
+  elasticsearch:
+    uris: ${els_uri}
+    username: ${els_user}
+    password: ${els_pw}
+
+jwt:
+  secretKey: ${jwt_secret}
+  expiration: 600
+  secretKeyRt: ${jwt_secret_rt}
+  expirationRt: 10080
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: debug
+    org.springframework.boot.context.properties: TRACE
+    org.springframework.security: debug
+    root: debug
+
+aws:
+  credentials:
+    access-key: ${aws_access}
+    secret-key: ${aws_secret}
+  region: ap-northeast-2
+  s3:
+    bucket1: atlas-image-bucket
+    image-url: ${s3_image_url}
