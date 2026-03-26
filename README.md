@@ -399,6 +399,6 @@ CT-->>MB: "분산 발주 전략 비교 화면 제공"
 
 <details>
 <summary>ERD</summary>
-![ERD](images/Atlas (1).png)
+![ERD](images/erd.png)
 
 </details>
