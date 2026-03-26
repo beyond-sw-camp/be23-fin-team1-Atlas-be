@@ -393,12 +393,14 @@ CT-->>MB: "분산 발주 전략 비교 화면 제공"
 
 <details>
 <summary>요구사항명세서</summary>
-![요구사항 명세서](https://docs.google.com/spreadsheets/d/1-9XXxS_f5A81Zk5Z6et8IepxUo-Pm2fp-omdqqYuDvY/edit?gid=0#gid=0)
+
+[요구사항 명세서](https://docs.google.com/spreadsheets/d/1-9XXxS_f5A81Zk5Z6et8IepxUo-Pm2fp-omdqqYuDvY/edit?gid=0#gid=0)
 
 </details>
 
 <details>
 <summary>ERD</summary>
+
 ![ERD](images/erd.png)
 
 </details>
