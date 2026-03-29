@@ -1,7 +1,14 @@
 pluginManagement {
-	repositories {
-		maven { url = 'https://repo.spring.io/snapshot' }
-		gradlePluginPortal()
-	}
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
 }
+
 rootProject.name = 'atlas'
+
+include 'api-gateway'
+include 'auth-service'
+include 'supply-service'
+include 'control-service'
+include 'file-service'
