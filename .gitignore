@@ -7,6 +7,8 @@ src/main/resources/application-local.yaml
 docker-compose.yml
 
 ### SETTINGS ###
+application.yaml
+application.yml
 application-local.yaml
 application-local.yml
 docker*.yaml
