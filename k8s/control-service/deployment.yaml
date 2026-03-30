@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: control-service
-          image: your-registry/control-service:latest
+          image: control-service:local
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
           env:

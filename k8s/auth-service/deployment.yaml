@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: your-registry/auth-service:latest
+          image: auth-service:local
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
           env:
