@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: local
   application:
     name: api-gateway
 
@@ -11,6 +13,3 @@ management:
     health:
       probes:
         enabled: true
-
-jwt:
-  access-token-secret: ${JWT_ACCESS_TOKEN_SECRET:}
