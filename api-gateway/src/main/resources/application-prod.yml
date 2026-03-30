@@ -26,4 +26,4 @@ server:
   port: 8080
 
 jwt:
-  access-token-secret: ${JWT_ACCESS_TOKEN_SECRET:}
+  access-token-secret: ${JWT_ACCESS_TOKEN_SECRET}
