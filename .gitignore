@@ -45,6 +45,8 @@ out/
 memo.md
 memo.text
 technical-notes.md
+**/application-local.yml
+**/application-local.yaml
 
 # local docs artifacts
 docs/
