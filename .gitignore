@@ -47,6 +47,10 @@ memo.text
 technical-notes.md
 **/application-local.yml
 **/application-local.yaml
+/AGENTS.md
+/HANDOFF.md
+/MEMORY.md
+/TASK.md
 
 # local docs artifacts
 docs/
