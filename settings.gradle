@@ -7,6 +7,7 @@ pluginManagement {
 
 rootProject.name = 'atlas'
 
+include 'common'
 include 'api-gateway'
 include 'auth-service'
 include 'supply-service'
