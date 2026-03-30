@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supply-service
+  namespace: atlas
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: supply-service
+  template:
+    metadata:
+      labels:
+        app: supply-service
+    spec:
+      containers:
+        - name: supply-service
+          image: your-registry/supply-service:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mariadb://mariadb:3306/supply_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: atlas
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-app-secret
+                  key: SUPPLY_DB_PASSWORD
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080

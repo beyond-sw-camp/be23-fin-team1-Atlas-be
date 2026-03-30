@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: api-gateway
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+jwt:
+  access-token-secret: ${JWT_ACCESS_TOKEN_SECRET:}
