@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:mariadb://localhost:3306/file_db
+    username: atlas
+    password: atlas
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: 8084
+
+app:
+  file:
+    s3:
+      region: ap-northeast-2
+      media-bucket: common-media-bucket
+      document-bucket: common-document-bucket

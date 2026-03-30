@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: control-service
+  namespace: atlas
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: control-service
+  template:
+    metadata:
+      labels:
+        app: control-service
+    spec:
+      containers:
+        - name: control-service
+          image: your-registry/control-service:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/control_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: atlas
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-app-secret
+                  key: CONTROL_DB_PASSWORD
+            - name: SPRING_DATA_REDIS_HOST
+              value: redis
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            - name: SPRING_ELASTICSEARCH_URIS
+              value: http://elasticsearch:9200
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080

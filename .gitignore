@@ -3,18 +3,12 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-src/main/resources/application-local.yaml
-docker-compose.yml
 
-### SETTINGS ###
-application.yaml
-application.yml
-application-local.yaml
-application-local.yml
-docker*.yaml
+### Docker ###
 docker-compose.yml
-docker*.yal
 docker-compose.yaml
+docker*.yaml
+docker*.yml
 
 ### STS ###
 .apt_generated

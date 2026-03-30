@@ -1,0 +1,22 @@
+spring:
+  config:
+    activate:
+      on-profile: k8s
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+server:
+  port: 8080
+
+app:
+  file:
+    s3:
+      region: ${AWS_REGION:ap-northeast-2}
+      media-bucket: ${S3_MEDIA_BUCKET}
+      document-bucket: ${S3_DOCUMENT_BUCKET}
