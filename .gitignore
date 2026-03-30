@@ -62,3 +62,9 @@ docs/
 *.swp
 *.swo
 *~
+
+### MD ###
+GEMINI.md
+DDL.md
+**/GEMINI.md
+**/DDL.md
