@@ -20,7 +20,7 @@ spec:
             - containerPort: 8080
           env:
             - name: SPRING_PROFILES_ACTIVE
-              value: k8s
+              value: prod
             - name: JWT_ACCESS_TOKEN_SECRET
               valueFrom:
                 secretKeyRef:

@@ -20,7 +20,7 @@ spec:
             - containerPort: 8080
           env:
             - name: SPRING_PROFILES_ACTIVE
-              value: k8s
+              value: prod
             - name: SPRING_DATASOURCE_URL
               value: jdbc:mariadb://mariadb:3306/file_db
             - name: SPRING_DATASOURCE_USERNAME
