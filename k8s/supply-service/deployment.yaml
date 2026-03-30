@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: supply-service
-          image: your-registry/supply-service:latest
+          image: supply-service:local
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
           env:

@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: file-service
-          image: your-registry/file-service:latest
+          image: file-service:local
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
           env:
