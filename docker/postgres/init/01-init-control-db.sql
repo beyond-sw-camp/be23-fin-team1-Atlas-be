@@ -1,0 +1,8 @@
+CREATE SCHEMA IF NOT EXISTS atlas AUTHORIZATION atlas;
+
+ALTER DATABASE control_db SET search_path TO atlas, public;
+
+GRANT ALL PRIVILEGES ON DATABASE control_db TO atlas;
+GRANT USAGE, CREATE ON SCHEMA atlas TO atlas;
+
+ALTER SCHEMA atlas OWNER TO atlas;

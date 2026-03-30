@@ -36,6 +36,7 @@ docker compose -f docker/docker-compose.infra.yml down -v
   - `file_db`
 - PostgreSQL
   - `control_db`
+  - 기본 스키마: `atlas`
 
 ## 기본 계정
 
@@ -45,3 +46,13 @@ docker compose -f docker/docker-compose.infra.yml down -v
 - PostgreSQL
   - username: `atlas`
   - password: `atlas`
+
+## 주의
+
+- `docker-entrypoint-initdb.d` 스크립트는 볼륨이 비어 있을 때만 실행된다.
+- 이미 한 번 띄운 뒤 계정/DB/스키마 초기화 스크립트를 바꿨다면 아래처럼 볼륨까지 내리고 다시 올려야 반영된다.
+
+```bash
+docker compose -f docker/docker-compose.infra.yml down -v
+docker compose -f docker/docker-compose.infra.yml up -d
+```
