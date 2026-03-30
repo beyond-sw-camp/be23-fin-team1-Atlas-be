@@ -30,8 +30,7 @@ public class Attachment extends BaseTimeEntity {
     @Column(nullable = false, length = 26, updatable = false)
     private String refPublicId; // reference public id
 
-    // 추후 다건 첨부 순서가 필요하면 sortOrder 컬럼 추가
-    //@Builder.Default
-    //@Column(nullable = false)
-    //private Integer sortOrder = 1;
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer sortOrder = 1;
 }
