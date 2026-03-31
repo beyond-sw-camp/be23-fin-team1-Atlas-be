@@ -85,7 +85,7 @@ public class ChatMessageService {
     public Page<ChatMessageDto> getMessageHistory(String roomPublicId, Pageable pageable) {
         ChatRoom chatRoom = chatRoomService.findRoomByPublicId(roomPublicId);
         
-        return chatMessageRepository.findByChatRoomOrderBySentAtDesc(chatRoom, pageable)
+        return chatMessageRepository.findByChatRoomOrderByCreatedAtDesc(chatRoom, pageable)
                 .map(this::convertToDto);
     }
 

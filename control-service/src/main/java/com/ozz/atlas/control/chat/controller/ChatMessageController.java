@@ -36,8 +36,8 @@ public class ChatMessageController {
     @GetMapping("/api/v1/chats/rooms/{roomPublicId}/messages")
     public ResponseEntity<Page<ChatMessageDto>> getMessages(
             @PathVariable String roomPublicId,
-            @PageableDefault(size = 50, sort = "sentAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        
+            @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(chatMessageService.getMessageHistory(roomPublicId, pageable));
     }
+
 }
