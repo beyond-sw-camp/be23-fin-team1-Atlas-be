@@ -72,3 +72,6 @@ GEMINI.md
 DDL.md
 **/GEMINI.md
 **/DDL.md
+
+### Test Packages ###
+**/src/test/**
