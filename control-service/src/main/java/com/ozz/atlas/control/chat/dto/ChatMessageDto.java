@@ -23,7 +23,3 @@ public class ChatMessageDto {
     private String referenceTitle;
     private LocalDateTime sentAt;
 }
-
-    
-    private LocalDateTime sentAt;
-}
