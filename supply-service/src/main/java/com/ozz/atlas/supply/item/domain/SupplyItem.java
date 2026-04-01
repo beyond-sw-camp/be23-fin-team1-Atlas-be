@@ -76,8 +76,7 @@ public class SupplyItem extends BaseTimeEntity {
             String itemName,
             String unit,
             ItemSpec spec,
-            Integer shelfLifeDays,
-            Integer activeYn
+            Integer shelfLifeDays
     ) {
         this.itemCategory = itemCategory;
         this.itemCode = itemCode;

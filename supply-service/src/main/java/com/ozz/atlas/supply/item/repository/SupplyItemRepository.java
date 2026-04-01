@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.item.repository;
 
 import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,5 +16,7 @@ public interface SupplyItemRepository extends JpaRepository<SupplyItem, Long> {
     boolean existsByItemCode(String itemCode);
 
     boolean existsByItemCodeAndIdNot(String itemCode, Long id);
+
+    boolean existsByItemCategoryAndActiveYn(SupplyItemCategory category, Integer activeYn);
 
 }

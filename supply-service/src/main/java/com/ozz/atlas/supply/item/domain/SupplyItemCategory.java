@@ -20,7 +20,7 @@ public class SupplyItemCategory {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_category_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT))
+    @JoinColumn(name = "parent_category_id", foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT))
     private SupplyItemCategory parentCategory;
 
     @Column(nullable = false, length = 100)
@@ -48,4 +48,36 @@ public class SupplyItemCategory {
             this.activeYn = 1;
         }
     }
+
+    public static SupplyItemCategory create(
+            SupplyItemCategory parentCategory,
+            String categoryName,
+            Integer categoryLevel,
+            Integer sortOrder
+    ) {
+        return SupplyItemCategory.builder()
+                .parentCategory(parentCategory)
+                .categoryName(categoryName)
+                .categoryLevel(categoryLevel)
+                .sortOrder(sortOrder)
+                .activeYn(1)
+                .build();
+    }
+
+    public void update(
+            SupplyItemCategory parentCategory,
+            String categoryName,
+            Integer categoryLevel,
+            Integer sortOrder
+    ) {
+        this.parentCategory = parentCategory;
+        this.categoryName = categoryName;
+        this.categoryLevel = categoryLevel;
+        this.sortOrder = sortOrder;
+    }
+
+    public void changeActiveYn(Integer activeYn) {
+        this.activeYn = activeYn;
+    }
 }
+

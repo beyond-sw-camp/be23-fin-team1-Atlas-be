@@ -61,8 +61,7 @@ public class SupplyItemService {
                 request.getItemName(),
                 request.getUnit(),
                 request.getSpec(),
-                request.getShelfLifeDays(),
-                request.getActiveYn()
+                request.getShelfLifeDays()
         );
 
         return ItemResponse.from(item);
