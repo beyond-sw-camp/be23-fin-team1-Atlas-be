@@ -77,3 +77,8 @@ DDL.md
 **/src/test/**
 
 .gradle-local/
+
+### Python ###
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
