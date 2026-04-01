@@ -17,6 +17,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,6 +30,7 @@ public class ChatMessageService {
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatRoomService chatRoomService;
     private final NotificationService notificationService;
+    private final ChatPresenceService chatPresenceService;
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**
@@ -51,21 +56,30 @@ public class ChatMessageService {
         
         chatMessageRepository.save(chatMessage);
 
-        // 3. DTO 업데이트
+        // 3. 현재 방을 보고 있는 유저들(Presence) 실시간 읽음 처리 (발신자 포함)
+        Set<String> viewingUsers = chatPresenceService.getViewingUsers(chatRoom.getPublicId());
+        List<String> readUserIds = new ArrayList<>(viewingUsers);
+        if (!readUserIds.contains(messageDto.getSenderUserPublicId())) {
+            readUserIds.add(messageDto.getSenderUserPublicId()); // 발신자는 항상 읽은 것으로 처리
+        }
+        chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, readUserIds, chatMessage.getId());
+
+        // 4. DTO 업데이트
         messageDto.setPublicId(chatMessage.getPublicId());
         messageDto.setSentAt(chatMessage.getCreatedAt());
 
-        // 4. Redis 발행 (방별 동적 토픽: chat:room:{public_id})
+        // 5. Redis 발행 (방별 동적 토픽: chat:room:{public_id})
         String topic = RedisConstants.getChatRoomTopic(chatRoom.getPublicId());
         redisTemplate.convertAndSend(topic, messageDto);
 
-        // 5. 참여자들에게 알림 발송 (발신자 제외)
-        sendChatNotifications(chatRoom, messageDto);
+        // 6. 참여자들에게 알림 발송 (현재 방을 보고 있지 않은 참여자에게만)
+        sendChatNotifications(chatRoom, messageDto, viewingUsers);
     }
 
-    private void sendChatNotifications(ChatRoom chatRoom, ChatMessageDto messageDto) {
+    private void sendChatNotifications(ChatRoom chatRoom, ChatMessageDto messageDto, Set<String> viewingUsers) {
         chatParticipantRepository.findByChatRoom(chatRoom).stream()
                 .filter(p -> !p.getUserPublicId().equals(messageDto.getSenderUserPublicId()))
+                .filter(p -> !viewingUsers.contains(p.getUserPublicId())) // 보고 있는 사람은 푸시 알림 제외
                 .forEach(participant -> {
                     NotificationDto notification = NotificationDto.builder()
                             .recipientUserPublicId(participant.getUserPublicId())
