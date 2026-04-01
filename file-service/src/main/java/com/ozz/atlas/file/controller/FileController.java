@@ -1,13 +1,15 @@
 package com.ozz.atlas.file.controller;
 
+import com.ozz.atlas.file.dtos.FileUploadDto;
 import com.ozz.atlas.file.service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/files")
@@ -20,13 +22,25 @@ public class FileController {
         this.fileService = fileService;
     }
 
-//    @PostMapping
-//    public ResponseEntity<FileResponse> create(@Valid @RequestBody FileCreateRequest request) {
-//        return ResponseEntity.status(HttpStatus.CREATED).body(fileService.create(request));
-//    }
-//
-//    @GetMapping("/{publicId}")
-//    public ResponseEntity<FileResponse> get(@PathVariable String publicId) {
-//        return ResponseEntity.ok(fileService.getByPublicId(publicId));
-//    }
+    // file upload
+    @PostMapping(value = "/fileUpload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> upload(@RequestPart(required = false) List<MultipartFile> files,
+                                    @RequestHeader("X-User-Public-Id") String publicUserId) {
+        FileUploadDto res = fileService.fileUpload(files, publicUserId);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(res);
+    }
+
+    // file list(view)
+    @GetMapping(value = "/{publicId}")
+    public ResponseEntity<?> getFile(@PathVariable("publicId") String publicId) {
+        return ResponseEntity.ok(fileService.getByPublicId(publicId));
+    }
+
+    // file info
+
+    // file edit
+
+    // file soft-delete
+
 }

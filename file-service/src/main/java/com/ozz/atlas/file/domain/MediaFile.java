@@ -31,6 +31,9 @@ public class MediaFile extends BaseTimeEntity {
     @Column(nullable = false, length = 255)
     private String filePath;
 
+    @Column(nullable = false, length = 255)
+    private String fileThumbPath;
+
     @Column(nullable = false)
     private Long size;
 
