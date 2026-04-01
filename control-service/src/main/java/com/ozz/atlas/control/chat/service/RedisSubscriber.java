@@ -1,7 +1,7 @@
 package com.ozz.atlas.control.chat.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ozz.atlas.common.redis.RedisConstants;
+import com.ozz.atlas.control.config.RedisConstants;
 import com.ozz.atlas.control.chat.dto.ChatMessageDto;
 import com.ozz.atlas.control.notification.dto.NotificationDto;
 import lombok.RequiredArgsConstructor;

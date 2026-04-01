@@ -1,7 +1,7 @@
 package com.ozz.atlas.control.notification.service;
 
 import com.ozz.atlas.common.id.PublicIdGenerator;
-import com.ozz.atlas.common.redis.RedisConstants;
+import com.ozz.atlas.control.config.RedisConstants;
 import com.ozz.atlas.control.notification.domain.Notification;
 import com.ozz.atlas.control.notification.dto.NotificationDto;
 import com.ozz.atlas.control.notification.repository.NotificationRepository;

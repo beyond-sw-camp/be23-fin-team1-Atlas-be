@@ -1,4 +1,4 @@
-package com.ozz.atlas.common.redis;
+package com.ozz.atlas.control.config;
 
 /**
  * Redis 관련 상수 및 토픽 패턴 정의
