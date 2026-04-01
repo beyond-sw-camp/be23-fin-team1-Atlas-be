@@ -2,6 +2,8 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.Organization;
 import com.ozz.atlas.auth.domain.User;
+import com.ozz.atlas.auth.domain.UserRole;
+import com.ozz.atlas.auth.dtos.MyInfoDto;
 import com.ozz.atlas.auth.dtos.UserSignUpDto;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
@@ -35,5 +37,14 @@ public class UserService {
 
         User savedUser = userRepository.save(user);
         return savedUser.getPublicId();
+    }
+//    사용자 정보 조회
+    public MyInfoDto getMyInfo(String userPublicId, String organizationPublicId, UserRole role){
+        return MyInfoDto.builder()
+                .userPublicId(userPublicId)
+                .organizationPublicId(organizationPublicId)
+                .role(role)
+                .build();
+
     }
 }

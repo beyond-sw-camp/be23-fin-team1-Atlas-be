@@ -24,7 +24,7 @@ public class SecutityConfig {
                 .formLogin(formLogin -> formLogin.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/users", "/api/auth/organizations").permitAll()
-                        .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/auth/me","/error").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();

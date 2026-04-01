@@ -24,6 +24,7 @@ public class AuthService {
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new IllegalArgumentException("아이디 또는 비밀번호가 틀림");
         }
+        user.getOrganization().getPublicId();
         return user;
     }
 
