@@ -1,5 +1,6 @@
 package com.ozz.atlas.auth.common.token;
 
+import com.ozz.atlas.auth.domain.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -46,14 +47,16 @@ public class JwtTokenProvider {
     }
 
     // 로그인 성공 시 access token 생성
-    public String createAccessToken(Long userId, String role) {
+    public String createAccessToken(Long userId, String userPublicId, String organizationPublicId, String role) {
         Date now = new Date();
 
         return Jwts.builder()
                 // subject에는 userId 저장
                 .subject(String.valueOf(userId))
-                // role은 claim으로 저장
+                // role,publicId claim으로 저장
                 .claim("role", role)
+                .claim("userPublicId", userPublicId)
+                .claim("organizationPublicId", organizationPublicId)
                 // 발급 시간
                 .issuedAt(now)
                 // 만료 시간
@@ -118,4 +121,13 @@ public class JwtTokenProvider {
 
         return Long.parseLong(claims.getSubject());
     }
+    private Claims getClaimsFromAccessToken(String accessToken) {
+        return Jwts.parser()
+                .verifyWith(accessKey)
+                .build()
+                .parseSignedClaims(accessToken)
+                .getPayload();
+    }
+
+
 }

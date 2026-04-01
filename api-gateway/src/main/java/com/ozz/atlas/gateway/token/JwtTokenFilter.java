@@ -52,11 +52,21 @@ public class JwtTokenFilter implements GlobalFilter {
                     .getPayload();
 
             String userId = claims.getSubject();
+            String userPublicId = claims.get("userPublicId", String.class);
+            String organizationPublicId = claims.get("organizationPublicId", String.class);
             String role = claims.get("role", String.class);
 
             ServerWebExchange serverWebExchange = exchange.mutate()
-                    .request(r -> r.header("X-User-Id", userId)
-                            .header("X-User-Role", role))
+                    .request(r -> r.headers(headers -> {
+                        headers.remove("X-User-Id");
+                        headers.remove("X-User-Public-Id");
+                        headers.remove("X-Organization-Public-Id");
+                        headers.remove("X-User-Role");
+                        headers.set("X-User-Id", userId);
+                        headers.set("X-User-Public-Id", userPublicId);
+                        headers.set("X-Organization-Public-Id", organizationPublicId);
+                        headers.set("X-User-Role", role);
+                    }))
                     .build();
 
             return chain.filter(serverWebExchange);
