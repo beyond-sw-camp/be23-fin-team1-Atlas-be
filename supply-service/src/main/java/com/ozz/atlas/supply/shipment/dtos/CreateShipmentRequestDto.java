@@ -21,11 +21,11 @@ public class CreateShipmentRequestDto {
     private String vehicleNo;
     private String trackingNo;
 
-    @NotBlank
-    private String originNodeId;
+    @NotNull
+    private Long originNodeId;
 
-    @NotBlank
-    private String destinationNodeId;
+    @NotNull
+    private Long destinationNodeId;
 
     @NotNull
     private LocalDateTime departureEta;

@@ -12,22 +12,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Data
 @Builder
-public class ShipmentResponseDto {
+public class ShipmentListResponseDto {
 
     private String publicId;
     private String shipmentNumber;
-    private Long poId;
-    private Long subPoId;
     private String carrierName;
-    private String vehicleNo;
-    private String trackingNo;
-    private Long originNodeId;
     private Long destinationNodeId;
     private Long currentNodeId;
-    private LocalDateTime departureEta;
     private LocalDateTime arrivalEta;
-    private LocalDateTime actualDepartedAt;
-    private LocalDateTime actualArrivedAt;
     private ShipmentStatus status;
-    private boolean temperatureRequired;
 }
