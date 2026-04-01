@@ -2,7 +2,7 @@ package com.ozz.atlas.control.chat.service;
 
 import com.ozz.atlas.common.domain.DomainType;
 import com.ozz.atlas.common.id.PublicIdGenerator;
-import com.ozz.atlas.common.redis.RedisConstants;
+import com.ozz.atlas.control.config.RedisConstants;
 import com.ozz.atlas.control.chat.domain.ChatMessage;
 import com.ozz.atlas.control.chat.domain.ChatRoom;
 import com.ozz.atlas.control.chat.dto.ChatMessageDto;
