@@ -2,10 +2,18 @@ package com.ozz.atlas.supply.onboarding.domain;
 
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
 @Entity
 public class OnboardingRequest {
     @Id
