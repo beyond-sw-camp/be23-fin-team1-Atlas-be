@@ -1,0 +1,41 @@
+package com.ozz.atlas.supply.item.dtos;
+
+import com.ozz.atlas.supply.item.domain.ItemSpec;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateItemRequest {
+
+    @NotNull
+    private Long itemCategoryId;
+
+    @NotBlank
+    @Size(max = 50)
+    private String itemCode;
+
+    @NotBlank
+    @Size(max = 100)
+    private String itemName;
+
+    @NotBlank
+    @Size(max = 20)
+    private String unit;
+
+    @NotNull
+    private ItemSpec spec;
+
+    @NotNull
+    @Min(0)
+    private Integer shelfLifeDays;
+
+}
