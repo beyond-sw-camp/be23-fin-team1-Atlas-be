@@ -34,9 +34,4 @@ public class UpdateItemRequest {
     @Min(0)
     private Integer shelfLifeDays;
 
-    @NotNull
-    @Min(0)
-    @Max(1)
-    private Integer activeYn;
-
 }
