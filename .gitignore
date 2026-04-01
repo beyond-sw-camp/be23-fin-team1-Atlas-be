@@ -75,3 +75,5 @@ DDL.md
 
 ### Test Packages ###
 **/src/test/**
+
+.gradle-local/
