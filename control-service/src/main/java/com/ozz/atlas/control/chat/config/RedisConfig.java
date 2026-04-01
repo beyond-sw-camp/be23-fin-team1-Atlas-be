@@ -1,5 +1,8 @@
 package com.ozz.atlas.control.chat.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ozz.atlas.control.config.RedisConstants;
 import com.ozz.atlas.control.chat.service.RedisSubscriber;
 import org.springframework.context.annotation.Bean;
@@ -59,8 +62,13 @@ public class RedisConfig {
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         redisTemplate.setHashKeySerializer(new StringRedisSerializer());
         
-        // Value는 JSON으로 직렬화 (Object 타입 허용)
-        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
+        // 💡 LocalDateTime 등 Java 8 날짜/시간 타입을 지원하도록 ObjectMapper 설정
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule()); // 날짜 모듈 등록
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // 날짜를 문자열 포맷으로 저장
+        
+        // 직렬화 설정에 ObjectMapper 적용
+        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
         redisTemplate.setValueSerializer(serializer);
         redisTemplate.setHashValueSerializer(serializer);
         
