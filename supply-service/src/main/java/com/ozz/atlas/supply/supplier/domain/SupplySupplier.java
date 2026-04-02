@@ -19,7 +19,8 @@ public class SupplySupplier extends BaseTimeEntity {
     private Long id;
 
     @Column(nullable = false, unique = true, updatable = false, length = 26)
-    private String publicId;
+    @Builder.Default
+    private String publicId = PublicIdGenerator.next();
 
     @Column(nullable = false, length = 26)
     private String organizationPublicId;
@@ -52,9 +53,6 @@ public class SupplySupplier extends BaseTimeEntity {
 
     @PrePersist
     public void prePersist() {
-        if (this.publicId == null || this.publicId.isBlank()) {
-            this.publicId = PublicIdGenerator.next();
-        }
         if (this.supplierStatus == null) {
             this.supplierStatus = SupplierStatus.ACTIVE;
         }

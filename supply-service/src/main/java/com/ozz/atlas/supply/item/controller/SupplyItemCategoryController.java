@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,30 +22,31 @@ public class SupplyItemCategoryController {
     private final SupplyItemCategoryService supplyItemCategoryService;
 
     @PostMapping("/create")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ItemCategoryResponse createCategory(@Valid @RequestBody CreateItemCategoryRequest request) {
-        return supplyItemCategoryService.createCategory(request);
+    public ResponseEntity<?> createCategory(@Valid @RequestBody CreateItemCategoryRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(supplyItemCategoryService.createCategory(request));
     }
 
     @PutMapping("/{categoryId}")
-    public ItemCategoryResponse updateCategory(@PathVariable Long categoryId,
+    public ResponseEntity<?> updateCategory(@PathVariable Long categoryId,
                                                @Valid @RequestBody UpdateItemCategoryRequest request) {
-        return supplyItemCategoryService.updateCategory(categoryId, request);
+        return ResponseEntity.ok(supplyItemCategoryService.updateCategory(categoryId, request));
     }
 
     @DeleteMapping("/{categoryId}")
-    public void deleteCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<?> deleteCategory(@PathVariable Long categoryId) {
         supplyItemCategoryService.deleteCategory(categoryId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{categoryId}")
-    public ItemCategoryResponse getCategory(@PathVariable Long categoryId) {
-        return supplyItemCategoryService.getCategory(categoryId);
+    public ResponseEntity<?> getCategory(@PathVariable Long categoryId) {
+        return ResponseEntity.ok(supplyItemCategoryService.getCategory(categoryId));
     }
 
     @GetMapping
-    public Page<ItemCategoryResponse> getCategoryList(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        return supplyItemCategoryService.getCategoryList(pageable);
+    public ResponseEntity<?> getCategoryList(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(supplyItemCategoryService.getCategoryList(pageable));
     }
 
 }
