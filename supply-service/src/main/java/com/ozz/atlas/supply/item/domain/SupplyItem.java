@@ -31,12 +31,13 @@ public class SupplyItem extends BaseTimeEntity {
     private String itemCode;
     @Column(nullable = false, length = 100)
     private String itemName;
-    @Column(nullable = false, length = 20)
-    private String unit;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ItemSpec spec;
+    private ItemUnit unit;
+
+    @Column(nullable = false, length = 100)
+    private String spec;
 
     @Column(nullable = false)
     private Integer shelfLifeDays;
@@ -50,8 +51,8 @@ public class SupplyItem extends BaseTimeEntity {
             SupplyItemCategory itemCategory,
             String itemCode,
             String itemName,
-            String unit,
-            ItemSpec spec,
+            ItemUnit unit,
+            String spec,
             Integer shelfLifeDays
     ) {
         return SupplyItem.builder()
@@ -69,8 +70,8 @@ public class SupplyItem extends BaseTimeEntity {
             SupplyItemCategory itemCategory,
             String itemCode,
             String itemName,
-            String unit,
-            ItemSpec spec,
+            ItemUnit unit,
+            String spec,
             Integer shelfLifeDays
     ) {
         this.itemCategory = itemCategory;

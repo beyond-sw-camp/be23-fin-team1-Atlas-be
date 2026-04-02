@@ -1,12 +1,10 @@
 package com.ozz.atlas.supply.item.controller;
 
 import com.ozz.atlas.supply.item.dtos.CreateItemCategoryRequest;
-import com.ozz.atlas.supply.item.dtos.ItemCategoryResponse;
 import com.ozz.atlas.supply.item.dtos.UpdateItemCategoryRequest;
 import com.ozz.atlas.supply.item.service.SupplyItemCategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
