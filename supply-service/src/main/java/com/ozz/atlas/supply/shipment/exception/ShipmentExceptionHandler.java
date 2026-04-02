@@ -1,7 +1,5 @@
 package com.ozz.atlas.supply.shipment.exception;
 
-import com.ozz.atlas.common.exception.BaseException;
-import com.ozz.atlas.common.exception.ErrorCode;
 import com.ozz.atlas.common.exception.ErrorResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

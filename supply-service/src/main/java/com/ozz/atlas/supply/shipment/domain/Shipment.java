@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.shipment.domain;
 
 import com.ozz.atlas.common.id.PublicIdGenerator;
+import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,19 +15,21 @@ import java.time.LocalDateTime;
 @Builder
 @Getter
 @Entity
-public class Shipment {
+public class Shipment extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, updatable = false, length = 26)
-    private String publicId;
+    @Builder.Default
+    private String publicId = PublicIdGenerator.next();
 
     @Column(nullable = false, length = 50)
     private String shipmentNumber;
 
     private Long poId;
+
     private Long subPoId;
 
     @Column(length = 100)
@@ -39,8 +42,11 @@ public class Shipment {
     private String trackingNo;
 
     private Long originNodeId;
+
     private Long destinationNodeId;
+
     private Long currentNodeId;
+
     private LocalDateTime departureEta;
     private LocalDateTime arrivalEta;
     private LocalDateTime actualDepartedAt;
@@ -52,13 +58,6 @@ public class Shipment {
 
     @Column(nullable = false)
     private boolean temperatureRequired;
-
-    @PrePersist
-    public void prePersist() {
-        if (this.publicId == null || this.publicId.isBlank()) {
-            this.publicId = PublicIdGenerator.next();
-        }
-    }
 
 //    출발 체크포인트를 통과했을 때 호출
     public void markInTransit(Long currentNodeId, LocalDateTime actualDepartedAt){
