@@ -1,16 +1,15 @@
 package com.ozz.atlas.supply.item.controller;
 
 import com.ozz.atlas.supply.item.dtos.CreateItemRequest;
-import com.ozz.atlas.supply.item.dtos.ItemResponse;
 import com.ozz.atlas.supply.item.dtos.UpdateItemRequest;
 import com.ozz.atlas.supply.item.service.SupplyItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,31 +20,32 @@ public class SupplyItemController {
     private final SupplyItemService supplyItemService;
 
     @PostMapping("/create")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ItemResponse createItem(@Valid @RequestBody CreateItemRequest request) {
-        return supplyItemService.createItem(request);
+    public ResponseEntity<?> createItem(@Valid @RequestBody CreateItemRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(supplyItemService.createItem(request));
     }
 
     @PutMapping("/{itemId}")
-    public ItemResponse updateItem(@PathVariable Long itemId,
+    public ResponseEntity<?> updateItem(@PathVariable Long itemId,
                            @Valid @RequestBody UpdateItemRequest request) {
 
-        return supplyItemService.updateItem(itemId, request);
+        return ResponseEntity.ok(supplyItemService.updateItem(itemId, request));
     }
 
     @DeleteMapping("/{itemId}")
-    public void deleteItem(@PathVariable Long itemId) {
+    public ResponseEntity<?> deleteItem(@PathVariable Long itemId) {
         supplyItemService.deleteItem(itemId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{itemId}")
-    public ItemResponse getItem(@PathVariable Long itemId) {
-        return supplyItemService.getItem(itemId);
+    public ResponseEntity<?> getItem(@PathVariable Long itemId) {
+        return ResponseEntity.ok(supplyItemService.getItem(itemId));
     }
 
     @GetMapping
-    public Page<ItemResponse> getItemList(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        return supplyItemService.getItemList(pageable);
+    public ResponseEntity<?>getItemList(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(supplyItemService.getItemList(pageable));
     }
 
 

@@ -6,6 +6,8 @@ import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import com.ozz.atlas.supply.item.dtos.CreateItemRequest;
 import com.ozz.atlas.supply.item.dtos.ItemResponse;
 import com.ozz.atlas.supply.item.dtos.UpdateItemRequest;
+import com.ozz.atlas.supply.item.exception.ItemErrorCode;
+import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import org.springframework.data.domain.Page;
@@ -30,10 +32,10 @@ public class SupplyItemService {
     public ItemResponse createItem(CreateItemRequest request) {
 
         if (supplyItemRepository.existsByItemCode(request.getItemCode())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Item code already exists");
+            throw new ItemException(ItemErrorCode.ITEM_CODE_ALREADY_EXISTS);
         }
         SupplyItemCategory category = supplyItemCategoryRepository.findById(request.getItemCategoryId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item category not found"));
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_CATEGORY_NOT_FOUND));
 
         SupplyItem item = SupplyItem.create(
                 category,
@@ -48,13 +50,13 @@ public class SupplyItemService {
 
     public ItemResponse updateItem(Long itemId, UpdateItemRequest request) {
         SupplyItem item = supplyItemRepository.findByIdAndStatusIn(itemId, List.of(Status.ACTIVE, Status.DEACTIVE))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
         SupplyItemCategory category = supplyItemCategoryRepository.findById(request.getItemCategoryId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item category not found"));
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_CATEGORY_NOT_FOUND));
 
         if (supplyItemRepository.existsByItemCodeAndIdNot(request.getItemCode(), item.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Item code already exists");
+            throw new ItemException(ItemErrorCode.ITEM_CODE_ALREADY_EXISTS);
         }
 
         item.update(
@@ -71,7 +73,7 @@ public class SupplyItemService {
 
     public void deleteItem(Long itemId) {
         SupplyItem item = supplyItemRepository.findByIdAndStatusIn(itemId, List.of(Status.ACTIVE, Status.DEACTIVE))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
         item.changeActiveYn(Status.DELETE);
     }
@@ -79,7 +81,7 @@ public class SupplyItemService {
     @Transactional(readOnly = true)
     public ItemResponse getItem(Long itemId) {
         SupplyItem item = supplyItemRepository.findByIdAndStatusIn(itemId, List.of(Status.ACTIVE))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
         return ItemResponse.fromEntity(item);
     }

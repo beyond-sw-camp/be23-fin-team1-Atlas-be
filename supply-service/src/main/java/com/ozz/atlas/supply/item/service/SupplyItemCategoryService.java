@@ -5,15 +5,15 @@ import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import com.ozz.atlas.supply.item.dtos.CreateItemCategoryRequest;
 import com.ozz.atlas.supply.item.dtos.ItemCategoryResponse;
 import com.ozz.atlas.supply.item.dtos.UpdateItemCategoryRequest;
+import com.ozz.atlas.supply.item.exception.ItemErrorCode;
+import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class SupplyItemCategoryService {
 
         if (request.getParentCategoryId() != null) {
             parentCategory = supplyItemCategoryRepository.findByIdAndStatus(request.getParentCategoryId(), Status.ACTIVE)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category not found"));
+                    .orElseThrow(() -> new ItemException(ItemErrorCode.PARENT_CATEGORY_NOT_FOUND));
             categoryLevel = parentCategory.getCategoryLevel() + 1;
         }
 
@@ -45,16 +45,20 @@ public class SupplyItemCategoryService {
 
     public ItemCategoryResponse updateCategory(Long categoryId, UpdateItemCategoryRequest request) {
         SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+                .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
+
+        if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(categoryId, Status.ACTIVE)) {
+            throw new ItemException(ItemErrorCode.CATEGORY_CHILD_EXISTS);
+        }
 
         SupplyItemCategory parentCategory = null;
         int categoryLevel = 1;
         if (request.getParentCategoryId() != null) {
             if (request.getParentCategoryId().equals(categoryId)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category cannot be its own parent");
+                throw new ItemException(ItemErrorCode.CATEGORY_SELF_PARENT);
             }
             parentCategory = supplyItemCategoryRepository.findByIdAndStatus(request.getParentCategoryId(), Status.ACTIVE)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category not found"));
+                    .orElseThrow(() -> new ItemException(ItemErrorCode.PARENT_CATEGORY_NOT_FOUND));
             categoryLevel = parentCategory.getCategoryLevel() + 1;
         }
 
@@ -70,14 +74,14 @@ public class SupplyItemCategoryService {
 
     public void deleteCategory(Long categoryId) {
         SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+                .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
 
         if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(categoryId, Status.ACTIVE)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Child category exists");
+            throw new ItemException(ItemErrorCode.CATEGORY_CHILD_EXISTS);
         }
 
         if (supplyItemRepository.existsByItemCategoryAndStatus(category, Status.ACTIVE)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Items exist in this category");
+            throw new ItemException(ItemErrorCode.ITEM_EXISTS_IN_CATEGORY);
         }
 
         category.changeActiveYn(Status.DELETE);
@@ -86,7 +90,7 @@ public class SupplyItemCategoryService {
     @Transactional(readOnly = true)
     public ItemCategoryResponse getCategory(Long categoryId) {
         SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+                .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
         return ItemCategoryResponse.fromEntity(category);
     }
 

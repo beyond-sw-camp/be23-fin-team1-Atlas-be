@@ -20,7 +20,8 @@ public class SupplyItem extends BaseTimeEntity {
     private Long id;
 
     @Column(nullable = false, unique = true, updatable = false, length = 26)
-    private String publicId;
+    @Builder.Default
+    private String publicId = PublicIdGenerator.next();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_category_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT))
@@ -44,13 +45,6 @@ public class SupplyItem extends BaseTimeEntity {
     @Column(nullable = false)
     @Builder.Default
     private Status status = Status.DEACTIVE;
-
-    @PrePersist
-    public void prePersist() {
-        if (this.publicId == null || this.publicId.isBlank()) {
-            this.publicId = PublicIdGenerator.next();
-        }
-    }
 
     public static SupplyItem create(
             SupplyItemCategory itemCategory,
