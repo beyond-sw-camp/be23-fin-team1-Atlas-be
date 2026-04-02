@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.item.service;
 
+import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import com.ozz.atlas.supply.item.dtos.CreateItemCategoryRequest;
 import com.ozz.atlas.supply.item.dtos.ItemCategoryResponse;
@@ -27,7 +28,7 @@ public class SupplyItemCategoryService {
         int categoryLevel = 1;
 
         if (request.getParentCategoryId() != null) {
-            parentCategory = supplyItemCategoryRepository.findByIdAndActiveYn(request.getParentCategoryId(), 1)
+            parentCategory = supplyItemCategoryRepository.findByIdAndStatus(request.getParentCategoryId(), Status.ACTIVE)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category not found"));
             categoryLevel = parentCategory.getCategoryLevel() + 1;
         }
@@ -39,11 +40,11 @@ public class SupplyItemCategoryService {
                 request.getSortOrder() != null ? request.getSortOrder() : 1
         );
 
-        return ItemCategoryResponse.from(supplyItemCategoryRepository.save(category));
+        return ItemCategoryResponse.fromEntity(supplyItemCategoryRepository.save(category));
     }
 
     public ItemCategoryResponse updateCategory(Long categoryId, UpdateItemCategoryRequest request) {
-        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndActiveYn(categoryId, 1)
+        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
         SupplyItemCategory parentCategory = null;
@@ -52,7 +53,7 @@ public class SupplyItemCategoryService {
             if (request.getParentCategoryId().equals(categoryId)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category cannot be its own parent");
             }
-            parentCategory = supplyItemCategoryRepository.findByIdAndActiveYn(request.getParentCategoryId(), 1)
+            parentCategory = supplyItemCategoryRepository.findByIdAndStatus(request.getParentCategoryId(), Status.ACTIVE)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category not found"));
             categoryLevel = parentCategory.getCategoryLevel() + 1;
         }
@@ -64,33 +65,34 @@ public class SupplyItemCategoryService {
                 request.getSortOrder() != null ? request.getSortOrder() : category.getSortOrder()
         );
 
-        return ItemCategoryResponse.from(category);
+        return ItemCategoryResponse.fromEntity(category);
     }
 
     public void deleteCategory(Long categoryId) {
-        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndActiveYn(categoryId, 1)
+        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
 
-        if (supplyItemCategoryRepository.existsByParentCategory_IdAndActiveYn(categoryId, 1)) {
+        if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(categoryId, Status.ACTIVE)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Child category exists");
         }
 
-        if (supplyItemRepository.existsByItemCategoryAndActiveYn(category, 1)) {
+        if (supplyItemRepository.existsByItemCategoryAndStatus(category, Status.ACTIVE)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Items exist in this category");
         }
 
-        category.changeActiveYn(0);
-    }
-    @Transactional(readOnly = true)
-    public ItemCategoryResponse getCategory(Long categoryId) {
-        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndActiveYn(categoryId, 1)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
-        return ItemCategoryResponse.from(category);
+        category.changeActiveYn(Status.DELETE);
     }
 
     @Transactional(readOnly = true)
-    public Page<ItemCategoryResponse> getCategories(Pageable pageable) {
-        Page<SupplyItemCategory> categoryPage = supplyItemCategoryRepository.findAllByActiveYn(1, pageable);
-        return categoryPage.map(ItemCategoryResponse::from);
+    public ItemCategoryResponse getCategory(Long categoryId) {
+        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+        return ItemCategoryResponse.fromEntity(category);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ItemCategoryResponse> getCategoryList(Pageable pageable) {
+        Page<SupplyItemCategory> categoryPage = supplyItemCategoryRepository.findAllByStatus(Status.ACTIVE, pageable);
+        return categoryPage.map(ItemCategoryResponse::fromEntity);
     }
 }

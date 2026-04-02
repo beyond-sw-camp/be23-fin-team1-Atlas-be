@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.item.repository;
 
+import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,9 +10,9 @@ import java.util.Optional;
 
 public interface SupplyItemCategoryRepository extends JpaRepository<SupplyItemCategory, Long> {
 
-    Page<SupplyItemCategory> findAllByActiveYn(Integer activeYn, Pageable pageable);
+    Page<SupplyItemCategory> findAllByStatus(Status status, Pageable pageable);
 
-    Optional<SupplyItemCategory> findByIdAndActiveYn(Long id, Integer activeYn);
+    Optional<SupplyItemCategory> findByIdAndStatus(Long id, Status status);
 
-    boolean existsByParentCategory_IdAndActiveYn(Long parentCategoryId, Integer activeYn);
+    boolean existsByParentCategory_IdAndStatus(Long parentCategoryId, Status status);
 }

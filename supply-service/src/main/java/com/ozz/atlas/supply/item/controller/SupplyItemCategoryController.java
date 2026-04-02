@@ -43,8 +43,8 @@ public class SupplyItemCategoryController {
     }
 
     @GetMapping
-    public Page<ItemCategoryResponse> getCategories(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        return supplyItemCategoryService.getCategories(pageable);
+    public Page<ItemCategoryResponse> getCategoryList(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return supplyItemCategoryService.getCategoryList(pageable);
     }
 
 }
