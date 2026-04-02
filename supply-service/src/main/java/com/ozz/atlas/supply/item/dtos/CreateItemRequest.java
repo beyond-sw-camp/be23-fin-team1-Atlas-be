@@ -1,6 +1,6 @@
 package com.ozz.atlas.supply.item.dtos;
 
-import com.ozz.atlas.supply.item.domain.ItemSpec;
+import com.ozz.atlas.supply.item.domain.ItemUnit;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -27,12 +27,12 @@ public class CreateItemRequest {
     @Size(max = 100)
     private String itemName;
 
-    @NotBlank
-    @Size(max = 20)
-    private String unit;
-
     @NotNull
-    private ItemSpec spec;
+    private ItemUnit unit;
+
+    @NotBlank
+    @Size(max = 100)
+    private String spec;
 
     @NotNull
     @Min(0)
