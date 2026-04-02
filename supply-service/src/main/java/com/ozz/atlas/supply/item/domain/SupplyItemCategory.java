@@ -1,5 +1,7 @@
 package com.ozz.atlas.supply.item.domain;
 
+import com.ozz.atlas.common.jpa.BaseTimeEntity;
+import com.ozz.atlas.common.jpa.Status;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +16,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 @Entity
-public class SupplyItemCategory {
+public class SupplyItemCategory extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,12 +31,11 @@ public class SupplyItemCategory {
     private Integer categoryLevel;
     @Column(nullable = false)
     private Integer sortOrder;
-    @Column(nullable = false)
-    private Integer activeYn;
 
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private Status status = Status.ACTIVE;
 
     @PrePersist
     public void prePersist() {
@@ -44,9 +45,7 @@ public class SupplyItemCategory {
         if (this.sortOrder == null) {
             this.sortOrder = 1;
         }
-        if (this.activeYn == null) {
-            this.activeYn = 1;
-        }
+
     }
 
     public static SupplyItemCategory create(
@@ -60,7 +59,7 @@ public class SupplyItemCategory {
                 .categoryName(categoryName)
                 .categoryLevel(categoryLevel)
                 .sortOrder(sortOrder)
-                .activeYn(1)
+                .status(Status.ACTIVE)
                 .build();
     }
 
@@ -76,8 +75,8 @@ public class SupplyItemCategory {
         this.sortOrder = sortOrder;
     }
 
-    public void changeActiveYn(Integer activeYn) {
-        this.activeYn = activeYn;
+    public void changeActiveYn(Status status) {
+        this.status = status;
     }
 }
 

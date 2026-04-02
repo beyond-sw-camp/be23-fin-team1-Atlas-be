@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.item.service;
 
+import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import com.ozz.atlas.supply.item.dtos.CreateItemRequest;
@@ -7,7 +8,6 @@ import com.ozz.atlas.supply.item.dtos.ItemResponse;
 import com.ozz.atlas.supply.item.dtos.UpdateItemRequest;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 
 @Service
@@ -41,11 +43,11 @@ public class SupplyItemService {
                 request.getSpec(),
                 request.getShelfLifeDays()
         );
-        return ItemResponse.from(supplyItemRepository.save(item));
+        return ItemResponse.fromEntity(supplyItemRepository.save(item));
     }
 
-    public ItemResponse updateItem(String publicId, UpdateItemRequest request) {
-        SupplyItem item = supplyItemRepository.findByPublicIdAndActiveYn(publicId, 1)
+    public ItemResponse updateItem(Long itemId, UpdateItemRequest request) {
+        SupplyItem item = supplyItemRepository.findByIdAndStatusIn(itemId, List.of(Status.ACTIVE, Status.DEACTIVE))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
 
         SupplyItemCategory category = supplyItemCategoryRepository.findById(request.getItemCategoryId())
@@ -64,27 +66,27 @@ public class SupplyItemService {
                 request.getShelfLifeDays()
         );
 
-        return ItemResponse.from(item);
+        return ItemResponse.fromEntity(item);
     }
 
-    public void deleteItem(String publicId) {
-        SupplyItem item = supplyItemRepository.findByPublicIdAndActiveYn(publicId, 1)
+    public void deleteItem(Long itemId) {
+        SupplyItem item = supplyItemRepository.findByIdAndStatusIn(itemId, List.of(Status.ACTIVE, Status.DEACTIVE))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
 
-        item.changeActiveYn(0);
+        item.changeActiveYn(Status.DELETE);
     }
 
     @Transactional(readOnly = true)
-    public ItemResponse getItem(String publicId) {
-        SupplyItem item = supplyItemRepository.findByPublicIdAndActiveYn(publicId, 1)
+    public ItemResponse getItem(Long itemId) {
+        SupplyItem item = supplyItemRepository.findByIdAndStatusIn(itemId, List.of(Status.ACTIVE))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
 
-        return ItemResponse.from(item);
+        return ItemResponse.fromEntity(item);
     }
 
     @Transactional(readOnly = true)
-    public Page<ItemResponse> getItems(Pageable pageable) {
-        Page<SupplyItem> itemPage = supplyItemRepository.findAllByActiveYn(1, pageable);
-        return itemPage.map(ItemResponse::from);
+    public Page<ItemResponse> getItemList(Pageable pageable) {
+        Page<SupplyItem> itemPage = supplyItemRepository.findAllByStatus(Status.ACTIVE, pageable);
+        return itemPage.map(ItemResponse::fromEntity);
     }
 }

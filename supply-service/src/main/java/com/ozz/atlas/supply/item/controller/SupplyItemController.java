@@ -26,26 +26,26 @@ public class SupplyItemController {
         return supplyItemService.createItem(request);
     }
 
-    @PutMapping("/{publicId}")
-    public ItemResponse updateItem(@PathVariable String publicId,
+    @PutMapping("/{itemId}")
+    public ItemResponse updateItem(@PathVariable Long itemId,
                            @Valid @RequestBody UpdateItemRequest request) {
 
-        return supplyItemService.updateItem(publicId, request);
+        return supplyItemService.updateItem(itemId, request);
     }
 
-    @DeleteMapping("/{publicId}")
-    public void deleteItem(@PathVariable String publicId) {
-        supplyItemService.deleteItem(publicId);
+    @DeleteMapping("/{itemId}")
+    public void deleteItem(@PathVariable Long itemId) {
+        supplyItemService.deleteItem(itemId);
     }
 
-    @GetMapping("/{publicId}")
-    public ItemResponse getItem(@PathVariable String publicId) {
-        return supplyItemService.getItem(publicId);
+    @GetMapping("/{itemId}")
+    public ItemResponse getItem(@PathVariable Long itemId) {
+        return supplyItemService.getItem(itemId);
     }
 
     @GetMapping
-    public Page<ItemResponse> getItems(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        return supplyItemService.getItems(pageable);
+    public Page<ItemResponse> getItemList(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return supplyItemService.getItemList(pageable);
     }
 
 

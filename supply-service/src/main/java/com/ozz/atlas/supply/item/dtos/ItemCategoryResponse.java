@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.item.dtos;
 
+import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,23 +13,23 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemCategoryResponse {
+public class ItemCategoryResponse  {
     private Long id;
     private Long parentCategoryId;
     private String categoryName;
     private Integer categoryLevel;
     private Integer sortOrder;
-    private Integer activeYn;
+    private Status status;
     private LocalDateTime createdAt;
 
-    public static ItemCategoryResponse from(SupplyItemCategory category) {
+    public static ItemCategoryResponse fromEntity(SupplyItemCategory category) {
         return ItemCategoryResponse.builder()
                 .id(category.getId())
                 .parentCategoryId(category.getParentCategory() != null ? category.getParentCategory().getId() : null)
                 .categoryName(category.getCategoryName())
                 .categoryLevel(category.getCategoryLevel())
                 .sortOrder(category.getSortOrder())
-                .activeYn(category.getActiveYn())
+                .status(category.getStatus())
                 .createdAt(category.getCreatedAt())
                 .build();
     }

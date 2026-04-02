@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.item.domain;
 
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
+import com.ozz.atlas.common.jpa.Status;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,16 +39,16 @@ public class SupplyItem extends BaseTimeEntity {
 
     @Column(nullable = false)
     private Integer shelfLifeDays;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Integer activeYn;
+    @Builder.Default
+    private Status status = Status.DEACTIVE;
 
     @PrePersist
     public void prePersist() {
         if (this.publicId == null || this.publicId.isBlank()) {
             this.publicId = PublicIdGenerator.next();
-        }
-        if (this.activeYn == null) {
-            this.activeYn = 1;
         }
     }
 
@@ -66,7 +67,7 @@ public class SupplyItem extends BaseTimeEntity {
                 .unit(unit)
                 .spec(spec)
                 .shelfLifeDays(shelfLifeDays)
-                .activeYn(1)
+                .status(Status.DEACTIVE)
                 .build();
     }
 
@@ -84,10 +85,10 @@ public class SupplyItem extends BaseTimeEntity {
         this.unit = unit;
         this.spec = spec;
         this.shelfLifeDays = shelfLifeDays;
-        this.activeYn = activeYn;
+        this.status = Status.ACTIVE;
     }
 
-    public void changeActiveYn(Integer activeYn) {
-        this.activeYn = activeYn;
+    public void changeActiveYn(Status status) {
+        this.status = status;
     }
 }
