@@ -2,7 +2,7 @@ package com.ozz.atlas.file.domain;
 
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
-import com.ozz.atlas.common.jpa.DelYn;
+import com.ozz.atlas.common.jpa.Status;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -46,10 +46,10 @@ public class MediaFile extends BaseTimeEntity {
     @Column(nullable = false, length = 1)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private DelYn delYn = DelYn.N;
+    private Status status = Status.ACTIVE;
 
     public void deleteMediaFile() {
-        this.delYn = DelYn.Y;
+        this.status = Status.DELETE;
     }
 
 }
