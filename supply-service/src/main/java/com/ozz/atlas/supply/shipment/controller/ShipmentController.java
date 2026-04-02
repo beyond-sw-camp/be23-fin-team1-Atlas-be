@@ -6,14 +6,17 @@ import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
 import com.ozz.atlas.supply.shipment.dtos.TrackShipmentRequestDto;
 import com.ozz.atlas.supply.shipment.service.ShipmentService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
-@RequestMapping("/shipments")
+@RequestMapping("/api/shipments")
 public class ShipmentController {
 
     private final ShipmentService shipmentService;
@@ -22,34 +25,35 @@ public class ShipmentController {
         this.shipmentService = shipmentService;
     }
 
-//    출하 목록 조회
-    @GetMapping
-    public ResponseEntity<List<ShipmentListResponseDto>> getShipments(){
-        return ResponseEntity.ok(shipmentService.getShipments());
-    }
-
 //    출하 생성
     @PostMapping
     public ResponseEntity<ShipmentResponseDto> createShipment(@Valid @RequestBody CreateShipmentRequestDto dto){
         ShipmentResponseDto createdShipment = shipmentService.createShipment(dto);
 
         return ResponseEntity
-                .created(URI.create("/shipments/" + createdShipment.getPublicId()))
+                .created(URI.create("/api/shipments/" + createdShipment.getId()))
                 .body(createdShipment);
     }
 
-//    출하 상세 조회
-    @GetMapping("/{publicId}")
-    public ResponseEntity<ShipmentResponseDto> getShipment(@PathVariable String publicId) {
-        return ResponseEntity.ok(shipmentService.getShipmentByPublicId(publicId));
+//    출하 목록 조회
+    @GetMapping
+    public Page<ShipmentListResponseDto> getShipments(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable){
+        return shipmentService.getShipments(pageable);
     }
 
-    @PostMapping("/{publicId}/track")
+//    출하 상세 조회
+    @GetMapping("/{id}")
+    public ResponseEntity<ShipmentResponseDto> getShipment(@PathVariable Long id) {
+        return ResponseEntity.ok(shipmentService.getShipmentById(id));
+    }
+
+//    track 조회
+    @PostMapping("/{id}/track")
     public ResponseEntity<ShipmentResponseDto> trackShipment(
-            @PathVariable String publicId,
+            @PathVariable Long id,
             @Valid @RequestBody TrackShipmentRequestDto dto
     ) {
-        return ResponseEntity.ok(shipmentService.trackShipment(publicId, dto));
+        return ResponseEntity.ok(shipmentService.trackShipment(id, dto));
     }
 
 }

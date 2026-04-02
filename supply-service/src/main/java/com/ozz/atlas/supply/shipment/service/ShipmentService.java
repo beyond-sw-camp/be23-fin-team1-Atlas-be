@@ -9,10 +9,10 @@ import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
 import com.ozz.atlas.supply.shipment.repository.ShipmentCheckpointRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @Transactional
@@ -25,100 +25,42 @@ public class ShipmentService {
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
     }
 
+//    출하 생성
+    @Transactional
+    public ShipmentResponseDto createShipment(CreateShipmentRequestDto dto){
+        Shipment savedShipment = shipmentRepository.save(dto.toEntity());
+        return ShipmentResponseDto.from(savedShipment);
+    }
+
 //    출하 목록 조회
-    public List<ShipmentListResponseDto> getShipments(){
-        return shipmentRepository.findAll()
-                .stream()
-                .map(this::toListResponseDto)
-                .toList();
+    @Transactional(readOnly = true)
+    public Page<ShipmentListResponseDto> getShipments(Pageable pageable) {
+        Page<Shipment> shipmentPage = shipmentRepository.findAll(pageable);
+        return shipmentPage.map(ShipmentListResponseDto::from);
     }
 
 //    출하 상세 조회
-    public ShipmentResponseDto getShipmentByPublicId(String publicId){
-        Shipment shipment = shipmentRepository.findByPublicId(publicId)
+    @Transactional(readOnly = true)
+    public ShipmentResponseDto getShipmentById(Long id){
+        Shipment shipment = shipmentRepository.findById(id)
                 .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
 
-        return toResponseDto(shipment);
-    }
-    @Transactional
-    public ShipmentResponseDto createShipment(CreateShipmentRequestDto dto){
-        Shipment shipment = Shipment.builder()
-                .shipmentNumber(dto.getShipmentNumber())
-                .poId(dto.getPoId())
-                .subPoId(dto.getSubPoId())
-                .carrierName(dto.getCarrierName())
-                .vehicleNo(dto.getVehicleNo())
-                .trackingNo(dto.getTrackingNo())
-                .originNodeId(dto.getOriginNodeId())
-                .destinationNodeId(dto.getDestinationNodeId())
-                .currentNodeId(dto.getOriginNodeId())
-                .departureEta(dto.getDepartureEta())
-                .arrivalEta(dto.getArrivalEta())
-                .status(ShipmentStatus.READY)
-                .temperatureRequired(dto.isTemperatureRequired())
-                .build();
-
-        Shipment savedShipment = shipmentRepository.save(shipment);
-        return toResponseDto(savedShipment);
+        return ShipmentResponseDto.from(shipment);
     }
 
-//    출하 목록 조립
-    private ShipmentListResponseDto toListResponseDto(Shipment shipment){
-        return ShipmentListResponseDto.builder()
-                .publicId(shipment.getPublicId())
-                .shipmentNumber(shipment.getShipmentNumber())
-                .carrierName(shipment.getCarrierName())
-                .currentNodeId(shipment.getCurrentNodeId())
-                .destinationNodeId(shipment.getDestinationNodeId())
-                .arrivalEta(shipment.getArrivalEta())
-                .status(shipment.getStatus())
-                .build();
-    }
-
-//    출하 상세 조립
-    private ShipmentResponseDto toResponseDto(Shipment shipment) {
-        return ShipmentResponseDto.builder()
-                .publicId(shipment.getPublicId())
-                .shipmentNumber(shipment.getShipmentNumber())
-                .poId(shipment.getPoId())
-                .subPoId(shipment.getSubPoId())
-                .carrierName(shipment.getCarrierName())
-                .vehicleNo(shipment.getVehicleNo())
-                .trackingNo(shipment.getTrackingNo())
-                .originNodeId(shipment.getOriginNodeId())
-                .destinationNodeId(shipment.getDestinationNodeId())
-                .currentNodeId(shipment.getCurrentNodeId())
-                .departureEta(shipment.getDepartureEta())
-                .arrivalEta(shipment.getArrivalEta())
-                .actualDepartedAt(shipment.getActualDepartedAt())
-                .actualArrivedAt(shipment.getActualArrivedAt())
-                .status(shipment.getStatus())
-                .temperatureRequired(shipment.isTemperatureRequired())
-                .build();
-    }
-
-    public ShipmentResponseDto trackShipment(String publicId, TrackShipmentRequestDto dto){
-        Shipment shipment = shipmentRepository.findByPublicId(publicId)
+//    track 생성
+    public ShipmentResponseDto trackShipment(Long id, TrackShipmentRequestDto dto){
+        Shipment shipment = shipmentRepository.findById(id)
                 .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
 
         validateTrackRequest(dto);
 
-        ShipmentCheckpoint checkpoint = ShipmentCheckpoint.builder()
-                .shipmentId(shipment.getId())
-                .nodeId(dto.getNodeId())
-                .checkpointType(dto.getCheckpointType())
-                .checkpointStatus(dto.getCheckpointStatus())
-                .plannedAt(dto.getPlannedAt())
-                .actualAt(dto.getActualAt())
-                .note(dto.getNote())
-                .build();
-
+        ShipmentCheckpoint checkpoint = dto.toEntity(id);
         shipmentCheckpointRepository.save(checkpoint);
 
         applyCheckpointToShipment(shipment, dto);
 
-        Shipment updateShipment = shipmentRepository.save(shipment);
-        return toResponseDto(updateShipment);
+        return ShipmentResponseDto.from(shipmentRepository.save(shipment));
     }
 
 //    service 내부 검증
