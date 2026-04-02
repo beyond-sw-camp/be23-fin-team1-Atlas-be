@@ -14,20 +14,20 @@ import lombok.Getter;
 public abstract class SoftDeleteEntity extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "del_yn", nullable = false, length = 1)
-    private DelYn delYn = DelYn.N;
+    @Column(name = "status", nullable = false, length = 20)
+    private Status status = Status.ACTIVE;
 
     /**
      * 엔티티 삭제 처리 (논리 삭제)
      */
     public void delete() {
-        this.delYn = DelYn.Y;
+        this.status = Status.DELETE;
     }
 
     /**
      * 삭제 여부 확인
      */
     public boolean isDeleted() {
-        return this.delYn == DelYn.Y;
+        return this.status == Status.DELETE;
     }
 }
