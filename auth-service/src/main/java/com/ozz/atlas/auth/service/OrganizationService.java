@@ -1,11 +1,10 @@
 package com.ozz.atlas.auth.service;
 
+import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.Organization;
-import com.ozz.atlas.auth.domain.OrganizationType;
-import com.ozz.atlas.auth.dtos.OrganizationCreateDto;
-import com.ozz.atlas.auth.dtos.OrganizationDetailDto;
-import com.ozz.atlas.auth.dtos.OrganizationListDto;
-import com.ozz.atlas.auth.dtos.OrganizationSearchDto;
+import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.auth.domain.UserRole;
+import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +48,10 @@ public class OrganizationService {
 
             if (searchDto.getStatus() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), searchDto.getStatus()));
+            } else {
+                predicates.add(criteriaBuilder.equal(root.get("status"), Status.ACTIVE));
             }
+
 
             return criteriaBuilder.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
@@ -62,8 +64,53 @@ public class OrganizationService {
     public OrganizationDetailDto organizationDetail(Long organizationId) {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+        if (organization.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("존재하지 않는 조직입니다.");
+        }
+
 
         return OrganizationDetailDto.fromEntity(organization);
+    }
+
+    //    조직 정보 수정
+    public OrganizationDetailDto organizationUpdate(Long organizationId, OrganizationUpdateDto dto, AuthPrincipal principal) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+
+        if (organization.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("존재하지 않는 조직입니다.");
+        }
+
+        boolean isAdmin = principal.role() == UserRole.ADMIN;
+        boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
+                && principal.organizationPublicId().equals(organization.getPublicId());
+
+        if (!isAdmin && !isOrgAdmin) {
+            throw new IllegalArgumentException("수정 권한이 없습니다.");
+        }
+
+        organization.updateOrganization(dto);
+        return OrganizationDetailDto.fromEntity(organization);
+    }
+
+    //    조직 삭제
+    public void organizationDelete(Long organizationId, AuthPrincipal principal) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+
+        boolean isAdmin = principal.role() == UserRole.ADMIN;
+        boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
+                && principal.organizationPublicId().equals(organization.getPublicId());
+
+        if (!isAdmin && !isOrgAdmin) {
+            throw new IllegalArgumentException("삭제 권한이 없습니다.");
+        }
+        if (organization.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("존재하지 않는 조직입니다.");
+        }
+
+
+        organization.deleteOrganization();
     }
 
 }

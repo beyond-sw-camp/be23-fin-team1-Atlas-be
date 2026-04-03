@@ -22,10 +22,10 @@ public class OrganizationCreateDto {
 
     private String businessNo;
 
-    @NotBlank(message = "담당자 성은 비어있으면 안 됩니다.")
+    @NotBlank(message = "담당자 이름은 비어있으면 안 됩니다.")
     private String contactFirstName;
     private String contactMiddleName;
-    @NotBlank(message = "담당자 이름은 비어있으면 안 됩니다.")
+    @NotBlank(message = "담당자 성은 비어있으면 안 됩니다.")
     private String contactLastName;
 
     @NotBlank(message = "이메일은 비어있으면 안 됩니다.")

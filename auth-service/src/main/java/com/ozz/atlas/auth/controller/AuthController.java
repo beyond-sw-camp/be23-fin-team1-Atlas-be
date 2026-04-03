@@ -50,22 +50,4 @@ public class AuthController {
         return ResponseEntity.ok(tokenDto);
     }
 
-    //사용자 목록 조회
-    @GetMapping("/users")
-    public ResponseEntity<Page<UserListDto>> userList(
-            @PageableDefault(size = 10, sort = "userId", direction = Sort.Direction.DESC) Pageable pageable,
-            @ModelAttribute UserSearchDto userSearchDto) {
-
-        Page<UserListDto> response = userService.userList(pageable, userSearchDto);
-        return ResponseEntity.ok(response);
-    }
-
-    //사용자 상제 조회
-    @GetMapping("/users/{userId}")
-    public ResponseEntity<UserDetailDto> userDetail(@PathVariable Long userId) {
-        UserDetailDto response = userService.userDetail(userId);
-        return ResponseEntity.ok(response);
-    }
-
-
 }

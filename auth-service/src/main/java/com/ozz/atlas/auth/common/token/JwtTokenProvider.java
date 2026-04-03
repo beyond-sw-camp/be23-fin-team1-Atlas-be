@@ -154,6 +154,15 @@ public class JwtTokenProvider {
         return UserRole.valueOf(getClaimsFromAccessToken(accessToken).get("role", String.class));
     }
 
+    public Date getIssuedAtFromAccessToken(String accessToken) {
+        return getClaimsFromAccessToken(accessToken).getIssuedAt();
+    }
+
+    public void revokeRefreshToken(Long userId) {
+        redisTemplate.delete(String.valueOf(userId));
+    }
+
+
 
 
 }
