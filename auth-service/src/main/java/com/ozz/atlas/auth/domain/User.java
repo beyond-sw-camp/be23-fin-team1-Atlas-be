@@ -1,9 +1,12 @@
 package com.ozz.atlas.auth.domain;
+import com.ozz.atlas.auth.dtos.UserUpdateDto;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import com.ozz.atlas.common.jpa.Status;
+
+import java.time.LocalDateTime;
 
 
 @Getter @ToString
@@ -55,6 +58,32 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     @Builder.Default
     private Status status = Status.ACTIVE;
+
+    @Column
+    private LocalDateTime passwordChangedAt;
+
+    public void updateUser(UserUpdateDto dto) {
+        if (dto.getFirstName() != null && !dto.getFirstName().isBlank()) this.firstName = dto.getFirstName();
+        if (dto.getMiddleName() != null) this.middleName = dto.getMiddleName();
+        if (dto.getLastName() != null && !dto.getLastName().isBlank()) this.lastName = dto.getLastName();
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) this.email = dto.getEmail();
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) this.phone = dto.getPhone();
+        if (dto.getJobTitle() != null) this.jobTitle = dto.getJobTitle();
+    }
+
+    public void deleteUser() {
+        this.status = Status.DELETE;
+    }
+
+    public void updateUserRole(UserRole userRole) {
+        this.userRole = userRole;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.passwordChangedAt = LocalDateTime.now();
+    }
+
 
 
 }

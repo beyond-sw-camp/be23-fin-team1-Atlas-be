@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 @RequestMapping("/api/auth")
 public class OrganizationController {
     private final OrganizationService organizationService;
+
     @Autowired
     public OrganizationController(OrganizationService organizationService) {
         this.organizationService = organizationService;
@@ -59,4 +60,46 @@ public class OrganizationController {
         OrganizationDetailDto response = organizationService.organizationDetail(organizationId);
         return ResponseEntity.ok(response);
     }
+
+    //    조직 정보 수정
+    @PatchMapping("/organizations/{organizationId}")
+    public ResponseEntity<OrganizationDetailDto> organizationUpdate(
+            @PathVariable Long organizationId,
+            @RequestBody @Valid OrganizationUpdateDto dto,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+
+        OrganizationDetailDto organization = organizationService.organizationDetail(organizationId);
+
+        boolean isAdmin = principal.role() == UserRole.ADMIN;
+        boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
+                && principal.organizationPublicId().equals(organization.getOrganizationPublicId());
+
+        if (!isAdmin && !isOrgAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        OrganizationDetailDto response = organizationService.organizationUpdate(organizationId, dto, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    //    조직 삭제
+    @DeleteMapping("/organizations/{organizationId}")
+    public ResponseEntity<Void> organizationDelete(
+            @PathVariable Long organizationId,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+
+        OrganizationDetailDto organization = organizationService.organizationDetail(organizationId);
+
+        boolean isAdmin = principal.role() == UserRole.ADMIN;
+        boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
+                && principal.organizationPublicId().equals(organization.getOrganizationPublicId());
+
+        if (!isAdmin && !isOrgAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        organizationService.organizationDelete(organizationId, principal);
+        return ResponseEntity.noContent().build();
+    }
+
 }

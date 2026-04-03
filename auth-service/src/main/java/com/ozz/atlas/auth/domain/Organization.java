@@ -1,5 +1,6 @@
 package com.ozz.atlas.auth.domain;
 
+import com.ozz.atlas.auth.dtos.OrganizationUpdateDto;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.Status;
@@ -48,6 +49,35 @@ public class Organization extends BaseTimeEntity {
     @Column(nullable = false)
     @Builder.Default
     private Status status = Status.ACTIVE;
+
+    public void updateOrganization(OrganizationUpdateDto dto) {
+        if (dto.getOrganizationName() != null && !dto.getOrganizationName().isBlank()) {
+            this.organizationName = dto.getOrganizationName();
+        }
+        if (dto.getBusinessNo() != null && !dto.getBusinessNo().isBlank()) {
+            this.businessNo = dto.getBusinessNo();
+        }
+        if (dto.getContactFirstName() != null && !dto.getContactFirstName().isBlank()) {
+            this.contactFirstName = dto.getContactFirstName();
+        }
+        if (dto.getContactMiddleName() != null) {
+            this.contactMiddleName = dto.getContactMiddleName();
+        }
+        if (dto.getContactLastName() != null && !dto.getContactLastName().isBlank()) {
+            this.contactLastName = dto.getContactLastName();
+        }
+        if (dto.getContactEmail() != null && !dto.getContactEmail().isBlank()) {
+            this.contactEmail = dto.getContactEmail();
+        }
+        if (dto.getContactPhone() != null && !dto.getContactPhone().isBlank()) {
+            this.contactPhone = dto.getContactPhone();
+        }
+    }
+
+    public void deleteOrganization() {
+        this.status = Status.DELETE;
+    }
+
 
 
 

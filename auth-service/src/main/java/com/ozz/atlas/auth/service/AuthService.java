@@ -2,6 +2,7 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.repository.UserRepository;
+import com.ozz.atlas.common.jpa.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,9 +25,11 @@ public class AuthService {
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new IllegalArgumentException("아이디 또는 비밀번호가 틀림");
         }
+        if (user.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("비활성화 또는 삭제된 사용자입니다.");
+        }
+
         user.getOrganization().getPublicId();
         return user;
     }
-
-
 }

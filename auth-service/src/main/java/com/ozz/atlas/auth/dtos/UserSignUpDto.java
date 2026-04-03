@@ -25,10 +25,10 @@ public class UserSignUpDto {
     @NotBlank(message = "비밀번호가 비어있으면 안 됩니다.")
     private String password;
 
-    @NotBlank(message = "성이 비어있으면 안 됩니다.")
+    @NotBlank(message = "이름이 비어있으면 안 됩니다.")
     private String firstName;
     private String middleName;
-    @NotBlank(message = "이름이 비어있으면 안 됩니다.")
+    @NotBlank(message = "성이 비어있으면 안 됩니다.")
     private String lastName;
 
     @NotBlank(message = "email이 비어있으면 안 됩니다.")

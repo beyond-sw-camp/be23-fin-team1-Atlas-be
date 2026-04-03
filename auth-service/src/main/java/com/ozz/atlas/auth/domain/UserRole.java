@@ -2,5 +2,6 @@ package com.ozz.atlas.auth.domain;
 
 public enum UserRole {
     USER,
-    ADMIN
+    ADMIN,
+    ORG_ADMIN //조직 담당자
 }
