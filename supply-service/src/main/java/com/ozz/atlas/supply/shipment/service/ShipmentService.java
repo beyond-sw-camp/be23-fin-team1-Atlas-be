@@ -6,6 +6,7 @@ import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
 import com.ozz.atlas.supply.shipment.repository.ShipmentCheckpointRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
+import com.ozz.atlas.supply.shipment.repository.ShipmentStatusHistoryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,16 +21,28 @@ import java.util.List;
 public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final ShipmentCheckpointRepository shipmentCheckpointRepository;
+    private final ShipmentStatusHistoryRepository shipmentStatusHistoryRepository;
 
-    public ShipmentService(ShipmentRepository shipmentRepository, ShipmentCheckpointRepository shipmentCheckpointRepository) {
+    public ShipmentService(ShipmentRepository shipmentRepository, ShipmentCheckpointRepository shipmentCheckpointRepository, ShipmentStatusHistoryRepository shipmentStatusHistoryRepository) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
+        this.shipmentStatusHistoryRepository = shipmentStatusHistoryRepository;
     }
 
 //    출하 생성
     @Transactional
     public ShipmentResponseDto createShipment(CreateShipmentRequestDto dto){
         Shipment savedShipment = shipmentRepository.save(dto.toEntity());
+
+        saveShipmentStatusHistory(
+                savedShipment,
+                LocalDateTime.now(),
+                "출하 생성",
+                null,
+                null,
+                null,
+                "SYSTEM"
+        );
         return ShipmentResponseDto.from(savedShipment);
     }
 
@@ -61,7 +74,20 @@ public class ShipmentService {
 
         applyCheckpointToShipment(shipment, dto);
 
-        return ShipmentResponseDto.from(shipmentRepository.save(shipment));
+        Shipment savedShipment = shipmentRepository.save(shipment);
+
+        if (dto.getCheckpointStatus() == CheckpointStatus.PASSED) {
+            saveShipmentStatusHistory(
+                    savedShipment,
+                    dto.getActualAt(),
+                    buildStatusMessage(dto),
+                    null,
+                    null,
+                    null,
+                    "SYSTEM"
+            );
+        }
+        return ShipmentResponseDto.from(savedShipment);
     }
 
 //    service 내부 검증
@@ -177,5 +203,62 @@ public class ShipmentService {
                 .lastCheckpointAt(latestPassedCheckpoint != null ? latestPassedCheckpoint.getActualAt() : null)
                 .lastCheckpointNodeId(latestPassedCheckpoint != null ? latestPassedCheckpoint.getNodeId() : null)
                 .build();
+    }
+
+//    출하 / 트랙 상태 이력 저장
+    private void saveShipmentStatusHistory(
+            Shipment shipment,
+            LocalDateTime recordedAt,
+            String statusMessage,
+            String locationText,
+            java.math.BigDecimal latitude,
+            java.math.BigDecimal longitude,
+            String recordedBy
+    ) {
+        ShipmentStatusHistory history = ShipmentStatusHistory.builder()
+                .shipmentId(shipment.getId())
+                .statusCode(shipment.getStatus())
+                .statusMessage(statusMessage)
+                .locationText(locationText)
+                .latitude(latitude)
+                .longitude(longitude)
+                .recordedAt(recordedAt)
+                .recordedBy(recordedBy)
+                .build();
+
+        shipmentStatusHistoryRepository.save(history);
+    }
+
+//    출하 / 트랙 상태 메시지 생성
+    private String buildStatusMessage(TrackShipmentRequestDto dto) {
+        if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
+            return "출발 완료";
+        }
+
+        if (dto.getCheckpointType() == CheckpointType.TRANSIT) {
+            return "경유지 통과";
+        }
+
+        if (dto.getCheckpointType() == CheckpointType.ARRIVAL) {
+            return "도착 완료";
+        }
+
+        if (dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
+            return "입고 완료";
+        }
+
+        return "출하 상태 변경";
+    }
+
+//    statusHistory 저장
+    @Transactional(readOnly = true)
+    public List<ShipmentStatusHistoryResponseDto> getShipmentStatusHistories(Long id){
+        Shipment shipment = shipmentRepository.findById(id)
+                .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
+
+        List<ShipmentStatusHistory> histories =
+                shipmentStatusHistoryRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
+
+        return histories.stream().map(ShipmentStatusHistoryResponseDto::from).toList();
     }
 }

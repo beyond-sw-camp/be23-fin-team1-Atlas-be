@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/shipments")
@@ -57,5 +58,11 @@ public class ShipmentController {
     @GetMapping("/{id}/eta")
     public ResponseEntity<ShipmentEtaResponseDto> getShipmentEta(@PathVariable Long id){
         return ResponseEntity.ok(shipmentService.getShipmentEta(id));
+    }
+
+//    statusHistory 조회
+    @GetMapping("/{id}/status-history")
+    public ResponseEntity<List<ShipmentStatusHistoryResponseDto>> getShipmentStatusHistories(@PathVariable Long id){
+        return ResponseEntity.ok(shipmentService.getShipmentStatusHistories(id));
     }
 }
