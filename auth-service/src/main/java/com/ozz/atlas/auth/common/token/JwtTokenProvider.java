@@ -129,5 +129,31 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
+    public boolean validateAccessToken(String accessToken) {
+        try {
+            getClaimsFromAccessToken(accessToken);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public Long getUserIdFromAccessToken(String accessToken) {
+        return Long.parseLong(getClaimsFromAccessToken(accessToken).getSubject());
+    }
+
+    public String getUserPublicIdFromAccessToken(String accessToken) {
+        return getClaimsFromAccessToken(accessToken).get("userPublicId", String.class);
+    }
+
+    public String getOrganizationPublicIdFromAccessToken(String accessToken) {
+        return getClaimsFromAccessToken(accessToken).get("organizationPublicId", String.class);
+    }
+
+    public UserRole getRoleFromAccessToken(String accessToken) {
+        return UserRole.valueOf(getClaimsFromAccessToken(accessToken).get("role", String.class));
+    }
+
+
 
 }

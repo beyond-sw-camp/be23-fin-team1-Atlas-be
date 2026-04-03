@@ -2,7 +2,6 @@ package com.ozz.atlas.auth.dtos;
 
 import com.ozz.atlas.auth.domain.Organization;
 import com.ozz.atlas.auth.domain.OrganizationType;
-import com.ozz.atlas.auth.domain.Status;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -23,9 +22,13 @@ public class OrganizationCreateDto {
 
     private String businessNo;
 
-    @NotBlank(message = "담당자명은 비어있으면 안 됩니다.")
-    private String contactName;
+    @NotBlank(message = "담당자 성은 비어있으면 안 됩니다.")
+    private String contactFirstName;
+    private String contactMiddleName;
+    @NotBlank(message = "담당자 이름은 비어있으면 안 됩니다.")
+    private String contactLastName;
 
+    @NotBlank(message = "이메일은 비어있으면 안 됩니다.")
     private String contactEmail;
 
     @NotBlank(message = "연락처는 비어있으면 안 됩니다.")
@@ -36,10 +39,11 @@ public class OrganizationCreateDto {
                 .organizationType(this.organizationType)
                 .organizationName(this.organizationName)
                 .businessNo(this.businessNo)
-                .contactName(this.contactName)
+                .contactFirstName(this.contactFirstName)
+                .contactMiddleName(this.contactMiddleName)
+                .contactLastName(this.contactLastName)
                 .contactEmail(this.contactEmail)
                 .contactPhone(this.contactPhone)
-                .status(Status.ACTIVE)
                 .build();
     }
 }
