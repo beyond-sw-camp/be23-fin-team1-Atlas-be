@@ -1,24 +1,69 @@
 package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.Organization;
+import com.ozz.atlas.auth.domain.OrganizationType;
 import com.ozz.atlas.auth.dtos.OrganizationCreateDto;
+import com.ozz.atlas.auth.dtos.OrganizationDetailDto;
+import com.ozz.atlas.auth.dtos.OrganizationListDto;
+import com.ozz.atlas.auth.dtos.OrganizationSearchDto;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Transactional
 public class OrganizationService {
     private final OrganizationRepository organizationRepository;
+
     @Autowired
     public OrganizationService(OrganizationRepository organizationRepository) {
         this.organizationRepository = organizationRepository;
     }
-//    조직 생성
+
+    //    조직 생성
     public String createOrganization(OrganizationCreateDto dto) {
         Organization organization = organizationRepository.save(dto.toEntity());
         return organization.getPublicId();
+    }
+
+    //    조직 목록 조회
+    public Page<OrganizationListDto> organizationList(Pageable pageable, OrganizationSearchDto searchDto) {
+        Specification<Organization> specification = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (searchDto.getOrganizationType() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("organizationType"), searchDto.getOrganizationType()));
+            }
+
+            if (searchDto.getOrganizationName() != null && !searchDto.getOrganizationName().isBlank()) {
+                predicates.add(criteriaBuilder.like(root.get("organizationName"), "%" + searchDto.getOrganizationName() + "%"));
+            }
+
+            if (searchDto.getStatus() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), searchDto.getStatus()));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        return organizationRepository.findAll(specification, pageable)
+                .map(OrganizationListDto::fromEntity);
+    }
+
+    //    조직 상세 조회
+    public OrganizationDetailDto organizationDetail(Long organizationId) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+
+        return OrganizationDetailDto.fromEntity(organization);
     }
 
 }
