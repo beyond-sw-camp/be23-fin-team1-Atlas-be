@@ -1,9 +1,6 @@
 package com.ozz.atlas.supply.shipment.controller;
 
-import com.ozz.atlas.supply.shipment.dtos.CreateShipmentRequestDto;
-import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
-import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
-import com.ozz.atlas.supply.shipment.dtos.TrackShipmentRequestDto;
+import com.ozz.atlas.supply.shipment.dtos.*;
 import com.ozz.atlas.supply.shipment.service.ShipmentService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -56,4 +53,9 @@ public class ShipmentController {
         return ResponseEntity.ok(shipmentService.trackShipment(id, dto));
     }
 
+//    ETA 조회
+    @GetMapping("/{id}/eta")
+    public ResponseEntity<ShipmentEtaResponseDto> getShipmentEta(@PathVariable Long id){
+        return ResponseEntity.ok(shipmentService.getShipmentEta(id));
+    }
 }
