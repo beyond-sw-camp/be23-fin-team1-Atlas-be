@@ -1,5 +1,6 @@
 package com.ozz.atlas.auth.controller;
 
+import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.dtos.*;
@@ -7,12 +8,9 @@ import com.ozz.atlas.auth.service.AuthService;
 import com.ozz.atlas.auth.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Pageable;
 
 
 @RestController
@@ -49,5 +47,13 @@ public class AuthController {
 
         return ResponseEntity.ok(tokenDto);
     }
+
+    //    사용자 로그아웃
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal AuthPrincipal principal) {
+        authService.logout(principal);
+        return ResponseEntity.noContent().build();
+    }
+
 
 }

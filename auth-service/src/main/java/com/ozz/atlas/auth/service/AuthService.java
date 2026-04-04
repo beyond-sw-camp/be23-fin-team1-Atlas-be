@@ -2,6 +2,8 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.repository.UserRepository;
+import com.ozz.atlas.auth.common.config.AuthPrincipal;
+import com.ozz.atlas.auth.common.token.JwtTokenProvider;
 import com.ozz.atlas.common.jpa.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,13 +15,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
+
     @Autowired
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
-//    사용자 로그인
-    public User login(String loginId, String password){
+
+    //    사용자 로그인
+    public User login(String loginId, String password) {
         User user = userRepository.findByLoginId(loginId).
                 orElseThrow(() -> new IllegalArgumentException("아이디 틀림"));
         if (!passwordEncoder.matches(password, user.getPassword())) {
@@ -32,4 +38,10 @@ public class AuthService {
         user.getOrganization().getPublicId();
         return user;
     }
+
+    //    사용자 로그아웃
+    public void logout(AuthPrincipal principal) {
+        jwtTokenProvider.revokeRefreshToken(principal.userId());
+    }
+
 }
