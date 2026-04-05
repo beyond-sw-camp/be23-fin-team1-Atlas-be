@@ -1,6 +1,8 @@
 package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.User;
+import com.ozz.atlas.auth.dtos.AccessTokenResponseDto;
+import com.ozz.atlas.auth.dtos.TokenDto;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
@@ -43,5 +45,33 @@ public class AuthService {
     public void logout(AuthPrincipal principal) {
         jwtTokenProvider.revokeRefreshToken(principal.userId());
     }
+
+    //    토큰 재발급
+    public AccessTokenResponseDto refresh(String refreshToken) {
+        if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 refresh token입니다.");
+        }
+
+        Long userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
+
+        User user = userRepository.findWithOrganizationByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (user.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("비활성화 또는 삭제된 사용자입니다.");
+        }
+
+        String newAccessToken = jwtTokenProvider.createAccessToken(
+                user.getUserId(),
+                user.getPublicId(),
+                user.getOrganization().getPublicId(),
+                user.getUserRole().name()
+        );
+
+        return AccessTokenResponseDto.builder()
+                .accessToken(newAccessToken)
+                .build();
+    }
+
 
 }
