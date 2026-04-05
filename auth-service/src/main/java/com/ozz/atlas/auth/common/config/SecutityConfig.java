@@ -42,7 +42,7 @@ public class SecutityConfig {
                 .formLogin(formLogin -> formLogin.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/users").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/users", "/api/auth/refresh").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )

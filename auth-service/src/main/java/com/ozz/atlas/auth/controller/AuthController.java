@@ -55,5 +55,13 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    //    토큰 재발급
+    @PostMapping("/refresh")
+    public ResponseEntity<AccessTokenResponseDto> refresh(@RequestBody @Valid RefreshTokenRequestDto dto) {
+        AccessTokenResponseDto response = authService.refresh(dto.getRefreshToken());
+        return ResponseEntity.ok(response);
+    }
+
+
 
 }

@@ -36,6 +36,7 @@ public class JwtTokenFilter implements GlobalFilter {
         if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())
                 || (HttpMethod.POST.equals(method) && "/api/auth/login".equals(urlPath))
                 || (HttpMethod.POST.equals(method) && "/api/auth/users".equals(urlPath))
+                || (HttpMethod.POST.equals(method) && "/api/auth/refresh".equals(urlPath))
                 || urlPath.startsWith("/ws-chat")) {
             return chain.filter(exchange);
         }
