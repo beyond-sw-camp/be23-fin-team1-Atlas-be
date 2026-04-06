@@ -48,18 +48,19 @@ public class UserSearchService {
         List<Query> filters = new ArrayList<>();
 
         if (searchDto.getOrganizationPublicId() != null && !searchDto.getOrganizationPublicId().isBlank()) {
-            filters.add(Query.of(q -> q.term(t -> t.field("organizationPublicId")
+            filters.add(Query.of(q -> q.term(t -> t.field("organizationPublicId.keyword")
                     .value(searchDto.getOrganizationPublicId()))));
         }
 
         if (searchDto.getUserRole() != null) {
-            filters.add(Query.of(q -> q.term(t -> t.field("userRole")
+            filters.add(Query.of(q -> q.term(t -> t.field("userRole.keyword")
                     .value(searchDto.getUserRole().name()))));
         }
 
         Status status = searchDto.getStatus() != null ? searchDto.getStatus() : Status.ACTIVE;
-        filters.add(Query.of(q -> q.term(t -> t.field("status")
+        filters.add(Query.of(q -> q.term(t -> t.field("status.keyword")
                 .value(status.name()))));
+
 
         Query keywordQuery = Query.of(q -> q.multiMatch(m -> m
                 .query(searchDto.getKeyword())
@@ -87,9 +88,10 @@ public class UserSearchService {
     }
 
     public void reindexAllUsers() {
-        userRepository.findAll().forEach(user ->
+        userRepository.findAllWithOrganizationBy().forEach(user ->
                 userSearchRepository.save(UserDocument.fromEntity(user))
         );
     }
+
 
 }
