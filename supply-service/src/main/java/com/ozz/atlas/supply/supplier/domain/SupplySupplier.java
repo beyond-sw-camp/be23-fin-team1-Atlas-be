@@ -36,11 +36,13 @@ public class SupplySupplier extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SupplierStatus supplierStatus;
+    @Builder.Default
+    private SupplierStatus supplierStatus = SupplierStatus.INACTIVE;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ApprovalStatus approvalStatus;
+    @Builder.Default
+    private ApprovalStatus approvalStatus = ApprovalStatus.REQUESTED;
 
     @Column(length = 50)
     private String primaryContactName;
@@ -51,13 +53,57 @@ public class SupplySupplier extends BaseTimeEntity {
     @Column(length = 30)
     private String primaryContactPhone;
 
-    @PrePersist
-    public void prePersist() {
-        if (this.supplierStatus == null) {
-            this.supplierStatus = SupplierStatus.ACTIVE;
-        }
-        if (this.approvalStatus == null) {
-            this.approvalStatus = ApprovalStatus.APPROVED;
-        }
+    public static SupplySupplier create(
+            String organizationPublicId,
+            String supplierCode,
+            String supplierName,
+            Integer tierLevel,
+            String primaryContactName,
+            String primaryContactEmail,
+            String primaryContactPhone
+    ) {
+        return SupplySupplier.builder()
+                .organizationPublicId(organizationPublicId)
+                .supplierCode(supplierCode)
+                .supplierName(supplierName)
+                .tierLevel(tierLevel)
+                .supplierStatus(SupplierStatus.INACTIVE)
+                .approvalStatus(ApprovalStatus.REQUESTED)
+                .primaryContactName(primaryContactName)
+                .primaryContactEmail(primaryContactEmail)
+                .primaryContactPhone(primaryContactPhone)
+                .build();
     }
+
+    public void update(
+            String supplierCode,
+            String supplierName,
+            Integer tierLevel,
+            String primaryContactName,
+            String primaryContactEmail,
+            String primaryContactPhone
+    ) {
+        this.supplierCode = supplierCode;
+        this.supplierName = supplierName;
+        this.tierLevel = tierLevel;
+        this.primaryContactName = primaryContactName;
+        this.primaryContactEmail = primaryContactEmail;
+        this.primaryContactPhone = primaryContactPhone;
+    }
+
+    public void approve() {
+        this.approvalStatus = ApprovalStatus.APPROVED;
+        this.supplierStatus = SupplierStatus.ACTIVE;
+    }
+    public void reject() {
+        this.approvalStatus = ApprovalStatus.REJECTED;
+        this.supplierStatus = SupplierStatus.INACTIVE;
+    }
+
+    public void softDelete() {
+        this.supplierStatus = SupplierStatus.TERMINATED;
+    }
+
+
+
 }
