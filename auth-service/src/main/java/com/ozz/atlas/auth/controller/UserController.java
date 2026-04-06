@@ -3,6 +3,7 @@ package com.ozz.atlas.auth.controller;
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
+import com.ozz.atlas.auth.service.LoginHistoryService;
 import com.ozz.atlas.auth.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +20,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class UserController {
     private final UserService userService;
+    private final LoginHistoryService loginHistoryService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, LoginHistoryService loginHistoryService) {
         this.userService = userService;
+        this.loginHistoryService = loginHistoryService;
     }
 
     //    회원가입
@@ -47,7 +50,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    //사용자 상제 조회
+    //사용자 상세 조회
     @GetMapping("/users/{userId}")
     public ResponseEntity<UserDetailDto> userDetail(@PathVariable Long userId) {
         UserDetailDto response = userService.userDetail(userId);
@@ -123,6 +126,19 @@ public class UserController {
         userService.userPasswordUpdate(userId, dto, principal);
         return ResponseEntity.noContent().build();
     }
+
+
+    //    내 로그인 이력 조회
+    @GetMapping("/login-histories/me")
+    public ResponseEntity<Page<LoginHistoryListDto>> myLoginHistories(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PageableDefault(size = 10, sort = "loginHistoryId", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        Page<LoginHistoryListDto> response = loginHistoryService.myLoginHistories(principal.userId(), pageable);
+        return ResponseEntity.ok(response);
+    }
+
+
 
 
 }

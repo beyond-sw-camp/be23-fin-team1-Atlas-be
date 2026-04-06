@@ -1,56 +1,53 @@
-package com.ozz.atlas.auth.dtos;
+package com.ozz.atlas.auth.search.document;
 
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
-import com.ozz.atlas.auth.search.document.UserDocument;
+import com.ozz.atlas.auth.dtos.UserListDto;
+import com.ozz.atlas.common.jpa.Status;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.Document;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserListDto {
-    private String userPublicId;
+@Document(indexName = "users")
+public class UserDocument {
+
+    @Id
+    private Long userId;
+
+    private String publicId;
     private String organizationPublicId;
     private String loginId;
     private String firstName;
     private String middleName;
     private String lastName;
     private String email;
+    private UserRole userRole;
+    private Status status;
     private String phone;
     private String jobTitle;
-    private UserRole userRole;
 
-    public static UserListDto fromEntity(User user){
-        return UserListDto.builder()
-                .userPublicId(user.getPublicId())
+    public static UserDocument fromEntity(User user) {
+        return UserDocument.builder()
+                .userId(user.getUserId())
+                .publicId(user.getPublicId())
                 .organizationPublicId(user.getOrganization().getPublicId())
                 .loginId(user.getLoginId())
-                .email(user.getEmail())
-                .phone(user.getPhone())
-                .jobTitle(user.getJobTitle())
-                .userRole(user.getUserRole())
                 .firstName(user.getFirstName())
                 .middleName(user.getMiddleName())
                 .lastName(user.getLastName())
+                .email(user.getEmail())
+                .userRole(user.getUserRole())
+                .status(user.getStatus())
+                .phone(user.getPhone())
+                .jobTitle(user.getJobTitle())
                 .build();
     }
 
-    public static UserListDto fromDocument(UserDocument user) {
-        return UserListDto.builder()
-                .userPublicId(user.getPublicId())
-                .organizationPublicId(user.getOrganizationPublicId())
-                .loginId(user.getLoginId())
-                .email(user.getEmail())
-                .userRole(user.getUserRole())
-                .firstName(user.getFirstName())
-                .middleName(user.getMiddleName())
-                .lastName(user.getLastName())
-                .phone(user.getPhone())
-                .jobTitle(user.getJobTitle())
-                .build();
-    }
 }

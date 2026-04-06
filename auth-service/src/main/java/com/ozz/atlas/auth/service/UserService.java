@@ -8,16 +8,22 @@ import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
+import com.ozz.atlas.auth.search.service.UserSearchService;
 import com.ozz.atlas.common.jpa.Status;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,13 +35,16 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final OrganizationRepository organizationRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserSearchService userSearchService;
+
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, JwtTokenProvider jwtTokenProvider) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, JwtTokenProvider jwtTokenProvider, UserSearchService userSearchService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.organizationRepository = organizationRepository;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userSearchService = userSearchService;
     }
 
     //    사용자 회원가입
@@ -50,6 +59,7 @@ public class UserService {
         User user = dto.toEntity(organization, encodedPassword);
 
         User savedUser = userRepository.save(user);
+        userSearchService.saveUserDocument(savedUser);
         return savedUser.getPublicId();
     }
 
@@ -65,6 +75,9 @@ public class UserService {
 
     //    사용자 목록 조회
     public Page<UserListDto> userList(Pageable pageable, UserSearchDto searchDto) {
+        if (searchDto.getKeyword() != null && !searchDto.getKeyword().isBlank()) {
+            return userSearchService.search(pageable, searchDto);
+        }
         Specification<User> specification = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -133,6 +146,7 @@ public class UserService {
         }
 
         user.updateUser(dto);
+        userSearchService.saveUserDocument(user);
 
         return UserDetailDto.fromEntity(user);
     }
@@ -151,6 +165,7 @@ public class UserService {
         }
 
         user.deleteUser();
+        userSearchService.saveUserDocument(user);
     }
 
     // 사용자 권한 변경
@@ -163,6 +178,7 @@ public class UserService {
         }
 
         user.updateUserRole(dto.getUserRole());
+        userSearchService.saveUserDocument(user);
 
         return UserDetailDto.fromEntity(user);
     }
@@ -195,6 +211,5 @@ public class UserService {
         user.updatePassword(passwordEncoder.encode(dto.getNewPassword()));
         jwtTokenProvider.revokeRefreshToken(userId);
     }
-
 
 }

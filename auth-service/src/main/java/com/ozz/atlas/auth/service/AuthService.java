@@ -2,7 +2,6 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.dtos.AccessTokenResponseDto;
-import com.ozz.atlas.auth.dtos.TokenDto;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
@@ -12,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Service
 @Transactional
 public class AuthService {
@@ -19,11 +19,13 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
+
     @Autowired
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+
     }
 
     //    사용자 로그인

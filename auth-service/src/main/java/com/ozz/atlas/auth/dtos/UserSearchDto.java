@@ -19,4 +19,5 @@ public class UserSearchDto {
     private String middleName;
     private String lastName;
     private Status status;
+    private String keyword;
 }
