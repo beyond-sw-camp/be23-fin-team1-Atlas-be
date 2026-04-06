@@ -26,16 +26,18 @@ public class OnboardingRequest {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OnboardingRequestType requestType;
+    @Builder.Default
+    private OnboardingRequestType requestType = OnboardingRequestType.NEW_REGISTRATION;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OnboardingRequestStatus requestStatus;
+    @Builder.Default
+    private OnboardingRequestStatus requestStatus = OnboardingRequestStatus.REQUESTED;
 
-    @Column(length = 26, unique = true)
+    @Column(nullable = false, updatable = false, length = 26)
     private String requestedByUserPublicId;
 
-    @Column(length = 26, unique = true)
+    @Column(length = 26)
     private String reviewedByUserPublicId;
 
     @CreationTimestamp
@@ -50,10 +52,26 @@ public class OnboardingRequest {
     @Column(columnDefinition = "TEXT")
     private String note;
 
-    @PrePersist
-    public void prePersist() {
-        if (this.requestStatus == null) {
-            this.requestStatus = OnboardingRequestStatus.REQUESTED;
-        }
+    public static OnboardingRequest create(SupplySupplier supplier, String requestedByUserPublicId) {
+        return OnboardingRequest.builder()
+                .supplier(supplier)
+                .requestType(OnboardingRequestType.NEW_REGISTRATION)
+                .requestStatus(OnboardingRequestStatus.REQUESTED)
+                .requestedByUserPublicId(requestedByUserPublicId)
+                .build();
+    }
+
+    public void approve(String reviewedByUserPublicId) {
+        this.requestStatus = OnboardingRequestStatus.APPROVED;
+        this.reviewedByUserPublicId = reviewedByUserPublicId;
+        this.reviewedAt = LocalDateTime.now();
+        this.rejectReason = null;
+    }
+
+    public void reject(String reviewedByUserPublicId, String rejectReason) {
+        this.requestStatus = OnboardingRequestStatus.REJECTED;
+        this.reviewedByUserPublicId = reviewedByUserPublicId;
+        this.reviewedAt = LocalDateTime.now();
+        this.rejectReason = rejectReason;
     }
 }
