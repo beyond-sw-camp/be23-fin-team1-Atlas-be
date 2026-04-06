@@ -8,10 +8,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ChatParticipantRepository extends JpaRepository<ChatParticipant, Long> {
     List<ChatParticipant> findByChatRoom(ChatRoom chatRoom);
     List<ChatParticipant> findByUserPublicId(String userPublicId);
+    Optional<ChatParticipant> findByChatRoomAndUserPublicId(ChatRoom chatRoom, String userPublicId);
 
     @Modifying
     @Query("UPDATE ChatParticipant cp SET cp.lastReadMessageId = :messageId WHERE cp.chatRoom = :chatRoom AND cp.userPublicId IN :userPublicIds")
