@@ -38,6 +38,9 @@ public class RedisConfig {
         // 실시간 사용자 알림 구독
         container.addMessageListener(listenerAdapter, new PatternTopic(RedisConstants.NOTIFY_USER_TOPIC_PREFIX + "*"));
         
+        // 타이핑 상태 토픽 구독
+        container.addMessageListener(listenerAdapter, new PatternTopic(RedisConstants.CHAT_TYPING_TOPIC_PREFIX + "*"));
+        
         return container;
     }
 

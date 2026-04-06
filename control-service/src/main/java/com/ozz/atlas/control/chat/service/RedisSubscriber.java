@@ -3,6 +3,7 @@ package com.ozz.atlas.control.chat.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ozz.atlas.control.config.RedisConstants;
 import com.ozz.atlas.control.chat.dto.ChatMessageDto;
+import com.ozz.atlas.control.chat.dto.ChatTypingDto;
 import com.ozz.atlas.control.notification.dto.NotificationDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,12 @@ public class RedisSubscriber implements MessageListener {
             else if (topic.startsWith(RedisConstants.NOTIFY_USER_TOPIC_PREFIX)) {
                 NotificationDto notification = objectMapper.readValue(publishMessage, NotificationDto.class);
                 messagingTemplate.convertAndSend("/sub/notify.user." + notification.getRecipientUserPublicId(), notification);
+            }
+            
+            // 3. 타이핑 상태 브로드캐스트인 경우 (chat:typing:{public_id})
+            else if (topic.startsWith(RedisConstants.CHAT_TYPING_TOPIC_PREFIX)) {
+                ChatTypingDto typingDto = objectMapper.readValue(publishMessage, ChatTypingDto.class);
+                messagingTemplate.convertAndSend("/sub/chat.typing." + typingDto.getRoomPublicId(), typingDto);
             }
 
         } catch (Exception e) {
