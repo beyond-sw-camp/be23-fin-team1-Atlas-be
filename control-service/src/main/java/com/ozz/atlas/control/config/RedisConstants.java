@@ -21,6 +21,12 @@ public final class RedisConstants {
     public static final String NOTIFY_USER_TOPIC_PREFIX = "notify:user:";
 
     /**
+     * 타이핑 상태 브로드캐스트용 토픽 패턴
+     * 형식: chat:typing:{roomPublicId}
+     */
+    public static final String CHAT_TYPING_TOPIC_PREFIX = "chat:typing:";
+
+    /**
      * 채팅방 토픽 생성 유틸리티
      */
     public static String getChatRoomTopic(String roomPublicId) {
@@ -32,5 +38,12 @@ public final class RedisConstants {
      */
     public static String getNotifyUserTopic(String userPublicId) {
         return NOTIFY_USER_TOPIC_PREFIX + userPublicId;
+    }
+
+    /**
+     * 타이핑 상태 토픽 생성 유틸리티
+     */
+    public static String getChatTypingTopic(String roomPublicId) {
+        return CHAT_TYPING_TOPIC_PREFIX + roomPublicId;
     }
 }

@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum MessageType {
     TEXT("텍스트"),
-    SYSTEM("시스템"),
+    SYSTEM("시스템 기본"),
+    SYSTEM_JOIN("사용자 입장"),
+    SYSTEM_LEAVE("사용자 퇴장"),
     REFERENCE("참조카드"),
     FILE("파일"),
     IMAGE("이미지");

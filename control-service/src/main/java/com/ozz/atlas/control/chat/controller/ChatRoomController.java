@@ -45,4 +45,30 @@ public class ChatRoomController {
         chatRoomService.markAsRead(roomPublicId, userPublicId);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 채팅방 참가자 초대
+     * Request Body: { "inviterPublicId": "...", "targetUserPublicIds": ["...", "..."] }
+     */
+    @PostMapping("/{roomPublicId}/participants")
+    public ResponseEntity<Void> inviteParticipants(
+            @PathVariable String roomPublicId, 
+            @RequestBody com.ozz.atlas.control.chat.dto.InviteParticipantsDto request) {
+        String inviterPublicId = request.getInviterPublicId();
+        List<String> targetUserPublicIds = request.getTargetUserPublicIds();
+        
+        chatRoomService.inviteParticipants(roomPublicId, inviterPublicId, targetUserPublicIds);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 채팅방 나가기
+     */
+    @DeleteMapping("/{roomPublicId}/participants")
+    public ResponseEntity<Void> leaveRoom(
+            @PathVariable String roomPublicId, 
+            @RequestParam String userPublicId) {
+        chatRoomService.leaveRoom(roomPublicId, userPublicId);
+        return ResponseEntity.ok().build();
+    }
 }
