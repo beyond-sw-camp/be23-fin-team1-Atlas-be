@@ -1,10 +1,12 @@
 package com.ozz.atlas.control.chat.service;
 
 import com.ozz.atlas.common.id.PublicIdGenerator;
+import com.ozz.atlas.control.chat.domain.ChatMessage;
 import com.ozz.atlas.control.chat.domain.ChatParticipant;
 import com.ozz.atlas.control.chat.domain.ChatRoom;
 import com.ozz.atlas.control.chat.dto.ChatRoomDto;
 import com.ozz.atlas.control.chat.enums.RoomStatus;
+import com.ozz.atlas.control.chat.repository.ChatMessageRepository;
 import com.ozz.atlas.control.chat.repository.ChatParticipantRepository;
 import com.ozz.atlas.control.chat.repository.ChatRoomRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatParticipantRepository chatParticipantRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     /**
      * 채팅방 생성
@@ -62,7 +65,22 @@ public class ChatRoomService {
      */
     public List<ChatRoomDto> findAllRoomsByUser(String userPublicId) {
         return chatParticipantRepository.findByUserPublicId(userPublicId).stream()
-                .map(participant -> convertToDto(participant.getChatRoom()))
+                .map(participant -> {
+                    ChatRoom chatRoom = participant.getChatRoom();
+                    ChatRoomDto dto = convertToDto(chatRoom);
+                    
+                    // 안 읽은 메시지 수 계산
+                    Long unreadCount = chatMessageRepository.countUnreadMessages(chatRoom, participant.getLastReadMessageId());
+                    dto.setUnreadCount(unreadCount);
+                    
+                    // 마지막 메시지 조회
+                    chatMessageRepository.findTopByChatRoomOrderByIdDesc(chatRoom).ifPresent(lastMessage -> {
+                        dto.setLastMessage(lastMessage.getMessageBody());
+                        dto.setLastMessageAt(lastMessage.getCreatedAt());
+                    });
+                    
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -72,6 +90,18 @@ public class ChatRoomService {
     public ChatRoom findRoomByPublicId(String roomPublicId) {
         return chatRoomRepository.findByPublicId(roomPublicId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다: " + roomPublicId));
+    }
+
+    /**
+     * 채팅방 읽음 처리
+     */
+    @Transactional
+    public void markAsRead(String roomPublicId, String userPublicId) {
+        ChatRoom chatRoom = findRoomByPublicId(roomPublicId);
+        
+        chatMessageRepository.findTopByChatRoomOrderByIdDesc(chatRoom).ifPresent(lastMessage -> {
+            chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, List.of(userPublicId), lastMessage.getId());
+        });
     }
 
     private ChatRoomDto convertToDto(ChatRoom chatRoom) {

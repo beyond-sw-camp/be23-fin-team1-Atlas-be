@@ -36,4 +36,13 @@ public class ChatRoomController {
     public ResponseEntity<List<ChatRoomDto>> getRooms(@RequestParam String userPublicId) {
         return ResponseEntity.ok(chatRoomService.findAllRoomsByUser(userPublicId));
     }
+
+    /**
+     * 채팅방 메시지 읽음 처리
+     */
+    @PostMapping("/{roomPublicId}/read")
+    public ResponseEntity<Void> markAsRead(@PathVariable String roomPublicId, @RequestParam String userPublicId) {
+        chatRoomService.markAsRead(roomPublicId, userPublicId);
+        return ResponseEntity.ok().build();
+    }
 }

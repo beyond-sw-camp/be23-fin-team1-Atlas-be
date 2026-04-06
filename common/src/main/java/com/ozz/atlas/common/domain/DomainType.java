@@ -20,7 +20,10 @@ public enum DomainType {
     SHIPMENT("출하"),
     LOT("LOT"),
     SUPPLIER("협력사"),
-    ITEM("품목");
+    ITEM("품목"),
+    
+    // 파일 참조 전용
+    FILE("파일");
 
     private final String description;
 }
