@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.purchaseorder.repository;
 
+import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,14 +11,50 @@ import java.util.Optional;
 
 public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrder, Long> {
 
-    boolean existsByPoNumberAndBuyerOrganizationPublicId(String poNumber, String buyerOrganizationPublicId);
+    boolean existsByPoNumberAndBuyerOrganizationPublicIdAndPoStatusNot(
+            String poNumber,
+            String buyerOrganizationPublicId,
+            PoStatus poStatus
+    );
+
+    boolean existsByPoNumberAndBuyerOrganizationPublicIdAndPublicIdNotAndPoStatusNot(
+            String poNumber,
+            String buyerOrganizationPublicId,
+            String publicId,
+            PoStatus poStatus
+    );
 
     @EntityGraph(attributePaths = {"supplier"})
-    Page<SupplyPurchaseOrder> findAllByBuyerOrganizationPublicId(String buyerOrganizationPublicId, Pageable pageable);
+    Page<SupplyPurchaseOrder> findAllByBuyerOrganizationPublicIdAndPoStatusNot(
+            String buyerOrganizationPublicId,
+            PoStatus poStatus,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {"supplier"})
+    Page<SupplyPurchaseOrder> findAllBySupplier_PublicIdAndPoStatusNot(
+            String supplierPublicId,
+            PoStatus poStatus,
+            Pageable pageable
+    );
 
     @EntityGraph(attributePaths = {"supplier", "purchaseOrderItems", "purchaseOrderItems.item"})
-    Optional<SupplyPurchaseOrder> findByPublicIdAndBuyerOrganizationPublicId(
+    Optional<SupplyPurchaseOrder> findByPublicIdAndPoStatusNot(
             String publicId,
-            String buyerOrganizationPublicId
+            PoStatus poStatus
+    );
+
+    @EntityGraph(attributePaths = {"supplier", "purchaseOrderItems", "purchaseOrderItems.item"})
+    Optional<SupplyPurchaseOrder> findByPublicIdAndBuyerOrganizationPublicIdAndPoStatusNot(
+            String publicId,
+            String buyerOrganizationPublicId,
+            PoStatus poStatus
+    );
+
+    @EntityGraph(attributePaths = {"supplier", "purchaseOrderItems", "purchaseOrderItems.item"})
+    Optional<SupplyPurchaseOrder> findByPublicIdAndSupplier_OrganizationPublicIdAndPoStatusNot(
+            String publicId,
+            String supplierOrganizationPublicId,
+            PoStatus poStatus
     );
 }

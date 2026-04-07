@@ -3,14 +3,11 @@ package com.ozz.atlas.supply.supplier.domain;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @AllArgsConstructor
-@NoArgsConstructor
-@Data
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 @Builder
 @Entity
 public class SupplySupplier extends BaseTimeEntity {
@@ -95,6 +92,7 @@ public class SupplySupplier extends BaseTimeEntity {
         this.approvalStatus = ApprovalStatus.APPROVED;
         this.supplierStatus = SupplierStatus.ACTIVE;
     }
+
     public void reject() {
         this.approvalStatus = ApprovalStatus.REJECTED;
         this.supplierStatus = SupplierStatus.INACTIVE;
