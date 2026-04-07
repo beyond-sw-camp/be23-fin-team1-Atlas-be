@@ -2,6 +2,8 @@ package com.ozz.atlas.supply.productionline.controller;
 
 import com.ozz.atlas.supply.productionline.dtos.ProductionLineCreateDto;
 import com.ozz.atlas.supply.productionline.dtos.ProductionLineResponseDto;
+import com.ozz.atlas.supply.productionline.dtos.ProductionLineStatusUpdateDto;
+import com.ozz.atlas.supply.productionline.dtos.ProductionLineUpdateDto;
 import com.ozz.atlas.supply.productionline.service.ProductionLineService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +46,29 @@ public class ProductionLineController {
     public ResponseEntity<ProductionLineResponseDto> getProductionLine(@PathVariable Long productionLineId) {
         ProductionLineResponseDto response = productionLineService.productionLIne(productionLineId);
         return ResponseEntity.ok(response);
+    }
+
+    //    생상라인 수정
+    @PatchMapping("/{productionLineId}")
+    public ResponseEntity<ProductionLineResponseDto> updateProductionLine(
+            @PathVariable Long productionLineId,
+            @Valid @RequestBody ProductionLineUpdateDto dto) {
+        return ResponseEntity.ok(productionLineService.updateProductionLine(productionLineId, dto));
+    }
+
+    //    생산라인 상태 변경
+    @PatchMapping("/{productionLineId}/status")
+    public ResponseEntity<ProductionLineResponseDto> updateProductionLineStatus(
+            @PathVariable Long productionLineId,
+            @Valid @RequestBody ProductionLineStatusUpdateDto dto) {
+        return ResponseEntity.ok(productionLineService.updateProductionLineStatus(productionLineId, dto));
+    }
+
+//    생산라인 삭제
+    @DeleteMapping("/{productionLineId}")
+    public ResponseEntity<Void>deleteProductionLine(@PathVariable Long productionLineId){
+        productionLineService.deleteProductionLine(productionLineId);
+        return ResponseEntity.noContent().build();
     }
 
 }

@@ -17,4 +17,10 @@ public interface ProductionLineRepository extends JpaRepository<ProductionLine, 
     );
     Page<ProductionLine>findAllByStatus(Status status, Pageable pageable);
     Optional<ProductionLine>findByProductionLineIdAndStatus(Long productionLineId, Status status);
+    boolean existsByLogisticsNodePublicIdAndLineCodeAndProductionLineIdNotAndStatusIn(
+            String logisticsNodePublicId,
+            String lineCode,
+            Long productionLineId,
+            List<Status> statuses
+    );
 }

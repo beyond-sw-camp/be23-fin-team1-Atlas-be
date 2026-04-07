@@ -40,4 +40,26 @@ public class ProductionLine extends BaseTimeEntity {
 
     @Column(precision = 18, scale = 2)
     private BigDecimal dailyCapacity;
+
+
+    public void update(String lineCode, String lineName, String lineType, BigDecimal dailyCapacity) {
+        this.lineCode = lineCode;
+        this.lineName = lineName;
+        this.lineType = lineType;
+        this.dailyCapacity = dailyCapacity;
+    }
+
+    public void activate() {
+        this.status = Status.ACTIVE;
+    }
+
+    public void deactivate() {
+        this.status = Status.DEACTIVE;
+    }
+
+    public void delete() {
+        this.status = Status.DELETE;
+    }
+
+
 }
