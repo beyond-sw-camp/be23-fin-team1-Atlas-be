@@ -14,4 +14,5 @@ public class UpdateSupplierCertificateRequestDto {
     private LocalDate issuedAt;
     private LocalDate expiredAt;
     private String issuerName;
+    private String attachmentPublicId;
 }

@@ -18,4 +18,5 @@ public class CreateSupplierCertificateRequestDto {
     private LocalDate issuedAt;
     private LocalDate expiredAt;
     private String issuerName;
+    private String attachmentPublicId;
 }

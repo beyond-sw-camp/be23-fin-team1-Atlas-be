@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -20,8 +19,8 @@ public class SupplierCertificateResponseDto {
     private LocalDate expiredAt;
     private CertificateStatus certificateStatus;
     private String issuerName;
-    private boolean verifiedYn;
-    private LocalDateTime verifiedAt;
+    private String attachmentPublicId;
+    private String rejectReason;
 
     public static SupplierCertificateResponseDto from(SupplierCertificate entity) {
         return SupplierCertificateResponseDto.builder()
@@ -34,8 +33,8 @@ public class SupplierCertificateResponseDto {
                 .expiredAt(entity.getExpiredAt())
                 .certificateStatus(entity.getCertificateStatus())
                 .issuerName(entity.getIssuerName())
-                .verifiedYn(entity.isVerifiedYn())
-                .verifiedAt(entity.getVerifiedAt())
+                .attachmentPublicId(entity.getAttachmentPublicId())
+                .rejectReason(entity.getRejectReason())
                 .build();
     }
 }

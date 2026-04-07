@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -46,10 +45,11 @@ public class SupplierCertificate extends BaseTimeEntity {
     @Column(length = 100)
     private String issuerName;
 
-    @Column(nullable = false)
-    private boolean verifiedYn;
+    @Column(length = 26)
+    private String attachmentPublicId;
 
-    private LocalDateTime verifiedAt;
+    @Column(columnDefinition = "TEXT")
+    private String rejectReason;
 
     @PrePersist
     public void prePersist() {
@@ -57,31 +57,40 @@ public class SupplierCertificate extends BaseTimeEntity {
             this.publicId = PublicIdGenerator.next();
         }
         if (this.certificateStatus == null) {
-            this.certificateStatus = CertificateStatus.VALID;
+            this.certificateStatus = CertificateStatus.REVIEW_REQUESTED;
         }
     }
 
     @Builder
-    public SupplierCertificate(Long supplierId, CertificateType certificateType, String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName) {
+    public SupplierCertificate(Long supplierId, CertificateType certificateType, String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName, String attachmentPublicId) {
         this.supplierId = supplierId;
         this.certificateType = certificateType;
         this.certificateNo = certificateNo;
         this.issuedAt = issuedAt;
         this.expiredAt = expiredAt;
         this.issuerName = issuerName;
-        this.verifiedYn = false;
-        this.certificateStatus = CertificateStatus.VALID;
+        this.attachmentPublicId = attachmentPublicId;
+        this.certificateStatus = CertificateStatus.REVIEW_REQUESTED;
     }
 
-    public void verify() {
-        this.verifiedYn = true;
-        this.verifiedAt = LocalDateTime.now();
+    public void approve() {
+        this.certificateStatus = CertificateStatus.APPROVED;
+        this.rejectReason = null; // Clear rejection reason if any
     }
 
-    public void update(String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName) {
+    public void reject(String rejectReason) {
+        this.certificateStatus = CertificateStatus.REJECTED;
+        this.rejectReason = rejectReason;
+    }
+
+    public void update(String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName, String attachmentPublicId) {
         if (certificateNo != null) this.certificateNo = certificateNo;
         if (issuedAt != null) this.issuedAt = issuedAt;
         if (expiredAt != null) this.expiredAt = expiredAt;
         if (issuerName != null) this.issuerName = issuerName;
+        if (attachmentPublicId != null) this.attachmentPublicId = attachmentPublicId;
+        
+        // Re-request review when updated
+        this.certificateStatus = CertificateStatus.REVIEW_REQUESTED;
     }
 }

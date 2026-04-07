@@ -1,7 +1,9 @@
 package com.ozz.atlas.supply.supplier.certificate.domain;
 
 public enum CertificateStatus {
-    VALID,
+    REVIEW_REQUESTED,
+    APPROVED,
+    REJECTED,
     EXPIRED,
     REVOKED
 }
