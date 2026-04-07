@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ShipmentListResponseDto {
 
-    private Long id;
+    private String publicId;
     private String shipmentNumber;
     private String carrierName;
     private Long destinationNodeId;
@@ -25,7 +25,7 @@ public class ShipmentListResponseDto {
 
     public static ShipmentListResponseDto from(Shipment shipment) {
         return ShipmentListResponseDto.builder()
-                .id(shipment.getId())
+                .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
                 .carrierName(shipment.getCarrierName())
                 .destinationNodeId(shipment.getDestinationNodeId())

@@ -16,8 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ShipmentStatusHistoryResponseDto {
 
-    private Long id;
-    private Long shipmentId;
+    private String shipmentPublicId;
     private ShipmentStatus statusCode;
     private String statusMessage;
     private String locationText;
@@ -26,10 +25,9 @@ public class ShipmentStatusHistoryResponseDto {
     private LocalDateTime recordedAt;
     private String recordedBy;
 
-    public static ShipmentStatusHistoryResponseDto from(ShipmentStatusHistory history){
+    public static ShipmentStatusHistoryResponseDto from(ShipmentStatusHistory history, String shipmentPublicId){
         return ShipmentStatusHistoryResponseDto.builder()
-                .id(history.getId())
-                .shipmentId(history.getShipmentId())
+                .shipmentPublicId(shipmentPublicId)
                 .statusCode(history.getStatusCode())
                 .statusMessage(history.getStatusMessage())
                 .locationText(history.getLocationText())

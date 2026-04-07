@@ -29,7 +29,7 @@ public class ShipmentController {
         ShipmentResponseDto createdShipment = shipmentService.createShipment(dto);
 
         return ResponseEntity
-                .created(URI.create("/api/shipments/" + createdShipment.getId()))
+                .created(URI.create("/api/shipments/" + createdShipment.getPublicId()))
                 .body(createdShipment);
     }
 
@@ -40,29 +40,29 @@ public class ShipmentController {
     }
 
 //    출하 상세 조회
-    @GetMapping("/{id}")
-    public ResponseEntity<ShipmentResponseDto> getShipment(@PathVariable Long id) {
-        return ResponseEntity.ok(shipmentService.getShipmentById(id));
+    @GetMapping("/{publicId}")
+    public ResponseEntity<ShipmentResponseDto> getShipment(@PathVariable String publicId) {
+        return ResponseEntity.ok(shipmentService.getShipmentByPublicId(publicId));
     }
 
 //    track 조회
-    @PostMapping("/{id}/track")
+    @PostMapping("/{publicId}/track")
     public ResponseEntity<ShipmentResponseDto> trackShipment(
-            @PathVariable Long id,
+            @PathVariable String publicId,
             @Valid @RequestBody TrackShipmentRequestDto dto
     ) {
-        return ResponseEntity.ok(shipmentService.trackShipment(id, dto));
+        return ResponseEntity.ok(shipmentService.trackShipment(publicId, dto));
     }
 
 //    ETA 조회
-    @GetMapping("/{id}/eta")
-    public ResponseEntity<ShipmentEtaResponseDto> getShipmentEta(@PathVariable Long id){
-        return ResponseEntity.ok(shipmentService.getShipmentEta(id));
+    @GetMapping("/{publicId}/eta")
+    public ResponseEntity<ShipmentEtaResponseDto> getShipmentEta(@PathVariable String publicId){
+        return ResponseEntity.ok(shipmentService.getShipmentEta(publicId));
     }
 
 //    statusHistory 조회
-    @GetMapping("/{id}/status-history")
-    public ResponseEntity<List<ShipmentStatusHistoryResponseDto>> getShipmentStatusHistories(@PathVariable Long id){
-        return ResponseEntity.ok(shipmentService.getShipmentStatusHistories(id));
+    @GetMapping("/{publicId}/status-history")
+    public ResponseEntity<List<ShipmentStatusHistoryResponseDto>> getShipmentStatusHistories(@PathVariable String publicId){
+        return ResponseEntity.ok(shipmentService.getShipmentStatusHistories(publicId));
     }
 }

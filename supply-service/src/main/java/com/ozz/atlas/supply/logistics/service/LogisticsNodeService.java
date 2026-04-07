@@ -47,6 +47,13 @@ public class LogisticsNodeService {
         return LogisticsNodeResponseDto.from(node);
     }
 
+//    출하에서 창고 조회용
+    @Transactional(readOnly = true)
+    public LogisticsNode getLogisticsNodeEntity(Long id){
+        return logisticsNodeRepository.findById(id)
+                .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+    }
+
 //    창고 수정
     public LogisticsNodeResponseDto updateLogisticsNode(String publicId, UpdateLogisticsNodeRequestDto dto){
         LogisticsNode node = logisticsNodeRepository.findByPublicId(publicId)
