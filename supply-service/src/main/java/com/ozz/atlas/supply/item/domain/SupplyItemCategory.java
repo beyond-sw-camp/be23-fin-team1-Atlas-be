@@ -1,25 +1,28 @@
 package com.ozz.atlas.supply.item.domain;
 
+import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import com.ozz.atlas.common.jpa.Status;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
+@Getter
 @Builder
 @Entity
 public class SupplyItemCategory extends BaseTimeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, updatable = false, length = 26)
+    @Builder.Default
+    private String publicId = PublicIdGenerator.next();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_category_id", foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT))
@@ -27,8 +30,10 @@ public class SupplyItemCategory extends BaseTimeEntity {
 
     @Column(nullable = false, length = 100)
     private String categoryName;
+
     @Column(nullable = false)
     private Integer categoryLevel;
+
     @Column(nullable = false)
     private Integer sortOrder;
 
@@ -45,7 +50,6 @@ public class SupplyItemCategory extends BaseTimeEntity {
         if (this.sortOrder == null) {
             this.sortOrder = 1;
         }
-
     }
 
     public static SupplyItemCategory create(
@@ -79,4 +83,3 @@ public class SupplyItemCategory extends BaseTimeEntity {
         this.status = status;
     }
 }
-

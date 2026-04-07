@@ -12,12 +12,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateItemCategoryRequest {
-    private Long parentCategoryId;
+
+    @Size(max = 26)
+    private String parentCategoryPublicId;
 
     @NotBlank
     @Size(max = 100)
     private String categoryName;
 
     private Integer sortOrder;
-
 }

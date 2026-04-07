@@ -27,8 +27,11 @@ public class SupplyItemCategoryService {
         SupplyItemCategory parentCategory = null;
         int categoryLevel = 1;
 
-        if (request.getParentCategoryId() != null) {
-            parentCategory = supplyItemCategoryRepository.findByIdAndStatus(request.getParentCategoryId(), Status.ACTIVE)
+        if (request.getParentCategoryPublicId() != null && !request.getParentCategoryPublicId().isBlank()) {
+            parentCategory = supplyItemCategoryRepository.findByPublicIdAndStatus(
+                            request.getParentCategoryPublicId(),
+                            Status.ACTIVE
+                    )
                     .orElseThrow(() -> new ItemException(ItemErrorCode.PARENT_CATEGORY_NOT_FOUND));
             categoryLevel = parentCategory.getCategoryLevel() + 1;
         }
@@ -43,21 +46,26 @@ public class SupplyItemCategoryService {
         return ItemCategoryResponse.fromEntity(supplyItemCategoryRepository.save(category));
     }
 
-    public ItemCategoryResponse updateCategory(Long categoryId, UpdateItemCategoryRequest request) {
-        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
+    public ItemCategoryResponse updateCategory(String categoryPublicId, UpdateItemCategoryRequest request) {
+        SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(categoryPublicId, Status.ACTIVE)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
 
-        if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(categoryId, Status.ACTIVE)) {
+        if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(category.getId(), Status.ACTIVE)) {
             throw new ItemException(ItemErrorCode.CATEGORY_CHILD_EXISTS);
         }
 
         SupplyItemCategory parentCategory = null;
         int categoryLevel = 1;
-        if (request.getParentCategoryId() != null) {
-            if (request.getParentCategoryId().equals(categoryId)) {
+
+        if (request.getParentCategoryPublicId() != null && !request.getParentCategoryPublicId().isBlank()) {
+            if (request.getParentCategoryPublicId().equals(category.getPublicId())) {
                 throw new ItemException(ItemErrorCode.CATEGORY_SELF_PARENT);
             }
-            parentCategory = supplyItemCategoryRepository.findByIdAndStatus(request.getParentCategoryId(), Status.ACTIVE)
+
+            parentCategory = supplyItemCategoryRepository.findByPublicIdAndStatus(
+                            request.getParentCategoryPublicId(),
+                            Status.ACTIVE
+                    )
                     .orElseThrow(() -> new ItemException(ItemErrorCode.PARENT_CATEGORY_NOT_FOUND));
             categoryLevel = parentCategory.getCategoryLevel() + 1;
         }
@@ -72,11 +80,11 @@ public class SupplyItemCategoryService {
         return ItemCategoryResponse.fromEntity(category);
     }
 
-    public void deleteCategory(Long categoryId) {
-        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
+    public void deleteCategory(String categoryPublicId) {
+        SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(categoryPublicId, Status.ACTIVE)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
 
-        if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(categoryId, Status.ACTIVE)) {
+        if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(category.getId(), Status.ACTIVE)) {
             throw new ItemException(ItemErrorCode.CATEGORY_CHILD_EXISTS);
         }
 
@@ -88,15 +96,16 @@ public class SupplyItemCategoryService {
     }
 
     @Transactional(readOnly = true)
-    public ItemCategoryResponse getCategory(Long categoryId) {
-        SupplyItemCategory category = supplyItemCategoryRepository.findByIdAndStatus(categoryId, Status.ACTIVE)
+    public ItemCategoryResponse getCategory(String categoryPublicId) {
+        SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(categoryPublicId, Status.ACTIVE)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
+
         return ItemCategoryResponse.fromEntity(category);
     }
 
     @Transactional(readOnly = true)
     public Page<ItemCategoryResponse> getCategoryList(Pageable pageable) {
-        Page<SupplyItemCategory> categoryPage = supplyItemCategoryRepository.findAllByStatus(Status.ACTIVE, pageable);
-        return categoryPage.map(ItemCategoryResponse::fromEntity);
+        return supplyItemCategoryRepository.findAllByStatus(Status.ACTIVE, pageable)
+                .map(ItemCategoryResponse::fromEntity);
     }
 }

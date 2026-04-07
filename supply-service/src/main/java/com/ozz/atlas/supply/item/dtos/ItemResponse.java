@@ -15,8 +15,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ItemResponse {
 
-    private Long id;
-    private Long itemCategoryId;
+    private String publicId;
+    private String itemCategoryPublicId;
     private String categoryName;
     private String itemCode;
     private String itemName;
@@ -29,8 +29,8 @@ public class ItemResponse {
 
     public static ItemResponse fromEntity(SupplyItem item) {
         return ItemResponse.builder()
-                .id(item.getId())
-                .itemCategoryId(item.getItemCategory().getId())
+                .publicId(item.getPublicId())
+                .itemCategoryPublicId(item.getItemCategory().getPublicId())
                 .categoryName(item.getItemCategory().getCategoryName())
                 .itemCode(item.getItemCode())
                 .itemName(item.getItemName())

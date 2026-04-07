@@ -11,20 +11,21 @@ import java.util.Collection;
 import java.util.Optional;
 
 public interface OnboardingRequestRepository extends JpaRepository<OnboardingRequest, Long> {
+
     Page<OnboardingRequest> findAllByRequestStatusInAndSupplier_SupplierStatusNot(
             Collection<OnboardingRequestStatus> requestStatuses,
             SupplierStatus supplierStatus,
             Pageable pageable
     );
 
-    Optional<OnboardingRequest> findByIdAndRequestStatusInAndSupplier_SupplierStatusNot(
-            Long id,
+    Optional<OnboardingRequest> findByPublicIdAndRequestStatusInAndSupplier_SupplierStatusNot(
+            String publicId,
             Collection<OnboardingRequestStatus> requestStatuses,
             SupplierStatus supplierStatus
     );
 
-    Optional<OnboardingRequest> findByIdAndRequestStatusAndSupplier_SupplierStatusNot(
-            Long id,
+    Optional<OnboardingRequest> findByPublicIdAndRequestStatusAndSupplier_SupplierStatusNot(
+            String publicId,
             OnboardingRequestStatus requestStatus,
             SupplierStatus supplierStatus
     );

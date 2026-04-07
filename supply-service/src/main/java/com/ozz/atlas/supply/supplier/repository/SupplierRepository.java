@@ -10,20 +10,61 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface SupplierRepository extends JpaRepository<SupplySupplier, Long> {
+
     Page<SupplySupplier> findAllBySupplierStatusNot(
             SupplierStatus supplierStatus,
             Pageable pageable
     );
 
-    Page<SupplySupplier> findAllByApprovalStatusAndSupplierStatusNot(ApprovalStatus approvalStatus, SupplierStatus supplierStatus, Pageable pageable);
+    Page<SupplySupplier> findAllByApprovalStatusAndSupplierStatusNot(
+            ApprovalStatus approvalStatus,
+            SupplierStatus supplierStatus,
+            Pageable pageable
+    );
 
-    Page<SupplySupplier> findAllByTierLevelAndApprovalStatusAndSupplierStatusNot(Integer tierLevel, ApprovalStatus approvalStatus, SupplierStatus supplierStatus, Pageable pageable);
+    Page<SupplySupplier> findAllByTierLevelAndApprovalStatusAndSupplierStatusNot(
+            Integer tierLevel,
+            ApprovalStatus approvalStatus,
+            SupplierStatus supplierStatus,
+            Pageable pageable
+    );
 
-    Optional<SupplySupplier> findByIdAndSupplierStatusNot(Long id, SupplierStatus supplierStatus);
+    Optional<SupplySupplier> findByIdAndSupplierStatusNot(
+            Long id,
+            SupplierStatus supplierStatus
+    );
 
-    Optional<SupplySupplier> findByIdAndApprovalStatusAndSupplierStatusNot(Long id, ApprovalStatus approvalStatus, SupplierStatus supplierStatus);
+    Optional<SupplySupplier> findByIdAndApprovalStatusAndSupplierStatusNot(
+            Long id,
+            ApprovalStatus approvalStatus,
+            SupplierStatus supplierStatus
+    );
 
-    boolean existsBySupplierCodeAndSupplierStatusNot(String supplierCode, SupplierStatus supplierStatus);
+    Optional<SupplySupplier> findByPublicIdAndSupplierStatusNot(
+            String publicId,
+            SupplierStatus supplierStatus
+    );
 
-    boolean existsBySupplierCodeAndIdNotAndSupplierStatusNot(String supplierCode, Long id, SupplierStatus supplierStatus);
+    Optional<SupplySupplier> findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+            String publicId,
+            ApprovalStatus approvalStatus,
+            SupplierStatus supplierStatus
+    );
+
+    boolean existsBySupplierCodeAndSupplierStatusNot(
+            String supplierCode,
+            SupplierStatus supplierStatus
+    );
+
+    boolean existsBySupplierCodeAndIdNotAndSupplierStatusNot(
+            String supplierCode,
+            Long id,
+            SupplierStatus supplierStatus
+    );
+
+    boolean existsBySupplierCodeAndPublicIdNotAndSupplierStatusNot(
+            String supplierCode,
+            String publicId,
+            SupplierStatus supplierStatus
+    );
 }

@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SupplierResponse {
 
-    private Long id;
     private String publicId;
     private String organizationPublicId;
     private String supplierCode;
@@ -32,7 +31,6 @@ public class SupplierResponse {
 
     public static SupplierResponse fromEntity(SupplySupplier supplier) {
         return SupplierResponse.builder()
-                .id(supplier.getId())
                 .publicId(supplier.getPublicId())
                 .organizationPublicId(supplier.getOrganizationPublicId())
                 .supplierCode(supplier.getSupplierCode())
