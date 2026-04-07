@@ -1,8 +1,6 @@
 package com.ozz.atlas.supply.supplier.certificate.controller;
 
-import com.ozz.atlas.supply.supplier.certificate.dtos.CreateSupplierCertificateRequestDto;
-import com.ozz.atlas.supply.supplier.certificate.dtos.SupplierCertificateResponseDto;
-import com.ozz.atlas.supply.supplier.certificate.dtos.UpdateSupplierCertificateRequestDto;
+import com.ozz.atlas.supply.supplier.certificate.dtos.*;
 import com.ozz.atlas.supply.supplier.certificate.service.SupplierCertificateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +20,9 @@ public class SupplierCertificateController {
     @PostMapping("/suppliers/{supplierId}/certificates")
     public ResponseEntity<SupplierCertificateResponseDto> createSupplierCertificate(
             @PathVariable Long supplierId,
-            @Valid @RequestBody CreateSupplierCertificateRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(supplierCertificateService.createSupplierCertificate(supplierId, request));
+            @Valid @RequestBody CreateSupplierCertificateRequestDto request,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(supplierCertificateService.createSupplierCertificate(supplierId, request, actorPublicId));
     }
 
     @GetMapping("/suppliers/{supplierId}/certificates")
@@ -39,8 +38,9 @@ public class SupplierCertificateController {
     @PutMapping("/certificates/{publicId}")
     public ResponseEntity<SupplierCertificateResponseDto> updateSupplierCertificate(
             @PathVariable String publicId,
-            @Valid @RequestBody UpdateSupplierCertificateRequestDto request) {
-        return ResponseEntity.ok(supplierCertificateService.updateSupplierCertificate(publicId, request));
+            @Valid @RequestBody UpdateSupplierCertificateRequestDto request,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
+        return ResponseEntity.ok(supplierCertificateService.updateSupplierCertificate(publicId, request, actorPublicId));
     }
 
     @DeleteMapping("/certificates/{publicId}")
@@ -49,9 +49,20 @@ public class SupplierCertificateController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/certificates/{publicId}/verify")
-    public ResponseEntity<Void> verifyCertificate(@PathVariable String publicId) {
-        supplierCertificateService.verifyCertificate(publicId);
+    @PatchMapping("/certificates/{publicId}/approve")
+    public ResponseEntity<Void> approveCertificate(
+            @PathVariable String publicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
+        supplierCertificateService.approveCertificate(publicId, actorPublicId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/certificates/{publicId}/reject")
+    public ResponseEntity<Void> rejectCertificate(
+            @PathVariable String publicId,
+            @Valid @RequestBody RejectCertificateRequestDto request,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
+        supplierCertificateService.rejectCertificate(publicId, request, actorPublicId);
         return ResponseEntity.ok().build();
     }
 
@@ -59,5 +70,10 @@ public class SupplierCertificateController {
     public ResponseEntity<List<SupplierCertificateResponseDto>> getExpiringCertificates(
             @RequestParam(defaultValue = "30") int days) {
         return ResponseEntity.ok(supplierCertificateService.getExpiringCertificates(days));
+    }
+
+    @GetMapping("/certificates/{publicId}/histories")
+    public ResponseEntity<List<SupplierCertificateHistoryResponseDto>> getCertificateHistories(@PathVariable String publicId) {
+        return ResponseEntity.ok(supplierCertificateService.getCertificateHistories(publicId));
     }
 }

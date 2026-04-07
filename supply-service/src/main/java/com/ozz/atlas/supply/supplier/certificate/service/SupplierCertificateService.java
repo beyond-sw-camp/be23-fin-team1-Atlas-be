@@ -1,13 +1,14 @@
 package com.ozz.atlas.supply.supplier.certificate.service;
 
+import com.ozz.atlas.supply.supplier.certificate.domain.CertificateStatus;
 import com.ozz.atlas.supply.supplier.certificate.domain.CertificateType;
 import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificate;
-import com.ozz.atlas.supply.supplier.certificate.dtos.CreateSupplierCertificateRequestDto;
-import com.ozz.atlas.supply.supplier.certificate.dtos.SupplierCertificateResponseDto;
-import com.ozz.atlas.supply.supplier.certificate.dtos.UpdateSupplierCertificateRequestDto;
+import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificateHistory;
+import com.ozz.atlas.supply.supplier.certificate.dtos.*;
 import com.ozz.atlas.supply.supplier.certificate.exception.CertificateErrorCode;
 import com.ozz.atlas.supply.supplier.certificate.exception.CertificateException;
 import com.ozz.atlas.supply.supplier.certificate.repository.CertificateTypeRepository;
+import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateHistoryRepository;
 import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,9 +25,10 @@ public class SupplierCertificateService {
 
     private final SupplierCertificateRepository supplierCertificateRepository;
     private final CertificateTypeRepository certificateTypeRepository;
+    private final SupplierCertificateHistoryRepository supplierCertificateHistoryRepository;
 
     @Transactional
-    public SupplierCertificateResponseDto createSupplierCertificate(Long supplierId, CreateSupplierCertificateRequestDto request) {
+    public SupplierCertificateResponseDto createSupplierCertificate(Long supplierId, CreateSupplierCertificateRequestDto request, String actorPublicId) {
         if (request.getIssuedAt() != null && request.getExpiredAt() != null && request.getExpiredAt().isBefore(request.getIssuedAt())) {
             throw new CertificateException(CertificateErrorCode.INVALID_CERTIFICATE_DATES);
         }
@@ -41,9 +43,14 @@ public class SupplierCertificateService {
                 .issuedAt(request.getIssuedAt())
                 .expiredAt(request.getExpiredAt())
                 .issuerName(request.getIssuerName())
+                .attachmentPublicId(request.getAttachmentPublicId())
                 .build();
 
-        return SupplierCertificateResponseDto.from(supplierCertificateRepository.save(cert));
+        SupplierCertificate savedCert = supplierCertificateRepository.save(cert);
+        
+        saveHistory(savedCert.getId(), "CREATE", null, savedCert.getCertificateStatus(), "인증서 등록", actorPublicId);
+
+        return SupplierCertificateResponseDto.from(savedCert);
     }
 
     public List<SupplierCertificateResponseDto> getCertificatesBySupplier(Long supplierId) {
@@ -59,7 +66,7 @@ public class SupplierCertificateService {
     }
 
     @Transactional
-    public SupplierCertificateResponseDto updateSupplierCertificate(String publicId, UpdateSupplierCertificateRequestDto request) {
+    public SupplierCertificateResponseDto updateSupplierCertificate(String publicId, UpdateSupplierCertificateRequestDto request, String actorPublicId) {
         SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
 
@@ -67,7 +74,11 @@ public class SupplierCertificateService {
             throw new CertificateException(CertificateErrorCode.INVALID_CERTIFICATE_DATES);
         }
 
-        cert.update(request.getCertificateNo(), request.getIssuedAt(), request.getExpiredAt(), request.getIssuerName());
+        CertificateStatus beforeStatus = cert.getCertificateStatus();
+        cert.update(request.getCertificateNo(), request.getIssuedAt(), request.getExpiredAt(), request.getIssuerName(), request.getAttachmentPublicId());
+        
+        saveHistory(cert.getId(), "UPDATE", beforeStatus, cert.getCertificateStatus(), "인증서 수정 및 재심사 요청", actorPublicId);
+
         return SupplierCertificateResponseDto.from(cert);
     }
 
@@ -79,10 +90,25 @@ public class SupplierCertificateService {
     }
 
     @Transactional
-    public void verifyCertificate(String publicId) {
+    public void approveCertificate(String publicId, String actorPublicId) {
         SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
-        cert.verify();
+        
+        CertificateStatus beforeStatus = cert.getCertificateStatus();
+        cert.approve();
+        
+        saveHistory(cert.getId(), "APPROVE", beforeStatus, cert.getCertificateStatus(), "관리자 승인 처리", actorPublicId);
+    }
+
+    @Transactional
+    public void rejectCertificate(String publicId, RejectCertificateRequestDto request, String actorPublicId) {
+        SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
+        
+        CertificateStatus beforeStatus = cert.getCertificateStatus();
+        cert.reject(request.getRejectReason());
+        
+        saveHistory(cert.getId(), "REJECT", beforeStatus, cert.getCertificateStatus(), request.getRejectReason(), actorPublicId);
     }
 
     public List<SupplierCertificateResponseDto> getExpiringCertificates(int days) {
@@ -91,5 +117,27 @@ public class SupplierCertificateService {
         return supplierCertificateRepository.findByExpiredAtBetween(today, targetDate).stream()
                 .map(SupplierCertificateResponseDto::from)
                 .collect(Collectors.toList());
+    }
+
+    public List<SupplierCertificateHistoryResponseDto> getCertificateHistories(String publicId) {
+        SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
+                
+        return supplierCertificateHistoryRepository.findBySupplierCertificateIdOrderByRecordedAtDesc(cert.getId())
+                .stream()
+                .map(SupplierCertificateHistoryResponseDto::from)
+                .collect(Collectors.toList());
+    }
+
+    private void saveHistory(Long certId, String actionType, CertificateStatus before, CertificateStatus after, String reason, String actor) {
+        SupplierCertificateHistory history = SupplierCertificateHistory.builder()
+                .supplierCertificateId(certId)
+                .actionType(actionType)
+                .beforeStatus(before)
+                .afterStatus(after)
+                .reason(reason)
+                .actorPublicId(actor)
+                .build();
+        supplierCertificateHistoryRepository.save(history);
     }
 }
