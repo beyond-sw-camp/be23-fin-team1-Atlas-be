@@ -29,17 +29,6 @@ public interface SupplierRepository extends JpaRepository<SupplySupplier, Long> 
             Pageable pageable
     );
 
-    Optional<SupplySupplier> findByIdAndSupplierStatusNot(
-            Long id,
-            SupplierStatus supplierStatus
-    );
-
-    Optional<SupplySupplier> findByIdAndApprovalStatusAndSupplierStatusNot(
-            Long id,
-            ApprovalStatus approvalStatus,
-            SupplierStatus supplierStatus
-    );
-
     Optional<SupplySupplier> findByPublicIdAndSupplierStatusNot(
             String publicId,
             SupplierStatus supplierStatus
@@ -53,12 +42,6 @@ public interface SupplierRepository extends JpaRepository<SupplySupplier, Long> 
 
     boolean existsBySupplierCodeAndSupplierStatusNot(
             String supplierCode,
-            SupplierStatus supplierStatus
-    );
-
-    boolean existsBySupplierCodeAndIdNotAndSupplierStatusNot(
-            String supplierCode,
-            Long id,
             SupplierStatus supplierStatus
     );
 

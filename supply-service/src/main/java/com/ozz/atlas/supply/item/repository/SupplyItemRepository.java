@@ -8,19 +8,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface SupplyItemRepository extends JpaRepository<SupplyItem, Long> {
 
     Page<SupplyItem> findAllByStatus(Status status, Pageable pageable);
 
-    Optional<SupplyItem> findByIdAndStatusIn(Long itemId, Collection<Status> status);
-
     Optional<SupplyItem> findByPublicIdAndStatusIn(String publicId, Collection<Status> status);
 
-    boolean existsByItemCode(String itemCode);
+    List<SupplyItem> findAllByPublicIdInAndStatus(Collection<String> publicIds, Status status);
 
-    boolean existsByItemCodeAndIdNot(String itemCode, Long id);
+    boolean existsByItemCode(String itemCode);
 
     boolean existsByItemCodeAndPublicIdNot(String itemCode, String publicId);
 
