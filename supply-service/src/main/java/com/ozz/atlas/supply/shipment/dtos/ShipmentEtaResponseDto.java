@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ShipmentEtaResponseDto {
 
-    private Long id;
+    private String publicId;
     private ShipmentStatus status;
     private Long currentNodeId;
     private Long destinationNodeId;

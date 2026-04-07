@@ -1,5 +1,7 @@
 package com.ozz.atlas.supply.shipment.service;
 
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
 import com.ozz.atlas.supply.shipment.domain.*;
 import com.ozz.atlas.supply.shipment.dtos.*;
 import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
@@ -22,25 +24,34 @@ public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final ShipmentCheckpointRepository shipmentCheckpointRepository;
     private final ShipmentStatusHistoryRepository shipmentStatusHistoryRepository;
+    private final LogisticsNodeService logisticsNodeService;
 
-    public ShipmentService(ShipmentRepository shipmentRepository, ShipmentCheckpointRepository shipmentCheckpointRepository, ShipmentStatusHistoryRepository shipmentStatusHistoryRepository) {
+    public ShipmentService(ShipmentRepository shipmentRepository, ShipmentCheckpointRepository shipmentCheckpointRepository, ShipmentStatusHistoryRepository shipmentStatusHistoryRepository, LogisticsNodeService logisticsNodeService) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
         this.shipmentStatusHistoryRepository = shipmentStatusHistoryRepository;
+        this.logisticsNodeService = logisticsNodeService;
     }
 
 //    출하 생성
     @Transactional
     public ShipmentResponseDto createShipment(CreateShipmentRequestDto dto){
+        LogisticsNode originNode = logisticsNodeService.getLogisticsNodeEntity(dto.getOriginNodeId());
+
+//        1. 변수로 받지 않고 검증만 하기
+        logisticsNodeService.getLogisticsNodeEntity(dto.getDestinationNodeId());
+//        2. 존재 검증만 하기 떄문에 변수가 unused경고가 뜰 수 있음
+//        LogisticsNode destinationNode = logisticsNodeService.getLogisticsNodeEntity(dto.getDestinationNodeId());
+
         Shipment savedShipment = shipmentRepository.save(dto.toEntity());
 
         saveShipmentStatusHistory(
                 savedShipment,
                 LocalDateTime.now(),
                 "출하 생성",
-                null,
-                null,
-                null,
+                originNode.getNodeName(),
+                originNode.getLatitude(),
+                originNode.getLongitude(),
                 "SYSTEM"
         );
         return ShipmentResponseDto.from(savedShipment);
@@ -55,21 +66,23 @@ public class ShipmentService {
 
 //    출하 상세 조회
     @Transactional(readOnly = true)
-    public ShipmentResponseDto getShipmentById(Long id){
-        Shipment shipment = shipmentRepository.findById(id)
+    public ShipmentResponseDto getShipmentByPublicId(String publicId){
+        Shipment shipment = shipmentRepository.findByPublicId(publicId)
                 .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
 
         return ShipmentResponseDto.from(shipment);
     }
 
 //    track 생성
-    public ShipmentResponseDto trackShipment(Long id, TrackShipmentRequestDto dto){
-        Shipment shipment = shipmentRepository.findById(id)
+    public ShipmentResponseDto trackShipment(String publicId, TrackShipmentRequestDto dto){
+        Shipment shipment = shipmentRepository.findByPublicId(publicId)
                 .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
 
         validateTrackRequest(dto);
 
-        ShipmentCheckpoint checkpoint = dto.toEntity(id);
+        LogisticsNode node = logisticsNodeService.getLogisticsNodeEntity(dto.getNodeId());
+
+        ShipmentCheckpoint checkpoint = dto.toEntity(shipment.getId());
         shipmentCheckpointRepository.save(checkpoint);
 
         applyCheckpointToShipment(shipment, dto);
@@ -81,9 +94,9 @@ public class ShipmentService {
                     savedShipment,
                     dto.getActualAt(),
                     buildStatusMessage(dto),
-                    null,
-                    null,
-                    null,
+                    node.getNodeName(),
+                    node.getLatitude(),
+                    node.getLongitude(),
                     "SYSTEM"
             );
         }
@@ -137,8 +150,8 @@ public class ShipmentService {
 //    ETA - 확장 버전
 //    checkpoint + 실제 출발 시간 반영
     @Transactional(readOnly = true)
-    public ShipmentEtaResponseDto getShipmentEta(Long id){
-        Shipment shipment = shipmentRepository.findById(id)
+    public ShipmentEtaResponseDto getShipmentEta(String publicId){
+        Shipment shipment = shipmentRepository.findByPublicId(publicId)
                 .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
 
         List<ShipmentCheckpoint> checkpoints =
@@ -187,7 +200,7 @@ public class ShipmentService {
             }
         }
         return ShipmentEtaResponseDto.builder()
-                .id(shipment.getId())
+                .publicId(shipment.getPublicId())
                 .status(shipment.getStatus())
                 .currentNodeId(shipment.getCurrentNodeId())
                 .destinationNodeId(shipment.getDestinationNodeId())
@@ -252,13 +265,13 @@ public class ShipmentService {
 
 //    statusHistory 저장
     @Transactional(readOnly = true)
-    public List<ShipmentStatusHistoryResponseDto> getShipmentStatusHistories(Long id){
-        Shipment shipment = shipmentRepository.findById(id)
+    public List<ShipmentStatusHistoryResponseDto> getShipmentStatusHistories(String publicId){
+        Shipment shipment = shipmentRepository.findByPublicId(publicId)
                 .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
 
         List<ShipmentStatusHistory> histories =
                 shipmentStatusHistoryRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
 
-        return histories.stream().map(ShipmentStatusHistoryResponseDto::from).toList();
+        return histories.stream().map(history -> ShipmentStatusHistoryResponseDto.from(history, shipment.getPublicId())).toList();
     }
 }
