@@ -13,24 +13,29 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemCategoryResponse  {
-    private Long id;
-    private Long parentCategoryId;
+public class ItemCategoryResponse {
+
+    private String publicId;
+    private String parentCategoryPublicId;
     private String categoryName;
     private Integer categoryLevel;
     private Integer sortOrder;
     private Status status;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public static ItemCategoryResponse fromEntity(SupplyItemCategory category) {
         return ItemCategoryResponse.builder()
-                .id(category.getId())
-                .parentCategoryId(category.getParentCategory() != null ? category.getParentCategory().getId() : null)
+                .publicId(category.getPublicId())
+                .parentCategoryPublicId(
+                        category.getParentCategory() != null ? category.getParentCategory().getPublicId() : null
+                )
                 .categoryName(category.getCategoryName())
                 .categoryLevel(category.getCategoryLevel())
                 .sortOrder(category.getSortOrder())
                 .status(category.getStatus())
                 .createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt())
                 .build();
     }
 }

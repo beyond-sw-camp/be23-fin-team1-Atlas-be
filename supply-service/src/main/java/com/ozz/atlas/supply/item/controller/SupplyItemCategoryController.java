@@ -19,37 +19,35 @@ public class SupplyItemCategoryController {
 
     private final SupplyItemCategoryService supplyItemCategoryService;
 
-//    품목 카테고리 등록
     @PostMapping("/create")
     public ResponseEntity<?> createCategory(@Valid @RequestBody CreateItemCategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(supplyItemCategoryService.createCategory(request));
     }
 
-//    품목 카테고리 수정
-    @PutMapping("/{categoryId}")
-    public ResponseEntity<?> updateCategory(@PathVariable Long categoryId,
-                                               @Valid @RequestBody UpdateItemCategoryRequest request) {
-        return ResponseEntity.ok(supplyItemCategoryService.updateCategory(categoryId, request));
+    @PutMapping("/{categoryPublicId}")
+    public ResponseEntity<?> updateCategory(
+            @PathVariable String categoryPublicId,
+            @Valid @RequestBody UpdateItemCategoryRequest request
+    ) {
+        return ResponseEntity.ok(supplyItemCategoryService.updateCategory(categoryPublicId, request));
     }
 
-//    품목 카테고리 삭제
-    @DeleteMapping("/{categoryId}")
-    public ResponseEntity<?> deleteCategory(@PathVariable Long categoryId) {
-        supplyItemCategoryService.deleteCategory(categoryId);
+    @DeleteMapping("/{categoryPublicId}")
+    public ResponseEntity<?> deleteCategory(@PathVariable String categoryPublicId) {
+        supplyItemCategoryService.deleteCategory(categoryPublicId);
         return ResponseEntity.noContent().build();
     }
 
-//    품목 카테고리 단건 조회
-    @GetMapping("/{categoryId}")
-    public ResponseEntity<?> getCategory(@PathVariable Long categoryId) {
-        return ResponseEntity.ok(supplyItemCategoryService.getCategory(categoryId));
+    @GetMapping("/{categoryPublicId}")
+    public ResponseEntity<?> getCategory(@PathVariable String categoryPublicId) {
+        return ResponseEntity.ok(supplyItemCategoryService.getCategory(categoryPublicId));
     }
 
-//    품목 카테고리 목록 조회
     @GetMapping
-    public ResponseEntity<?> getCategoryList(@PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+    public ResponseEntity<?> getCategoryList(
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+    ) {
         return ResponseEntity.ok(supplyItemCategoryService.getCategoryList(pageable));
     }
-
 }

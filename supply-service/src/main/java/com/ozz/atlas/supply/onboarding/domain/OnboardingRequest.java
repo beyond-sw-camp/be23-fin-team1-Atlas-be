@@ -1,24 +1,31 @@
 package com.ozz.atlas.supply.onboarding.domain;
 
+import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @AllArgsConstructor
-@NoArgsConstructor
-@Data
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 @Builder
 @Entity
 public class OnboardingRequest {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, updatable = false, length = 26)
+    @Builder.Default
+    private String publicId = PublicIdGenerator.next();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id", foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT), nullable = false)
@@ -48,9 +55,6 @@ public class OnboardingRequest {
 
     @Column(columnDefinition = "TEXT")
     private String rejectReason;
-
-    @Column(columnDefinition = "TEXT")
-    private String note;
 
     public static OnboardingRequest create(SupplySupplier supplier, String requestedByUserPublicId) {
         return OnboardingRequest.builder()

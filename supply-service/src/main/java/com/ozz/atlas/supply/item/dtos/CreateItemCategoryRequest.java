@@ -12,7 +12,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateItemCategoryRequest {
-    private Long parentCategoryId;
+
+    @Size(max = 26)
+    private String parentCategoryPublicId;
 
     @NotBlank
     @Size(max = 100)

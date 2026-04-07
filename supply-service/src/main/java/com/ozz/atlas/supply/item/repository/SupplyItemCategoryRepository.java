@@ -14,5 +14,7 @@ public interface SupplyItemCategoryRepository extends JpaRepository<SupplyItemCa
 
     Optional<SupplyItemCategory> findByIdAndStatus(Long id, Status status);
 
+    Optional<SupplyItemCategory> findByPublicIdAndStatus(String publicId, Status status);
+
     boolean existsByParentCategory_IdAndStatus(Long parentCategoryId, Status status);
 }

@@ -1,8 +1,6 @@
 package com.ozz.atlas.supply.onboarding.dtos;
 
 import com.ozz.atlas.supply.onboarding.domain.OnboardingRequest;
-import java.time.LocalDateTime;
-
 import com.ozz.atlas.supply.onboarding.domain.OnboardingRequestStatus;
 import com.ozz.atlas.supply.onboarding.domain.OnboardingRequestType;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
@@ -12,13 +10,15 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class OnboardingResponse {
 
-    private Long requestId;
+    private String requestPublicId;
     private OnboardingRequestType requestType;
     private OnboardingRequestStatus requestStatus;
     private String requestedByUserPublicId;
@@ -27,7 +27,6 @@ public class OnboardingResponse {
     private LocalDateTime reviewedAt;
     private String rejectReason;
 
-    private Long supplierId;
     private String supplierPublicId;
     private String organizationPublicId;
     private String supplierCode;
@@ -41,7 +40,7 @@ public class OnboardingResponse {
 
     public static OnboardingResponse fromEntity(OnboardingRequest request) {
         return OnboardingResponse.builder()
-                .requestId(request.getId())
+                .requestPublicId(request.getPublicId())
                 .requestType(request.getRequestType())
                 .requestStatus(request.getRequestStatus())
                 .requestedByUserPublicId(request.getRequestedByUserPublicId())
@@ -49,7 +48,6 @@ public class OnboardingResponse {
                 .requestedAt(request.getRequestedAt())
                 .reviewedAt(request.getReviewedAt())
                 .rejectReason(request.getRejectReason())
-                .supplierId(request.getSupplier().getId())
                 .supplierPublicId(request.getSupplier().getPublicId())
                 .organizationPublicId(request.getSupplier().getOrganizationPublicId())
                 .supplierCode(request.getSupplier().getSupplierCode())

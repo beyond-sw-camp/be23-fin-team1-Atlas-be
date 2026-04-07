@@ -16,9 +16,9 @@ public class SupplierController {
 
     private final SupplierService supplierService;
 
-    @GetMapping("/{supplierId}")
-    public ResponseEntity<?> getSupplier(@PathVariable Long supplierId) {
-        return ResponseEntity.ok(supplierService.getSupplier(supplierId));
+    @GetMapping("/{supplierPublicId}")
+    public ResponseEntity<?> getSupplier(@PathVariable String supplierPublicId) {
+        return ResponseEntity.ok(supplierService.getSupplier(supplierPublicId));
     }
 
     @GetMapping
@@ -34,14 +34,14 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.getSuppliersByTierLevel(tierLevel, pageable));
     }
 
-    @PutMapping("/{supplierId}")
-    public ResponseEntity<?> updateSupplier(@PathVariable Long supplierId, @Valid @RequestBody UpdateSupplierRequest request) {
-        return ResponseEntity.ok(supplierService.updateSupplier(supplierId, request));
+    @PutMapping("/{supplierPublicId}")
+    public ResponseEntity<?> updateSupplier(@PathVariable String supplierPublicId, @Valid @RequestBody UpdateSupplierRequest request) {
+        return ResponseEntity.ok(supplierService.updateSupplier(supplierPublicId, request));
     }
 
     @DeleteMapping("/{supplierId}")
-    public ResponseEntity<?> deleteSupplier(@PathVariable Long supplierId) {
-        supplierService.deleteSupplier(supplierId);
+    public ResponseEntity<?> deleteSupplier(@PathVariable String supplierPublicId) {
+        supplierService.deleteSupplier(supplierPublicId);
         return ResponseEntity.noContent().build();
     }
 

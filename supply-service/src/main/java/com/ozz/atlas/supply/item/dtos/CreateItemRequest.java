@@ -16,8 +16,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateItemRequest {
 
-    @NotNull
-    private Long itemCategoryId;
+    @NotBlank
+    @Size(max = 26)
+    private String itemCategoryPublicId;
 
     @NotBlank
     @Size(max = 50)
@@ -37,5 +38,4 @@ public class CreateItemRequest {
     @NotNull
     @Min(0)
     private Integer shelfLifeDays;
-
 }

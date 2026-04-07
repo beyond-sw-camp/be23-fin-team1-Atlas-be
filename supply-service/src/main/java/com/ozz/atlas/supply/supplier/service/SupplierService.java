@@ -22,13 +22,14 @@ public class SupplierService {
     private final SupplierRepository supplierRepository;
 
     @Transactional(readOnly = true)
-    public SupplierResponse getSupplier(Long supplierId) {
-        SupplySupplier supplier = supplierRepository.findByIdAndApprovalStatusAndSupplierStatusNot(
-                        supplierId,
+    public SupplierResponse getSupplier(String supplierPublicId) {
+        SupplySupplier supplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+                        supplierPublicId,
                         ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 협력사가 존재하지 않습니다."));
+
         return SupplierResponse.fromEntity(supplier);
     }
 
@@ -42,6 +43,7 @@ public class SupplierService {
                 .map(SupplierResponse::fromEntity);
     }
 
+    @Transactional(readOnly = true)
     public Page<SupplierResponse> getSuppliersByTierLevel(Integer tierLevel, Pageable pageable) {
         return supplierRepository.findAllByTierLevelAndApprovalStatusAndSupplierStatusNot(
                         tierLevel,
@@ -52,17 +54,17 @@ public class SupplierService {
                 .map(SupplierResponse::fromEntity);
     }
 
-    public SupplierResponse updateSupplier(Long supplierId, UpdateSupplierRequest request) {
-        SupplySupplier supplier = supplierRepository.findByIdAndApprovalStatusAndSupplierStatusNot(
-                        supplierId,
+    public SupplierResponse updateSupplier(String supplierPublicId, UpdateSupplierRequest request) {
+        SupplySupplier supplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+                        supplierPublicId,
                         ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 협력사가 존재하지 않습니다."));
 
-        if (supplierRepository.existsBySupplierCodeAndIdNotAndSupplierStatusNot(
+        if (supplierRepository.existsBySupplierCodeAndPublicIdNotAndSupplierStatusNot(
                 request.getSupplierCode(),
-                supplier.getId(),
+                supplierPublicId,
                 SupplierStatus.TERMINATED
         )) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 협력사 코드입니다.");
@@ -80,9 +82,9 @@ public class SupplierService {
         return SupplierResponse.fromEntity(supplier);
     }
 
-    public void deleteSupplier(Long supplierId) {
-        SupplySupplier supplier = supplierRepository.findByIdAndApprovalStatusAndSupplierStatusNot(
-                        supplierId,
+    public void deleteSupplier(String supplierPublicId) {
+        SupplySupplier supplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+                        supplierPublicId,
                         ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
@@ -90,5 +92,4 @@ public class SupplierService {
 
         supplier.softDelete();
     }
-
 }
