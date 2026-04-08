@@ -30,9 +30,6 @@ public class SupplyServiceClient {
     }
 
     public boolean validatePurchaseOrder(String publicId) {
-        // Implement PO validation if needed. Assuming /api/v1/supply/purchase-orders exists.
-        // For now, if there's no endpoint, we might just return false or true. 
-        // We'll focus on what's available or make a generic try-catch.
         try {
             String url = supplyServiceUrl + "/api/v1/supply/purchase-orders/" + publicId;
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
