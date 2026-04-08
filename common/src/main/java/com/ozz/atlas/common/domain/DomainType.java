@@ -21,7 +21,9 @@ public enum DomainType {
     LOT("LOT"),
     SUPPLIER("협력사"),
     ITEM("품목"),
-    
+    RETURN_REQUEST("반품"),
+    RETURN_ITEM("반품 품목"),
+
     // 파일 참조 전용
     FILE("파일");
 

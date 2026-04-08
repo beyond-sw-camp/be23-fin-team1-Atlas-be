@@ -51,6 +51,9 @@ public class ChatMessage extends SoftDeleteEntity {
     @Column(name = "reference_title", length = 200)
     private String referenceTitle;
 
+    @Column(name = "attachment_public_ids", columnDefinition = "TEXT")
+    private String attachmentPublicIds;
+
     @Column(name = "edited_at")
     private LocalDateTime editedAt;
 
@@ -59,5 +62,10 @@ public class ChatMessage extends SoftDeleteEntity {
         if (this.messageType == null) {
             this.messageType = MessageType.TEXT;
         }
+    }
+
+    public void updateMessage(String messageBody) {
+        this.messageBody = messageBody;
+        this.editedAt = LocalDateTime.now();
     }
 }

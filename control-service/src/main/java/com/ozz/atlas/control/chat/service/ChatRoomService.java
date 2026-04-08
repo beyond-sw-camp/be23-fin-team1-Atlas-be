@@ -112,12 +112,18 @@ public class ChatRoomService {
      * 채팅방 읽음 처리
      */
     @Transactional
-    public void markAsRead(String roomPublicId, String userPublicId) {
+    public void markAsRead(String roomPublicId, String userPublicId, String messagePublicId) {
         ChatRoom chatRoom = findRoomByPublicId(roomPublicId);
         
-        chatMessageRepository.findTopByChatRoomOrderByIdDesc(chatRoom).ifPresent(lastMessage -> {
-            chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, List.of(userPublicId), lastMessage.getId());
-        });
+        if (messagePublicId != null && !messagePublicId.isBlank()) {
+            chatMessageRepository.findByPublicId(messagePublicId).ifPresent(message -> {
+                chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, List.of(userPublicId), message.getId());
+            });
+        } else {
+            chatMessageRepository.findTopByChatRoomOrderByIdDesc(chatRoom).ifPresent(lastMessage -> {
+                chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, List.of(userPublicId), lastMessage.getId());
+            });
+        }
     }
 
     /**
