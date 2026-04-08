@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/item-category")
+@RequestMapping("/api/item-category")
 public class SupplyItemCategoryController {
 
     private final SupplyItemCategoryService supplyItemCategoryService;
 
-    @PostMapping("/create")
+    @PostMapping
     public ResponseEntity<?> createCategory(@Valid @RequestBody CreateItemCategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(supplyItemCategoryService.createCategory(request));

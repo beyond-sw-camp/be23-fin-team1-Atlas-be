@@ -19,6 +19,7 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @Entity
+@Table(name = "supply_purchase_order_item")
 public class SupplyPurchaseOrderItem extends BaseTimeEntity {
 
     @Id
@@ -73,7 +74,16 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
                 .build();
     }
 
-    // 발주 상세는 수정 시에도 lineAmount를 다시 계산해야 총액이 맞는다.
+    public BigDecimal getSubOrderBaseQty() {
+        return this.confirmedQty != null ? this.confirmedQty : this.orderedQty;
+    }
+
+    public boolean isSubOrderable() {
+        return this.itemStatus == PurchaseOrderItemStatus.OPEN
+                || this.itemStatus == PurchaseOrderItemStatus.PARTIALLY_CONFIRMED
+                || this.itemStatus == PurchaseOrderItemStatus.CONFIRMED;
+    }
+
     public void update(
             SupplyItem item,
             BigDecimal orderedQty,
@@ -85,13 +95,10 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
         this.unitPrice = unitPrice;
         this.lineAmount = calculateLineAmount(orderedQty, unitPrice);
         this.requiredDate = requiredDate;
-
-        // 수정이 들어가면 다시 확정 전 상태로 되돌린다.
         this.confirmedQty = null;
         this.itemStatus = PurchaseOrderItemStatus.OPEN;
     }
 
-    // 협력사가 실제 공급 가능한 수량을 입력하면 상세 상태를 계산한다.
     public void confirm(BigDecimal confirmedQty) {
         this.confirmedQty = confirmedQty;
 

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/supplier")
+@RequestMapping("/api/suppliers")
 public class SupplierController {
 
     private final SupplierService supplierService;
@@ -39,7 +39,7 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.updateSupplier(supplierPublicId, request));
     }
 
-    @DeleteMapping("/{supplierId}")
+    @DeleteMapping("/{supplierPublicId}/status")
     public ResponseEntity<?> deleteSupplier(@PathVariable String supplierPublicId) {
         supplierService.deleteSupplier(supplierPublicId);
         return ResponseEntity.noContent().build();

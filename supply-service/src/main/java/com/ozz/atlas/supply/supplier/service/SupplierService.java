@@ -62,12 +62,12 @@ public class SupplierService {
                 )
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 협력사가 존재하지 않습니다."));
 
-        if (supplierRepository.existsBySupplierCodeAndPublicIdNotAndSupplierStatusNot(
+        if (supplierRepository.existsBySupplierCodeAndIdNotAndSupplierStatusNot(
                 request.getSupplierCode(),
-                supplierPublicId,
+                supplier.getId(),
                 SupplierStatus.TERMINATED
         )) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 협력사 코드입니다.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "...");
         }
 
         supplier.update(

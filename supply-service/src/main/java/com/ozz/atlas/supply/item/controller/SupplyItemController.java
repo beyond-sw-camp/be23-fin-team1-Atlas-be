@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/item")
+@RequestMapping("/api/items")
 public class SupplyItemController {
 
     private final SupplyItemService supplyItemService;
 
-    @PostMapping("/create")
+    @PostMapping
     public ResponseEntity<?> createItem(@Valid @RequestBody CreateItemRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(supplyItemService.createItem(request));
