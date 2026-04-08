@@ -79,4 +79,18 @@ public class ChatMessageController {
         return ResponseEntity.ok(chatMessageService.getMessageHistory(roomPublicId, cursor, pageable));
     }
 
+    @PutMapping("/api/v1/chats/messages/{messagePublicId}")
+    public ResponseEntity<ChatMessageDto> updateMessage(
+            @PathVariable String messagePublicId,
+            @RequestBody com.ozz.atlas.control.chat.dto.UpdateMessageRequestDto request,
+            @RequestHeader("X-User-Public-Id") String userPublicId) {
+        return ResponseEntity.ok(chatMessageService.updateMessage(messagePublicId, request.getMessageBody(), userPublicId));
+    }
+
+    @DeleteMapping("/api/v1/chats/messages/{messagePublicId}")
+    public ResponseEntity<ChatMessageDto> deleteMessage(
+            @PathVariable String messagePublicId,
+            @RequestHeader("X-User-Public-Id") String userPublicId) {
+        return ResponseEntity.ok(chatMessageService.deleteMessage(messagePublicId, userPublicId));
+    }
 }

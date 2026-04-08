@@ -38,11 +38,17 @@ public class ChatRoomController {
     }
 
     /**
-     * 채팅방 메시지 읽음 처리
+     * 채팅방 메시지 읽음 처리 (수동)
      */
-    @PostMapping("/{roomPublicId}/read")
-    public ResponseEntity<Void> markAsRead(@PathVariable String roomPublicId, @RequestParam String userPublicId) {
-        chatRoomService.markAsRead(roomPublicId, userPublicId);
+    @PatchMapping("/{roomPublicId}/read")
+    public ResponseEntity<Void> markAsRead(
+            @PathVariable String roomPublicId, 
+            @RequestBody(required = false) com.ozz.atlas.control.chat.dto.MarkAsReadRequestDto request,
+            @RequestHeader("X-User-Public-Id") String userPublicId) {
+        
+        String messagePublicId = (request != null) ? request.getLastReadMessagePublicId() : null;
+        chatRoomService.markAsRead(roomPublicId, userPublicId, messagePublicId);
+        
         return ResponseEntity.ok().build();
     }
 

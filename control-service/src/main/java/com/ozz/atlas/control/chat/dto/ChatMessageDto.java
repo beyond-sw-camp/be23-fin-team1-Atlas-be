@@ -5,6 +5,7 @@ import com.ozz.atlas.control.chat.enums.MessageType;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -21,5 +22,8 @@ public class ChatMessageDto {
     private String referencePublicId;
     private String referenceCode;
     private String referenceTitle;
+    private List<String> attachmentPublicIds;
     private LocalDateTime sentAt;
+    private LocalDateTime editedAt;
+    private boolean isDeleted;
 }
