@@ -161,13 +161,13 @@ public class ChatMessageService {
     @Transactional
     public ChatMessageDto updateMessage(String messagePublicId, String newBody, String actorPublicId) {
         ChatMessage chatMessage = chatMessageRepository.findByPublicId(messagePublicId)
-                .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
+                .orElseThrow(() -> new com.ozz.atlas.control.chat.exception.ChatException(com.ozz.atlas.control.chat.exception.ChatErrorCode.CHAT_MESSAGE_NOT_FOUND));
 
         if (!chatMessage.getSenderUserPublicId().equals(actorPublicId)) {
-            throw new IllegalStateException("본인이 작성한 메시지만 수정할 수 있습니다.");
+            throw new com.ozz.atlas.control.chat.exception.ChatException(com.ozz.atlas.control.chat.exception.ChatErrorCode.NOT_MESSAGE_SENDER);
         }
         if (chatMessage.getStatus() == com.ozz.atlas.common.jpa.Status.DELETE) {
-            throw new IllegalStateException("삭제된 메시지는 수정할 수 없습니다.");
+            throw new com.ozz.atlas.control.chat.exception.ChatException(com.ozz.atlas.control.chat.exception.ChatErrorCode.MESSAGE_ALREADY_DELETED);
         }
 
         chatMessage.updateMessage(newBody);
@@ -183,10 +183,10 @@ public class ChatMessageService {
     @Transactional
     public ChatMessageDto deleteMessage(String messagePublicId, String actorPublicId) {
         ChatMessage chatMessage = chatMessageRepository.findByPublicId(messagePublicId)
-                .orElseThrow(() -> new IllegalArgumentException("메시지를 찾을 수 없습니다."));
+                .orElseThrow(() -> new com.ozz.atlas.control.chat.exception.ChatException(com.ozz.atlas.control.chat.exception.ChatErrorCode.CHAT_MESSAGE_NOT_FOUND));
 
         if (!chatMessage.getSenderUserPublicId().equals(actorPublicId)) {
-            throw new IllegalStateException("본인이 작성한 메시지만 삭제할 수 있습니다.");
+            throw new com.ozz.atlas.control.chat.exception.ChatException(com.ozz.atlas.control.chat.exception.ChatErrorCode.NOT_MESSAGE_SENDER);
         }
         
         chatMessage.delete();

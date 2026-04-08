@@ -105,7 +105,7 @@ public class ChatRoomService {
      */
     public ChatRoom findRoomByPublicId(String roomPublicId) {
         return chatRoomRepository.findByPublicId(roomPublicId)
-                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다: " + roomPublicId));
+                .orElseThrow(() -> new com.ozz.atlas.control.chat.exception.ChatException(com.ozz.atlas.control.chat.exception.ChatErrorCode.CHAT_ROOM_NOT_FOUND));
     }
 
     /**
