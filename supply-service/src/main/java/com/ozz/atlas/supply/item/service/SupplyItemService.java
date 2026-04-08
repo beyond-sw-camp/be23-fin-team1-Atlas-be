@@ -62,7 +62,7 @@ public class SupplyItemService {
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_CATEGORY_NOT_FOUND));
 
-        if (supplyItemRepository.existsByItemCodeAndPublicIdNot(request.getItemCode(), itemPublicId)) {
+        if (supplyItemRepository.existsByItemCodeAndIdNot(request.getItemCode(), item.getId())) {
             throw new ItemException(ItemErrorCode.ITEM_CODE_ALREADY_EXISTS);
         }
 

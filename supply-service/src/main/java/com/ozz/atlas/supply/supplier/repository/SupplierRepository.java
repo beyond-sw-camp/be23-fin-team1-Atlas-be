@@ -45,9 +45,10 @@ public interface SupplierRepository extends JpaRepository<SupplySupplier, Long> 
             SupplierStatus supplierStatus
     );
 
-    boolean existsBySupplierCodeAndPublicIdNotAndSupplierStatusNot(
+    boolean existsBySupplierCodeAndIdNotAndSupplierStatusNot(
             String supplierCode,
-            String publicId,
+            Long id,
             SupplierStatus supplierStatus
     );
+
 }

@@ -109,7 +109,12 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
         return purchaseOrder;
     }
 
-    // 발주 헤더 수정은 발주번호/우선순위/납기일/메모만 바꾼다.
+    public boolean isSubOrderCreatable() {
+        return this.poStatus == PoStatus.ACCEPTED
+                || this.poStatus == PoStatus.PARTIALLY_CONFIRMED
+                || this.poStatus == PoStatus.CONFIRMED;
+    }
+
     public void updateHeader(
             String poNumber,
             PriorityCode priorityCode,
@@ -130,7 +135,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
         }
     }
 
-    // 발주 상세 추가 시 연관관계를 같이 세팅하고 총액을 다시 계산한다.
     public void addItem(SupplyPurchaseOrderItem purchaseOrderItem) {
         purchaseOrderItem.assignPurchaseOrder(this);
         this.purchaseOrderItems.add(purchaseOrderItem);
@@ -159,7 +163,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
         this.poStatus = PoStatus.COMPLETED;
     }
 
-    // 실제 row delete 대신 상태값으로 숨긴다.
     public void delete() {
         this.poStatus = PoStatus.DELETED;
         for (SupplyPurchaseOrderItem purchaseOrderItem : getActiveItems()) {
@@ -167,12 +170,10 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
         }
     }
 
-    // 상세가 수정/삭제되면 총액을 다시 계산해야 헤더 금액이 맞다.
     public void refreshAfterItemChanged() {
         recalculateTotalAmount();
     }
 
-    // 상세 확정수량 입력 후 헤더 상태를 자동 갱신한다.
     public void refreshConfirmationStatus() {
         List<SupplyPurchaseOrderItem> activeItems = getActiveItems();
 
@@ -202,6 +203,13 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
         return this.purchaseOrderItems.stream()
                 .filter(item -> !item.isDeleted())
                 .toList();
+    }
+
+    public SupplyPurchaseOrderItem findActiveItemByPublicId(String poItemPublicId) {
+        return getActiveItems().stream()
+                .filter(item -> item.getPublicId().equals(poItemPublicId))
+                .findFirst()
+                .orElse(null);
     }
 
     private void recalculateTotalAmount() {

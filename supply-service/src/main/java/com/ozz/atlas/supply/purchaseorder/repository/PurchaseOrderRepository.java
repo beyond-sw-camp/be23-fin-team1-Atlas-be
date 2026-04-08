@@ -17,10 +17,10 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
             PoStatus poStatus
     );
 
-    boolean existsByPoNumberAndBuyerOrganizationPublicIdAndPublicIdNotAndPoStatusNot(
+    boolean existsByPoNumberAndBuyerOrganizationPublicIdAndIdNotAndPoStatusNot(
             String poNumber,
             String buyerOrganizationPublicId,
-            String publicId,
+            Long id,
             PoStatus poStatus
     );
 

@@ -1,7 +1,10 @@
 package com.ozz.atlas.supply.purchaseorder.controller;
 
 import com.ozz.atlas.supply.purchaseorder.dtos.ChangePurchaseOrderStatusRequest;
+import com.ozz.atlas.supply.purchaseorder.dtos.ConfirmPurchaseOrderItemRequest;
+import com.ozz.atlas.supply.purchaseorder.dtos.CreatePurchaseOrderItemRequest;
 import com.ozz.atlas.supply.purchaseorder.dtos.CreatePurchaseOrderRequest;
+import com.ozz.atlas.supply.purchaseorder.dtos.UpdatePurchaseOrderItemRequest;
 import com.ozz.atlas.supply.purchaseorder.dtos.UpdatePurchaseOrderRequest;
 import com.ozz.atlas.supply.purchaseorder.service.PurchaseOrderService;
 import jakarta.validation.Valid;
@@ -14,16 +17,17 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/purchase-order")
+@RequestMapping("/api/purchase-order")
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
 
-    // 발주 생성
-    @PostMapping("/create")
-    public ResponseEntity<?> createPurchaseOrder(@RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
-                                                 @RequestHeader("X-User-Public-Id") String createdByUserPublicId,
-                                                 @Valid @RequestBody CreatePurchaseOrderRequest request) {
+    @PostMapping
+    public ResponseEntity<?> createPurchaseOrder(
+            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @RequestHeader("X-User-Public-Id") String createdByUserPublicId,
+            @Valid @RequestBody CreatePurchaseOrderRequest request
+    ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(purchaseOrderService.createPurchaseOrder(
                         buyerOrganizationPublicId,
@@ -32,41 +36,124 @@ public class PurchaseOrderController {
                 ));
     }
 
-    // 발주 목록 조회
     @GetMapping
-    public ResponseEntity<?> getPurchaseOrderList(@RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
-                                                  @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
-                                                  @PageableDefault(size = 10) Pageable pageable) {
+    public ResponseEntity<?> getPurchaseOrderList(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
+            @PageableDefault(size = 10) Pageable pageable
+    ) {
         return ResponseEntity.ok(
                 purchaseOrderService.getPurchaseOrderList(organizationPublicId, supplierPublicId, pageable)
         );
     }
 
-    // 발주 단건 조회
     @GetMapping("/{poPublicId}")
     public ResponseEntity<?> getPurchaseOrder(@PathVariable String poPublicId) {
         return ResponseEntity.ok(purchaseOrderService.getPurchaseOrder(poPublicId));
     }
 
-    // 발주 수정
     @PatchMapping("/{poPublicId}")
-    public ResponseEntity<?> updatePurchaseOrder(@RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
-                                                 @PathVariable String poPublicId,
-                                                 @Valid @RequestBody UpdatePurchaseOrderRequest request) {
+    public ResponseEntity<?> updatePurchaseOrder(
+            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @PathVariable String poPublicId,
+            @Valid @RequestBody UpdatePurchaseOrderRequest request
+    ) {
         return ResponseEntity.ok(
-                purchaseOrderService.updatePurchaseOrder(buyerOrganizationPublicId, poPublicId, request));
+                purchaseOrderService.updatePurchaseOrder(buyerOrganizationPublicId, poPublicId, request)
+        );
     }
 
-    // 발주 상태 수정
+    @DeleteMapping("/{poPublicId}")
+    public ResponseEntity<?> deletePurchaseOrder(
+            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @PathVariable String poPublicId
+    ) {
+        purchaseOrderService.deletePurchaseOrder(buyerOrganizationPublicId, poPublicId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{poPublicId}/items")
+    public ResponseEntity<?> addPurchaseOrderItem(
+            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @PathVariable String poPublicId,
+            @Valid @RequestBody CreatePurchaseOrderItemRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(purchaseOrderService.addPurchaseOrderItem(buyerOrganizationPublicId, poPublicId, request));
+    }
+
+    @PatchMapping("/{poPublicId}/items/{poItemPublicId}")
+    public ResponseEntity<?> updatePurchaseOrderItem(
+            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @PathVariable String poPublicId,
+            @PathVariable String poItemPublicId,
+            @Valid @RequestBody UpdatePurchaseOrderItemRequest request
+    ) {
+        return ResponseEntity.ok(
+                purchaseOrderService.updatePurchaseOrderItem(
+                        buyerOrganizationPublicId,
+                        poPublicId,
+                        poItemPublicId,
+                        request
+                )
+        );
+    }
+
+    @DeleteMapping("/{poPublicId}/items/{poItemPublicId}")
+    public ResponseEntity<?> deletePurchaseOrderItem(
+            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @PathVariable String poPublicId,
+            @PathVariable String poItemPublicId
+    ) {
+        purchaseOrderService.deletePurchaseOrderItem(buyerOrganizationPublicId, poPublicId, poItemPublicId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{poPublicId}/accept")
+    public ResponseEntity<?> acceptPurchaseOrder(
+            @RequestHeader("X-Organization-Public-Id") String supplierOrganizationPublicId,
+            @PathVariable String poPublicId
+    ) {
+        return ResponseEntity.ok(
+                purchaseOrderService.acceptPurchaseOrder(supplierOrganizationPublicId, poPublicId)
+        );
+    }
+
+    @PostMapping("/{poPublicId}/reject")
+    public ResponseEntity<?> rejectPurchaseOrder(
+            @RequestHeader("X-Organization-Public-Id") String supplierOrganizationPublicId,
+            @PathVariable String poPublicId
+    ) {
+        return ResponseEntity.ok(
+                purchaseOrderService.rejectPurchaseOrder(supplierOrganizationPublicId, poPublicId)
+        );
+    }
+
+    @PatchMapping("/{poPublicId}/items/{poItemPublicId}/confirm")
+    public ResponseEntity<?> confirmPurchaseOrderItem(
+            @RequestHeader("X-Organization-Public-Id") String supplierOrganizationPublicId,
+            @PathVariable String poPublicId,
+            @PathVariable String poItemPublicId,
+            @Valid @RequestBody ConfirmPurchaseOrderItemRequest request
+    ) {
+        return ResponseEntity.ok(
+                purchaseOrderService.confirmPurchaseOrderItem(
+                        supplierOrganizationPublicId,
+                        poPublicId,
+                        poItemPublicId,
+                        request
+                )
+        );
+    }
+
     @PatchMapping("/{poPublicId}/status")
-    public ResponseEntity<?> changePurchaseOrderStatus(@RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
-                                                       @PathVariable String poPublicId,
-                                                       @Valid @RequestBody ChangePurchaseOrderStatusRequest request) {
+    public ResponseEntity<?> changePurchaseOrderStatus(
+            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @PathVariable String poPublicId,
+            @Valid @RequestBody ChangePurchaseOrderStatusRequest request
+    ) {
         return ResponseEntity.ok(
                 purchaseOrderService.changePurchaseOrderStatus(buyerOrganizationPublicId, poPublicId, request)
         );
     }
-
-
-
 }

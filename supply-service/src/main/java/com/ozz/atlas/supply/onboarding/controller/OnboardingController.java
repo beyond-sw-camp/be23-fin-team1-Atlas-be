@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/onboarding")
+@RequestMapping("/api/supplier-onboarding-requests")
 public class OnboardingController {
 
     private final OnboardingService onboardingService;
 
-    @PostMapping("/create")
+    @PostMapping
     public ResponseEntity<?> createSupplierRequest(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestHeader("X-User-Public-Id") String requestedByUserPublicId,
@@ -38,7 +38,7 @@ public class OnboardingController {
         return ResponseEntity.ok(onboardingService.getRequestList(pageable));
     }
 
-    @PatchMapping("/approve/{requestPublicId}")
+    @PatchMapping("/{requestPublicId}/approve")
     public ResponseEntity<?> approveRequest(
             @PathVariable String requestPublicId,
             @RequestHeader("X-User-Public-Id") String reviewedByUserPublicId
@@ -46,7 +46,7 @@ public class OnboardingController {
         return ResponseEntity.ok(onboardingService.approveRequest(requestPublicId, reviewedByUserPublicId));
     }
 
-    @PatchMapping("/reject/{requestPublicId}")
+    @PatchMapping("/{requestPublicId}/reject")
     public ResponseEntity<?> rejectRequest(
             @PathVariable String requestPublicId,
             @RequestHeader("X-User-Public-Id") String reviewedByUserPublicId,
