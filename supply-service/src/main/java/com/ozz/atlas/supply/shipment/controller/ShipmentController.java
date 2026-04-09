@@ -14,7 +14,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/shipments")
+@RequestMapping("/api/supply/shipments")
 public class ShipmentController {
 
     private final ShipmentService shipmentService;
@@ -29,7 +29,7 @@ public class ShipmentController {
         ShipmentResponseDto createdShipment = shipmentService.createShipment(dto);
 
         return ResponseEntity
-                .created(URI.create("/api/shipments/" + createdShipment.getPublicId()))
+                .created(URI.create("/api/supply/shipments/" + createdShipment.getPublicId()))
                 .body(createdShipment);
     }
 
