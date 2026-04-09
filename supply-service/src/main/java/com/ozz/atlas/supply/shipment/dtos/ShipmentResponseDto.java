@@ -1,6 +1,5 @@
 package com.ozz.atlas.supply.shipment.dtos;
 
-import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,9 +21,9 @@ public class ShipmentResponseDto {
     private String carrierName;
     private String vehicleNo;
     private String trackingNo;
-    private Long originNodeId;
-    private Long destinationNodeId;
-    private Long currentNodeId;
+    private String originNodePublicId;
+    private String destinationNodePublicId;
+    private String currentNodePublicId;
     private LocalDateTime departureEta;
     private LocalDateTime arrivalEta;
     private LocalDateTime actualDepartedAt;
@@ -32,24 +31,4 @@ public class ShipmentResponseDto {
     private ShipmentStatus status;
     private boolean temperatureRequired;
 
-    public static ShipmentResponseDto from(Shipment shipment) {
-        return ShipmentResponseDto.builder()
-                .publicId(shipment.getPublicId())
-                .shipmentNumber(shipment.getShipmentNumber())
-                .poId(shipment.getPoId())
-                .subPoId(shipment.getSubPoId())
-                .carrierName(shipment.getCarrierName())
-                .vehicleNo(shipment.getVehicleNo())
-                .trackingNo(shipment.getTrackingNo())
-                .originNodeId(shipment.getOriginNodeId())
-                .destinationNodeId(shipment.getDestinationNodeId())
-                .currentNodeId(shipment.getCurrentNodeId())
-                .departureEta(shipment.getDepartureEta())
-                .arrivalEta(shipment.getArrivalEta())
-                .actualDepartedAt(shipment.getActualDepartedAt())
-                .actualArrivedAt(shipment.getActualArrivedAt())
-                .status(shipment.getStatus())
-                .temperatureRequired(shipment.isTemperatureRequired())
-                .build();
-    }
 }

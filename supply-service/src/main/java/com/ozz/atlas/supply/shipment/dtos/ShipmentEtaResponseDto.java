@@ -18,8 +18,8 @@ public class ShipmentEtaResponseDto {
 
     private String publicId;
     private ShipmentStatus status;
-    private Long currentNodeId;
-    private Long destinationNodeId;
+    private String currentNodePublicId;
+    private String destinationNodePublicId;
 
     private LocalDateTime departureEta;
     private LocalDateTime arrivalEta;
@@ -42,6 +42,6 @@ public class ShipmentEtaResponseDto {
     private LocalDateTime lastCheckpointAt;
 
 //    마지막 노드 위치
-    private Long lastCheckpointNodeId;
+    private String lastCheckpointNodePublicId;
 
 }
