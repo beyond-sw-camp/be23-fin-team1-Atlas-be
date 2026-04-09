@@ -118,10 +118,10 @@ public class ProductionLineService {
         return ProductionLineResponseDto.fromEntity(productionLine);
     }
 
-//    생산라인 삭제
-    public void deleteProductionLine(Long productionLineId){
+    //    생산라인 삭제
+    public void deleteProductionLine(Long productionLineId) {
         ProductionLine productionLine = productionLineRepository.findById(productionLineId)
-                .orElseThrow(()->new IllegalArgumentException("존재하지 않는 생산라인 입니다"));
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 생산라인 입니다"));
 
         if (productionLine.getStatus() == Status.DELETE) {
             throw new IllegalArgumentException("이미 삭제된 생산라인입니다.");

@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/production-lines")
+@RequestMapping("/api/supply/production-lines")
 public class ProductionLineController {
 
     private final ProductionLineService productionLineService;
@@ -64,9 +64,9 @@ public class ProductionLineController {
         return ResponseEntity.ok(productionLineService.updateProductionLineStatus(productionLineId, dto));
     }
 
-//    생산라인 삭제
+    //    생산라인 삭제
     @DeleteMapping("/{productionLineId}")
-    public ResponseEntity<Void>deleteProductionLine(@PathVariable Long productionLineId){
+    public ResponseEntity<Void> deleteProductionLine(@PathVariable Long productionLineId) {
         productionLineService.deleteProductionLine(productionLineId);
         return ResponseEntity.noContent().build();
     }
