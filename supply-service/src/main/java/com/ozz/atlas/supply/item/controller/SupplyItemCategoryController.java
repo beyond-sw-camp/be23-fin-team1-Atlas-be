@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/item-category")
+@RequestMapping("/api/supply/item-category")
 public class SupplyItemCategoryController {
 
     private final SupplyItemCategoryService supplyItemCategoryService;

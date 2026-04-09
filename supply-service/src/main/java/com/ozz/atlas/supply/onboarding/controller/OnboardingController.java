@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/supplier-onboarding-requests")
+@RequestMapping("/api/supply/supplier-onboarding-requests")
 public class OnboardingController {
 
     private final OnboardingService onboardingService;

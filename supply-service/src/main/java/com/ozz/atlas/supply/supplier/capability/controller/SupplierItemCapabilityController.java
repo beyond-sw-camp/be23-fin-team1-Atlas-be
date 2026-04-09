@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/suppliers/{supplierPublicId}/item-capabilities")
+@RequestMapping("/api/supply/suppliers/{supplierPublicId}/item-capabilities")
 public class SupplierItemCapabilityController {
 
     private final SupplierItemCapabilityService supplierItemCapabilityService;

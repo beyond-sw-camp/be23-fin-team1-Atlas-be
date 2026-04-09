@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/items")
+@RequestMapping("/api/supply/items")
 public class SupplyItemController {
 
     private final SupplyItemService supplyItemService;

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/sub-purchase-orders")
+@RequestMapping("/api/supply/sub-purchase-orders")
 public class SubPurchaseOrderController {
 
     private final SubPurchaseOrderService subPurchaseOrderService;

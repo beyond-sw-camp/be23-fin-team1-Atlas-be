@@ -4,14 +4,11 @@ import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import com.ozz.atlas.common.jpa.Status;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
+@Getter
 @Builder
 @Entity
 public class SupplyItem extends BaseTimeEntity {
