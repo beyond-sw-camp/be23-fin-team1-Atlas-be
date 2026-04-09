@@ -22,6 +22,11 @@ public class MediaFile extends BaseTimeEntity {
     @Builder.Default
     private String publicId = PublicIdGenerator.next();
 
+    // @ToString.Exclude 양방향 참조 등으로 무한루프 돌 때 toString에서 빼기 위한 annotation
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "attachment_id", nullable = false)
+    private Attachment attachment;
+
     @Column(nullable = false, length = 255)
     private String originalFileName;
 
@@ -39,6 +44,10 @@ public class MediaFile extends BaseTimeEntity {
 
     @Column(nullable = false)
     private String mimeType;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer sortOrder = 1;
 
     @Column(nullable = false, length = 26, updatable = false)
     private String uploadedByUserPublicId;
