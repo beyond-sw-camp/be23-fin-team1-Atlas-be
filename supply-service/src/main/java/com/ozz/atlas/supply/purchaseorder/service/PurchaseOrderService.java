@@ -385,16 +385,16 @@ public class PurchaseOrderService {
     }
 
     private void validateCreateRequest(CreatePurchaseOrderRequest request) {
-        if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_EMPTY);
-        }
+            if (request.getItems() == null || request.getItems().isEmpty()) {
+                throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_EMPTY);
+            }
 
-        long distinctItemCount = request.getItems().stream()
-                .map(CreatePurchaseOrderItemRequest::getItemPublicId)
-                .distinct()
-                .count();
+            long distinctItemCount = request.getItems().stream()
+                    .map(CreatePurchaseOrderItemRequest::getItemPublicId)
+                    .distinct()
+                    .count();
 
-        if (distinctItemCount != request.getItems().size()) {
+            if (distinctItemCount != request.getItems().size()) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_DUPLICATE_ITEM);
         }
     }
