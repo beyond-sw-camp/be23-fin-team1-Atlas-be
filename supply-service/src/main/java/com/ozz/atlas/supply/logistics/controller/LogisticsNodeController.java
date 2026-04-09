@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/logistics-nodes")
+@RequestMapping("/api/supply/logistics-nodes")
 public class LogisticsNodeController {
 
     private final LogisticsNodeService logisticsNodeService;
@@ -29,7 +29,7 @@ public class LogisticsNodeController {
     public ResponseEntity<LogisticsNodeResponseDto> createLogisticsNode(@Valid @RequestBody CreateLogisticsNodeRequestDto dto){
         LogisticsNodeResponseDto createNode = logisticsNodeService.createLogisticsNode(dto);
 
-        return ResponseEntity.created(URI.create("/api/logistics-nodes/" + createNode.getPublicId())).body(createNode);
+        return ResponseEntity.created(URI.create("/api/supply/logistics-nodes/" + createNode.getPublicId())).body(createNode);
     }
 
 //    창고 목록 조회

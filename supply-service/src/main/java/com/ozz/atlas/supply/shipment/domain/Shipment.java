@@ -77,4 +77,13 @@ public class Shipment extends BaseTimeEntity {
     public void updateCurrentNode(Long currentNodeId){
         this.currentNodeId = currentNodeId;
     }
+
+//    DELAY 반영
+    public void markDelayed() {
+        if (this.status == ShipmentStatus.ARRIVED || this.status == ShipmentStatus.CANCELLED) {
+            return;
+        }
+        this.status = ShipmentStatus.DELAYED;
+    }
+
 }

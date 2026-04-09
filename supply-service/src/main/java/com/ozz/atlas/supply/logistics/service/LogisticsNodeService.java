@@ -12,6 +12,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Service
 @Transactional
 public class LogisticsNodeService {
@@ -61,6 +66,17 @@ public class LogisticsNodeService {
     public LogisticsNode getLogisticsNodeEntity(Long id){
         return logisticsNodeRepository.findById(id)
                 .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+    }
+
+//    node id를 모아서 목록 조회
+    @Transactional(readOnly = true)
+    public Map<Long, String> getNodePublicIdMap(Collection<Long> nodeIds){
+        if (nodeIds == null || nodeIds.isEmpty()){
+            return Collections.emptyMap();
+        }
+
+        return logisticsNodeRepository.findByIdIn(nodeIds).stream()
+                .collect(Collectors.toMap(LogisticsNode::getId, LogisticsNode::getPublicId));
     }
 
 //    창고 수정

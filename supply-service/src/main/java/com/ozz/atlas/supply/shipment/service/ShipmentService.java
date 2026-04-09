@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -72,9 +75,25 @@ public class ShipmentService {
     }
 
 //    출하 목록 조회
+//    1. shipment page를 가져온다.
+//    2. page안의 모든 node id를 모은다.
+//    3. logistics에서 한번에 조회
+//    4. map을 사용해 dto 생성
     @Transactional(readOnly = true)
     public Page<ShipmentListResponseDto> getShipments(Pageable pageable) {
-        return shipmentRepository.findAll(pageable).map(this::toShipmentListResponseDto);
+        Page<Shipment> shipmentPage = shipmentRepository.findAll(pageable);
+
+        Set<Long> nodeIds = shipmentPage.getContent().stream()
+                .flatMap(shipment -> java.util.stream.Stream.of(
+                        shipment.getDestinationNodeId(),
+                        shipment.getCurrentNodeId()
+                ))
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, String> nodePublicIdMap = logisticsNodeService.getNodePublicIdMap(nodeIds);
+
+        return shipmentPage.map(shipment -> toShipmentListResponseDto(shipment, nodePublicIdMap));
     }
 
 //    출하 상세 조회
@@ -280,6 +299,7 @@ public class ShipmentService {
     }
 
 //    (shipment내부)nodeId -> (응답용)publicId 변환
+//    상세 조회 / ETA 조회에 사용
     private String getNodePublicId(Long nodeId){
         if (nodeId == null){
             return null;
@@ -289,6 +309,7 @@ public class ShipmentService {
         return node.getPublicId();
     }
 
+//    상세 조회용 dto
     private ShipmentResponseDto toShipmentResponseDto(Shipment shipment) {
         return ShipmentResponseDto.builder()
                 .publicId(shipment.getPublicId())
@@ -310,13 +331,15 @@ public class ShipmentService {
                 .build();
     }
 
-    private ShipmentListResponseDto toShipmentListResponseDto(Shipment shipment) {
+//    목록 조회용 dto
+    private ShipmentListResponseDto toShipmentListResponseDto(
+            Shipment shipment, Map<Long, String> nodePublicIdMap) {
         return ShipmentListResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
                 .carrierName(shipment.getCarrierName())
-                .destinationNodePublicId(getNodePublicId(shipment.getDestinationNodeId()))
-                .currentNodePublicId(getNodePublicId(shipment.getCurrentNodeId()))
+                .destinationNodePublicId(nodePublicIdMap.get(shipment.getDestinationNodeId()))
+                .currentNodePublicId(nodePublicIdMap.get(shipment.getCurrentNodeId()))
                 .arrivalEta(shipment.getArrivalEta())
                 .status(shipment.getStatus())
                 .build();
