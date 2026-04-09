@@ -10,8 +10,6 @@ import com.ozz.atlas.control.chat.dto.ChatMessageDto;
 import com.ozz.atlas.control.chat.event.ChatSystemEvent;
 import com.ozz.atlas.control.chat.repository.ChatMessageRepository;
 import com.ozz.atlas.control.chat.repository.ChatParticipantRepository;
-import com.ozz.atlas.control.notification.dto.NotificationDto;
-import com.ozz.atlas.control.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
@@ -33,7 +31,6 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatRoomService chatRoomService;
-    private final NotificationService notificationService;
     private final ChatPresenceService chatPresenceService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final SupplyServiceClient supplyServiceClient;
@@ -102,30 +99,6 @@ public class ChatMessageService {
         // 5. Redis 발행 (방별 동적 토픽: chat:room:{public_id})
         String topic = RedisConstants.getChatRoomTopic(chatRoom.getPublicId());
         redisTemplate.convertAndSend(topic, messageDto);
-
-        // 6. 참여자들에게 알림 발송 (현재 방을 보고 있지 않은 참여자에게만)
-        // 시스템 메시지는 푸시 알림 생략
-        if (messageDto.getMessageType().name().startsWith("SYSTEM")) {
-            return;
-        }
-        sendChatNotifications(chatRoom, messageDto, viewingUsers);
-    }
-
-    private void sendChatNotifications(ChatRoom chatRoom, ChatMessageDto messageDto, Set<String> viewingUsers) {
-        chatParticipantRepository.findByChatRoomActive(chatRoom).stream()
-                .filter(p -> !p.getUserPublicId().equals(messageDto.getSenderUserPublicId()))
-                .filter(p -> !viewingUsers.contains(p.getUserPublicId())) // 보고 있는 사람은 푸시 알림 제외
-                .forEach(participant -> {
-                    NotificationDto notification = NotificationDto.builder()
-                            .recipientUserPublicId(participant.getUserPublicId())
-                            .notificationType(DomainType.CHAT)
-                            .title(chatRoom.getRoomName() + " 방에 새 메시지가 도착했습니다.")
-                            .message(messageDto.getMessageBody())
-                            .deepLinkUrl("/chats/rooms/" + chatRoom.getPublicId())
-                            .referencePublicId(chatRoom.getPublicId())
-                            .build();
-                    notificationService.saveAndPublish(notification);
-                });
     }
 
     /**
