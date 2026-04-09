@@ -2,6 +2,7 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.Organization;
+import com.ozz.atlas.auth.search.service.OrganizationSearchService;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
@@ -22,19 +23,28 @@ import java.util.List;
 public class OrganizationService {
     private final OrganizationRepository organizationRepository;
 
+    private final OrganizationSearchService organizationSearchService;
+
+
     @Autowired
-    public OrganizationService(OrganizationRepository organizationRepository) {
+    public OrganizationService(OrganizationRepository organizationRepository, OrganizationSearchService organizationSearchService) {
         this.organizationRepository = organizationRepository;
+        this.organizationSearchService = organizationSearchService;
     }
 
     //    조직 생성
     public String createOrganization(OrganizationCreateDto dto) {
         Organization organization = organizationRepository.save(dto.toEntity());
+        organizationSearchService.saveOrganizationDocument(organization);
         return organization.getPublicId();
     }
 
     //    조직 목록 조회
     public Page<OrganizationListDto> organizationList(Pageable pageable, OrganizationSearchDto searchDto) {
+        if (searchDto.getKeyword() != null && !searchDto.getKeyword().isBlank()) {
+            return organizationSearchService.search(pageable, searchDto);
+        }
+
         Specification<Organization> specification = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -90,6 +100,7 @@ public class OrganizationService {
         }
 
         organization.updateOrganization(dto);
+        organizationSearchService.saveOrganizationDocument(organization);
         return OrganizationDetailDto.fromEntity(organization);
     }
 
@@ -111,6 +122,7 @@ public class OrganizationService {
 
 
         organization.deleteOrganization();
+        organizationSearchService.saveOrganizationDocument(organization);
     }
 
 }
