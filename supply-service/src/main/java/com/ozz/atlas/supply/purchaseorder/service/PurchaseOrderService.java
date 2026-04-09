@@ -4,6 +4,7 @@ import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
+import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderViewType;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import com.ozz.atlas.supply.purchaseorder.dtos.ChangePurchaseOrderStatusRequest;
@@ -116,12 +117,34 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly = true)
     public Page<PurchaseOrderSummaryResponse> getPurchaseOrderList(
-            String buyerOrganizationPublicId,
+            String organizationPublicId,
+            PurchaseOrderViewType viewType,
             String supplierPublicId,
             Pageable pageable
     ) {
+        if (organizationPublicId == null || organizationPublicId.isBlank() || viewType == null) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        // 구매사 관점 조회 (supplierPublicId 있으면 안됨)
+        if (viewType == PurchaseOrderViewType.BUYER) {
+            if (supplierPublicId != null && !supplierPublicId.isBlank()) {
+                throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            return purchaseOrderRepository.findAllByBuyerOrganizationPublicIdAndPoStatusNot(
+                            organizationPublicId,
+                            PoStatus.DELETED,
+                            pageable
+                    )
+                    .map(PurchaseOrderSummaryResponse::fromEntity);
+        }
+
+        // 공급사 관점
         if (supplierPublicId != null && !supplierPublicId.isBlank()) {
-            return purchaseOrderRepository.findAllBySupplier_PublicIdAndPoStatusNot(
+            return purchaseOrderRepository
+                    .findAllBySupplier_OrganizationPublicIdAndSupplier_PublicIdAndPoStatusNot(
+                            organizationPublicId,
                             supplierPublicId,
                             PoStatus.DELETED,
                             pageable
@@ -129,17 +152,14 @@ public class PurchaseOrderService {
                     .map(PurchaseOrderSummaryResponse::fromEntity);
         }
 
-        if (buyerOrganizationPublicId != null && !buyerOrganizationPublicId.isBlank()) {
-            return purchaseOrderRepository.findAllByBuyerOrganizationPublicIdAndPoStatusNot(
-                            buyerOrganizationPublicId,
-                            PoStatus.DELETED,
-                            pageable
-                    )
-                    .map(PurchaseOrderSummaryResponse::fromEntity);
-        }
-
-        throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+        return purchaseOrderRepository.findAllBySupplier_OrganizationPublicIdAndPoStatusNot(
+                        organizationPublicId,
+                        PoStatus.DELETED,
+                        pageable
+                )
+                .map(PurchaseOrderSummaryResponse::fromEntity);
     }
+
 
     @Transactional(readOnly = true)
     public PurchaseOrderDetailResponse getPurchaseOrder(String poPublicId) {
@@ -157,16 +177,21 @@ public class PurchaseOrderService {
             String poPublicId,
             UpdatePurchaseOrderRequest request
     ) {
+        // 발주 조회 (발주사 맞지 않으면 예외)
         SupplyPurchaseOrder purchaseOrder = getBuyerOwnedPurchaseOrder(buyerOrganizationPublicId, poPublicId);
 
+        // request 비어 있는지 검증
         if (isEmptyHeaderPatch(request)) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
         }
 
-        // 외부 입력은 publicId로 받았지만, 엔티티를 찾은 뒤 하위발주 존재 검증은 내부 PK 기준으로 처리한다.
+        // 하위 발주 존재 여부 검증 (활성 하위 발주 있으면 예외)
+        // 외부 입력은 publicId, 내부 검증은 PK 기준으로 처리
         validateNoActiveSubOrdersForPurchaseOrder(purchaseOrder.getId());
+        // 발주 상태가 CREATED일 때만 수정 가능
         validateBuyerEditable(purchaseOrder);
 
+        // 발주번호 중복 체크
         if (request.getPoNumber() != null
                 && !request.getPoNumber().isBlank()
                 && !request.getPoNumber().equals(purchaseOrder.getPoNumber())
@@ -179,6 +204,7 @@ public class PurchaseOrderService {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NUMBER_ALREADY_EXISTS);
         }
 
+        // dueDate(납기일) 변경 시, 기존 아이템 requiredDate(요청 납기일) 검증 (requiredDate ≤ dueDate)
         if (request.getDueDate() != null) {
             boolean invalidRequiredDate = purchaseOrder.getActiveItems().stream()
                     .anyMatch(item -> item.getRequiredDate().isAfter(request.getDueDate()));
@@ -384,6 +410,7 @@ public class PurchaseOrderService {
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
+    // 발주 생성 요청 검증
     private void validateCreateRequest(CreatePurchaseOrderRequest request) {
             if (request.getItems() == null || request.getItems().isEmpty()) {
                 throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_EMPTY);

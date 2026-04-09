@@ -1,14 +1,11 @@
 package com.ozz.atlas.supply.purchaseorder.controller;
 
-import com.ozz.atlas.supply.purchaseorder.dtos.ChangePurchaseOrderStatusRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.ConfirmPurchaseOrderItemRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.CreatePurchaseOrderItemRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.CreatePurchaseOrderRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.UpdatePurchaseOrderItemRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.UpdatePurchaseOrderRequest;
+import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderViewType;
+import com.ozz.atlas.supply.purchaseorder.dtos.*;
 import com.ozz.atlas.supply.purchaseorder.service.PurchaseOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -36,16 +33,25 @@ public class PurchaseOrderController {
                 ));
     }
 
+    // 공급사 기준 조회 /api/supply/purchase-order?viewType=SUPPLIER
+    // 구매사 기준 조회 /api/supply/purchase-order?viewType=BUYER
     @GetMapping
-    public ResponseEntity<?> getPurchaseOrderList(
-            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+    public ResponseEntity<Page<PurchaseOrderSummaryResponse>> getPurchaseOrderList(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestParam("viewType") PurchaseOrderViewType viewType,
             @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
             @PageableDefault(size = 10) Pageable pageable
     ) {
         return ResponseEntity.ok(
-                purchaseOrderService.getPurchaseOrderList(organizationPublicId, supplierPublicId, pageable)
+                purchaseOrderService.getPurchaseOrderList(
+                        organizationPublicId,
+                        viewType,
+                        supplierPublicId,
+                        pageable
+                )
         );
     }
+
 
     @GetMapping("/{poPublicId}")
     public ResponseEntity<?> getPurchaseOrder(@PathVariable String poPublicId) {

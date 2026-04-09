@@ -51,7 +51,7 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
     private BigDecimal lineAmount;
 
     @Column(nullable = false)
-    private LocalDate requiredDate;
+    private LocalDate requiredDate; // 요청 납기일
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

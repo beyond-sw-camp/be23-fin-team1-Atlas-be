@@ -30,11 +30,11 @@ public class CreatePurchaseOrderRequest {
     @Size(max = 26)
     private String supplierPublicId;
 
-    private PriorityCode priorityCode;
+    private PriorityCode priorityCode; // 긴급도
 
     @NotNull
     @FutureOrPresent
-    private LocalDate dueDate;
+    private LocalDate dueDate; // 납기일
 
     private CurrencyCode currencyCode;
 
