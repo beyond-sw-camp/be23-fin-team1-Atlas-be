@@ -58,4 +58,8 @@ public class DocumentFile extends BaseTimeEntity {
         this.status = Status.DELETE;
     }
 
+    public void updateSortOrder(Integer sortOrder) {
+        this.sortOrder = sortOrder;
+    }
+
 }
