@@ -1,6 +1,6 @@
 package com.ozz.atlas.file.controller;
 
-import com.ozz.atlas.file.dtos.FileUploadDto;
+import com.ozz.atlas.file.dtos.FileUploadReqDto;
 import com.ozz.atlas.file.service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,25 +22,21 @@ public class FileController {
         this.fileService = fileService;
     }
 
+    // CRUD
+
     // file upload
     @PostMapping(value = "/fileUpload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> upload(@RequestPart(required = false) List<MultipartFile> files,
                                     @RequestHeader("X-User-Public-Id") String publicUserId) {
-        FileUploadDto res = fileService.fileUpload(files, publicUserId);
-
+        FileUploadReqDto res = fileService.fileUpload(files, publicUserId);
         return ResponseEntity.status(HttpStatus.CREATED).body(res);
     }
 
-    // file list(view)
+    // file detail info
     @GetMapping(value = "/{publicId}")
-    public ResponseEntity<?> getFile(@PathVariable("publicId") String publicId) {
+    public ResponseEntity<?> getFileInfo( String publicId) {
         return ResponseEntity.ok(fileService.getByPublicId(publicId));
     }
-
-    // file info
-
-    // file edit
-
-    // file soft-delete
+    // file edit(attachment edit -> attachment 일부 수정 시)
 
 }

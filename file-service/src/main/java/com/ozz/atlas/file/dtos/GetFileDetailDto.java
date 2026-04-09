@@ -1,6 +1,6 @@
 package com.ozz.atlas.file.dtos;
 
-public class GetFileDetaileDto {
+public class GetFileDetailDto {
     String publicId;
     String fileName;
     String fileSize;
