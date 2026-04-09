@@ -74,8 +74,23 @@ public class LotLineMappingService {
         return LotLineMappingResponseDto.fromEntity(getLotLineMappingEntity(lotLineMappingId));
     }
 
+    // 작업 시작 처리
+    public LotLineMappingResponseDto startLotLineMapping(Long lotLineMappingId) {
+        LotLineMapping lotLineMapping = getLotLineMappingEntity(lotLineMappingId);
 
+        lotLineMapping.start();
 
+        return LotLineMappingResponseDto.fromEntity(lotLineMapping);
+    }
+
+    // 작업 종료 처리
+    public LotLineMappingResponseDto completeLotLineMapping(Long lotLineMappingId) {
+        LotLineMapping lotLineMapping = getLotLineMappingEntity(lotLineMappingId);
+
+        lotLineMapping.complete();
+
+        return LotLineMappingResponseDto.fromEntity(lotLineMapping);
+    }
 
     // 단일 생산라인 매핑 수정
     public LotLineMappingResponseDto updateLotLineMapping(Long lotLineMappingId,

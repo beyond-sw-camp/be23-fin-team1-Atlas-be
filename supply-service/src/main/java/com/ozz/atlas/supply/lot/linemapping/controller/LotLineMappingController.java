@@ -48,6 +48,22 @@ public class LotLineMappingController {
         return ResponseEntity.ok(lotLineMappingService.getLotLineMapping(lotLineMappingId));
     }
 
+    // 작업 시작 처리
+    @PostMapping("/lot-line-mappings/{lotLineMappingId}/start")
+    public ResponseEntity<LotLineMappingResponseDto> startLotLineMapping(
+            @PathVariable Long lotLineMappingId
+    ) {
+        return ResponseEntity.ok(lotLineMappingService.startLotLineMapping(lotLineMappingId));
+    }
+
+    // 작업 종료 처리
+    @PostMapping("/lot-line-mappings/{lotLineMappingId}/complete")
+    public ResponseEntity<LotLineMappingResponseDto> completeLotLineMapping(
+            @PathVariable Long lotLineMappingId
+    ) {
+        return ResponseEntity.ok(lotLineMappingService.completeLotLineMapping(lotLineMappingId));
+    }
+
     // 단일 생산라인 매핑 수정
     @PatchMapping("/lot-line-mappings/{lotLineMappingId}")
     public ResponseEntity<LotLineMappingResponseDto> updateLotLineMapping(
