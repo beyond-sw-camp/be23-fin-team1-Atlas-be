@@ -15,4 +15,6 @@ public class OrganizationSearchDto {
     private OrganizationType organizationType;
     private String organizationName;
     private Status status;
+    private String keyword;
+
 }
