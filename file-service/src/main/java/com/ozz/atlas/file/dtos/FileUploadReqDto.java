@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FileUploadDto {
+public class FileUploadReqDto {
     private String originalFileName;
     private Long size;
     private String mimeType;
