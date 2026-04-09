@@ -3,6 +3,10 @@ spring:
     active: local
   application:
     name: file-service
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 200MB
 
 management:
   endpoints:
