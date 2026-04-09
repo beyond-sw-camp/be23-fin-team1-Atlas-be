@@ -4,6 +4,7 @@ import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.lot.linemapping.domain.LotLineMapping;
 import com.ozz.atlas.supply.lot.linemapping.dtos.CreateLotLineMappingRequestDto;
 import com.ozz.atlas.supply.lot.linemapping.dtos.LotLineMappingResponseDto;
+import com.ozz.atlas.supply.lot.linemapping.dtos.UpdateLotLineMappingRequestDto;
 import com.ozz.atlas.supply.lot.linemapping.repository.LotLineMappingRepository;
 import com.ozz.atlas.supply.lot.repository.LotRepository;
 import com.ozz.atlas.supply.productionline.domain.ProductionLine;
@@ -11,6 +12,8 @@ import com.ozz.atlas.supply.productionline.repository.ProductionLineRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @Transactional
@@ -29,9 +32,9 @@ public class LotLineMappingService {
         this.productionLineRepository = productionLineRepository;
     }
 
-//    LOT에 생산라인 매핑을 새로 등록
+    //    LOT에 생산라인 매핑을 새로 등록
     public LotLineMappingResponseDto createLotLineMapping(String lotPublicId,
-                                                          CreateLotLineMappingRequestDto request){
+                                                          CreateLotLineMappingRequestDto request) {
 
         // LOT 존재 확인
         lotRepository.findByPublicId(lotPublicId)
@@ -50,9 +53,50 @@ public class LotLineMappingService {
                 request.getMappingNote()
         );
 
-        // 저장 후 응답 반환
         return LotLineMappingResponseDto.fromEntity(lotLineMappingRepository.save(lotLineMapping));
 
-
     }
+
+    //    LOT별 생산라인 매핑 목록 조회
+    public List<LotLineMappingResponseDto> lotLineMappings(String lotPublicId) {
+
+        lotRepository.findByPublicId(lotPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 LOT입니다."));
+
+
+        return lotLineMappingRepository.findAllByLotPublicIdOrderByLotLineMappingIdDesc(lotPublicId).stream()
+                .map(LotLineMappingResponseDto::fromEntity)
+                .toList();
+    }
+
+    //    단일 생산라인 매핑 상세 조회
+    public LotLineMappingResponseDto getLotLineMapping(Long lotLineMappingId) {
+        return LotLineMappingResponseDto.fromEntity(getLotLineMappingEntity(lotLineMappingId));
+    }
+
+
+
+
+    // 단일 생산라인 매핑 수정
+    public LotLineMappingResponseDto updateLotLineMapping(Long lotLineMappingId,
+                                                          UpdateLotLineMappingRequestDto request) {
+        LotLineMapping lotLineMapping = getLotLineMappingEntity(lotLineMappingId);
+
+        lotLineMapping.update(request.getProcessedQty(), request.getMappingNote());
+
+        return LotLineMappingResponseDto.fromEntity(lotLineMappingRepository.save(lotLineMapping));
+    }
+
+    // 단일 생산라인 매핑 삭제
+    public void deleteLotLineMapping(Long lotLineMappingId) {
+        LotLineMapping lotLineMapping = getLotLineMappingEntity(lotLineMappingId);
+        lotLineMappingRepository.delete(lotLineMapping);
+    }
+
+    // 단일 생산라인 매핑 엔티티 조회
+    private LotLineMapping getLotLineMappingEntity(Long lotLineMappingId) {
+        return lotLineMappingRepository.findById(lotLineMappingId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 LOT-생산라인 매핑입니다."));
+    }
+
 }
