@@ -28,8 +28,8 @@ public class LogisticsNodeService {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.NODE_CODE_ALREADY_EXISTS);
         }
 
-        LogisticsNode saveNode = logisticsNodeRepository.save(dto.toEntity());
-        return LogisticsNodeResponseDto.from(saveNode);
+        LogisticsNode savedNode = logisticsNodeRepository.save(dto.toEntity());
+        return LogisticsNodeResponseDto.from(savedNode);
     }
 
 //    창고 목록 조회
@@ -47,7 +47,16 @@ public class LogisticsNodeService {
         return LogisticsNodeResponseDto.from(node);
     }
 
-//    출하에서 창고 조회용
+//    출하에서 창고 조회용(요청 입력 처리)
+//    요청 body에서 받은 node publicId -> 내부 entity로 변환
+    @Transactional(readOnly = true)
+    public LogisticsNode getLogisticsNodeEntityByPublicId(String publicId){
+        return logisticsNodeRepository.findByPublicId(publicId)
+                .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+    }
+
+//    entity 조회(응답 변환)
+//    내부 node id -> node publicId로 변경
     @Transactional(readOnly = true)
     public LogisticsNode getLogisticsNodeEntity(Long id){
         return logisticsNodeRepository.findById(id)
