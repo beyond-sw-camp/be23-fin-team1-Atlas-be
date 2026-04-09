@@ -15,12 +15,12 @@ public class SupplyServiceClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${supply-service.url:http://localhost:8080}")
+    @Value("${supply-service.url}")
     private String supplyServiceUrl;
 
     public boolean validateReturnRequest(String publicId) {
         try {
-            String url = supplyServiceUrl + "/api/v1/supply/returns/" + publicId;
+            String url = supplyServiceUrl + "/api/supply/returns/" + publicId;
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             return response.getStatusCode().is2xxSuccessful();
         } catch (RestClientException e) {
@@ -31,7 +31,7 @@ public class SupplyServiceClient {
 
     public boolean validatePurchaseOrder(String publicId) {
         try {
-            String url = supplyServiceUrl + "/api/v1/supply/purchase-orders/" + publicId;
+            String url = supplyServiceUrl + "/api/supply/purchase-orders/" + publicId;
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             return response.getStatusCode().is2xxSuccessful();
         } catch (RestClientException e) {
@@ -42,7 +42,7 @@ public class SupplyServiceClient {
     
     public boolean validateItem(String publicId) {
         try {
-            String url = supplyServiceUrl + "/api/v1/supply/items/" + publicId;
+            String url = supplyServiceUrl + "/api/supply/items/" + publicId;
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             return response.getStatusCode().is2xxSuccessful();
         } catch (RestClientException e) {

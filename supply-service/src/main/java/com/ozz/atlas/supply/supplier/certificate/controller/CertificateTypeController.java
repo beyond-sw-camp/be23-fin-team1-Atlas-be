@@ -14,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/supply/certificate-types")
+@RequestMapping("/api/supply/certificate-types")
 public class CertificateTypeController {
 
     private final CertificateTypeService certificateTypeService;
