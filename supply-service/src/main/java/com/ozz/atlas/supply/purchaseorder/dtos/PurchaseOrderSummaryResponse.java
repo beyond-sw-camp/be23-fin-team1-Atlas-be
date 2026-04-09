@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PurchaseOrderSummaryResponse {
+public class PurchaseOrderSummaryResponse { // 발주 목록 조회용
 
     private String poPublicId;
     private String poNumber;

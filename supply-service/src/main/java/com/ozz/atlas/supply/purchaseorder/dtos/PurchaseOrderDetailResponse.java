@@ -18,7 +18,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PurchaseOrderDetailResponse {
+public class PurchaseOrderDetailResponse { // 발주 상세 조회용
 
     private String poPublicId;
     private String poNumber;
