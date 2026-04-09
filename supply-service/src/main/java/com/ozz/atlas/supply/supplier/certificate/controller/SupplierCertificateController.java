@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/supply")
+@RequestMapping("/api/supply")
 public class SupplierCertificateController {
 
     private final SupplierCertificateService supplierCertificateService;

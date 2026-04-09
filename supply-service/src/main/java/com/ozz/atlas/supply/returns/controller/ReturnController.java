@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/supply/returns")
+@RequestMapping("/api/supply/returns")
 public class ReturnController {
 
     private final ReturnService returnService;

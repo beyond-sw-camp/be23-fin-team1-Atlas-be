@@ -71,7 +71,7 @@ public class ChatMessageController {
      * 채팅방 과거 메시지 이력 조회 API (커서 기반 페이지네이션 지원)
      * cursor 파라미터가 없으면 가장 최신 메시지부터, 있으면 해당 cursor(publicId) 이전 메시지를 반환
      */
-    @GetMapping("/api/v1/chats/rooms/{roomPublicId}/messages")
+    @GetMapping("/api/control/chats/rooms/{roomPublicId}/messages")
     public ResponseEntity<Page<ChatMessageDto>> getMessages(
             @PathVariable String roomPublicId,
             @RequestParam(required = false) String cursor,
@@ -79,7 +79,7 @@ public class ChatMessageController {
         return ResponseEntity.ok(chatMessageService.getMessageHistory(roomPublicId, cursor, pageable));
     }
 
-    @PutMapping("/api/v1/chats/messages/{messagePublicId}")
+    @PutMapping("/api/control/chats/messages/{messagePublicId}")
     public ResponseEntity<ChatMessageDto> updateMessage(
             @PathVariable String messagePublicId,
             @RequestBody com.ozz.atlas.control.chat.dto.UpdateMessageRequestDto request,
@@ -87,7 +87,7 @@ public class ChatMessageController {
         return ResponseEntity.ok(chatMessageService.updateMessage(messagePublicId, request.getMessageBody(), userPublicId));
     }
 
-    @DeleteMapping("/api/v1/chats/messages/{messagePublicId}")
+    @DeleteMapping("/api/control/chats/messages/{messagePublicId}")
     public ResponseEntity<ChatMessageDto> deleteMessage(
             @PathVariable String messagePublicId,
             @RequestHeader("X-User-Public-Id") String userPublicId) {
