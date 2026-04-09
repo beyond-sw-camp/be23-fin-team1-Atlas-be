@@ -9,6 +9,7 @@ import com.ozz.atlas.supply.lot.dtos.UpdateLotRequestDto;
 import com.ozz.atlas.supply.lot.exception.LotErrorCode;
 import com.ozz.atlas.supply.lot.exception.LotException;
 import com.ozz.atlas.supply.lot.repository.LotRepository;
+import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +23,14 @@ import java.util.stream.Collectors;
 public class LotService {
 
     private final LotRepository lotRepository;
+    private final PurchaseOrderItemRepository purchaseOrderItemRepository;
 
     @Transactional
     public LotResponseDto createLot(CreateLotRequestDto request) {
+        if (!purchaseOrderItemRepository.existsById(request.getSourcePoItemId())) {
+            throw new LotException(LotErrorCode.PO_ITEM_NOT_FOUND);
+        }
+
         Lot lot = Lot.builder()
                 .lotNumber(request.getLotNumber())
                 .sourcePoItemId(request.getSourcePoItemId())
