@@ -69,10 +69,10 @@ public class NotificationService {
     @Transactional
     public void markAsRead(String publicId, String userPublicId) {
         Notification notification = notificationRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new IllegalArgumentException("알림을 찾을 수 없습니다."));
+                .orElseThrow(() -> new com.ozz.atlas.control.notification.exception.NotificationException(com.ozz.atlas.control.notification.exception.NotificationErrorCode.NOTIFICATION_NOT_FOUND));
 
         if (!notification.getRecipientUserPublicId().equals(userPublicId)) {
-            throw new IllegalStateException("본인의 알림만 읽음 처리할 수 있습니다.");
+            throw new com.ozz.atlas.control.notification.exception.NotificationException(com.ozz.atlas.control.notification.exception.NotificationErrorCode.NOT_NOTIFICATION_OWNER);
         }
 
         notification.markAsRead();
@@ -100,10 +100,10 @@ public class NotificationService {
     @Transactional
     public void deleteNotification(String publicId, String userPublicId) {
         Notification notification = notificationRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new IllegalArgumentException("알림을 찾을 수 없습니다."));
+                .orElseThrow(() -> new com.ozz.atlas.control.notification.exception.NotificationException(com.ozz.atlas.control.notification.exception.NotificationErrorCode.NOTIFICATION_NOT_FOUND));
 
         if (!notification.getRecipientUserPublicId().equals(userPublicId)) {
-            throw new IllegalStateException("본인의 알림만 삭제할 수 있습니다.");
+            throw new com.ozz.atlas.control.notification.exception.NotificationException(com.ozz.atlas.control.notification.exception.NotificationErrorCode.NOT_NOTIFICATION_OWNER);
         }
 
         notification.delete();
