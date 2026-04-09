@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/mapping")
+@RequestMapping("/api/supply/mapping")
 public class LotLineMappingController {
 
     private final LotLineMappingService lotLineMappingService;
