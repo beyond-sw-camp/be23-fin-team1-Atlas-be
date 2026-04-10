@@ -404,3 +404,14 @@ CT-->>MB: "분산 발주 전략 비교 화면 제공"
 ![ERD](images/erd.png)
 
 </details>
+
+<details>
+<summary>디자인</summary>
+
+<a href="https://stitch.withgoogle.com/projects/3858843644991271330">
+  <img src="images/screen.png" alt="Google Stitch 디자인 미리보기" width="900" />
+</a>
+
+이미지를 클릭하면 Google Stitch 프로젝트로 이동한다.
+직접 열기: [Google Stitch](https://stitch.withgoogle.com/projects/3858843644991271330)
+</details>
