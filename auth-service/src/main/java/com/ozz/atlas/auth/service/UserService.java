@@ -10,23 +10,12 @@ import com.ozz.atlas.auth.repository.OrganizationRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.auth.search.service.UserSearchService;
 import com.ozz.atlas.common.jpa.Status;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.GetMapping;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @Transactional
@@ -75,48 +64,16 @@ public class UserService {
 
     //    사용자 목록 조회
     public Page<UserListDto> userList(Pageable pageable, UserSearchDto searchDto) {
-        if (searchDto.getKeyword() != null && !searchDto.getKeyword().isBlank()) {
+        // 검색 조건이 하나라도 있으면 Elasticsearch 통합검색을 사용
+        // 조건이 전혀 없을 때만 기본 DB 목록 조회로 내려감
+        if (hasSearchCondition(searchDto)) {
             return userSearchService.search(pageable, searchDto);
         }
-        Specification<User> specification = (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
 
-            if (searchDto.getOrganizationPublicId() != null && !searchDto.getOrganizationPublicId().isBlank()) {
-                predicates.add(criteriaBuilder.equal(root.get("organization").get("publicId"), searchDto.getOrganizationPublicId()));
-            }
-
-            if (searchDto.getUserRole() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("userRole"), searchDto.getUserRole()));
-            }
-
-            if (searchDto.getLoginId() != null && !searchDto.getLoginId().isBlank()) {
-                predicates.add(criteriaBuilder.like(root.get("loginId"), "%" + searchDto.getLoginId() + "%"));
-            }
-
-            if (searchDto.getFirstName() != null && !searchDto.getFirstName().isBlank()) {
-                predicates.add(criteriaBuilder.like(root.get("firstName"), "%" + searchDto.getFirstName() + "%"));
-            }
-
-            if (searchDto.getMiddleName() != null && !searchDto.getMiddleName().isBlank()) {
-                predicates.add(criteriaBuilder.like(root.get("middleName"), "%" + searchDto.getMiddleName() + "%"));
-            }
-
-            if (searchDto.getLastName() != null && !searchDto.getLastName().isBlank()) {
-                predicates.add(criteriaBuilder.like(root.get("lastName"), "%" + searchDto.getLastName() + "%"));
-            }
-
-            if (searchDto.getStatus() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("status"), searchDto.getStatus()));
-            } else {
-                predicates.add(criteriaBuilder.equal(root.get("status"), Status.ACTIVE));
-            }
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        };
-
-        return userRepository.findAll(specification, pageable)
+        return userRepository.findAll(pageable)
                 .map(UserListDto::fromEntity);
     }
+
 
 
     //    사용자 상세 조회
@@ -211,5 +168,29 @@ public class UserService {
         user.updatePassword(passwordEncoder.encode(dto.getNewPassword()));
         jwtTokenProvider.revokeRefreshToken(userId);
     }
+
+
+    // 검색 DTO에 실제 검색 조건이 하나라도 들어왔는지 확인
+    // keyword 뿐 아니라 조직, 권한, 이름, 아이디, 상태도 모두 통합검색 진입 조건으로 봄
+    private boolean hasSearchCondition(UserSearchDto searchDto) {
+        if (searchDto == null) {
+            return false;
+        }
+
+        return hasText(searchDto.getOrganizationPublicId())
+                || searchDto.getUserRole() != null
+                || hasText(searchDto.getLoginId())
+                || hasText(searchDto.getFirstName())
+                || hasText(searchDto.getMiddleName())
+                || hasText(searchDto.getLastName())
+                || searchDto.getStatus() != null
+                || hasText(searchDto.getKeyword());
+    }
+
+    // 문자열 값이 null 이거나 공백인지 확인하는 공통 메서드
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
 
 }
