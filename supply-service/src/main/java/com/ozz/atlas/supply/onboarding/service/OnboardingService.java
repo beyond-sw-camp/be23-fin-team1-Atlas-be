@@ -9,6 +9,8 @@ import com.ozz.atlas.supply.onboarding.repository.OnboardingRequestRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
+import com.ozz.atlas.supply.supplier.search.repository.SupplierSearchRepository;
+import com.ozz.atlas.supply.supplier.search.service.SupplierSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +31,7 @@ public class OnboardingService {
 
     private final OnboardingRequestRepository onboardingRequestRepository;
     private final SupplierRepository supplierRepository;
+    private final SupplierSearchService supplierSearchService;
 
     public OnboardingResponse createSupplier(
             String organizationPublicId,
@@ -97,6 +100,8 @@ public class OnboardingService {
 
         request.approve(reviewedByUserPublicId);
         request.getSupplier().approve();
+        // 승인된 협력사는 ES 문서로 저장
+        supplierSearchService.saveSupplierDocument(request.getSupplier());
 
         return OnboardingResponse.fromEntity(request);
     }
