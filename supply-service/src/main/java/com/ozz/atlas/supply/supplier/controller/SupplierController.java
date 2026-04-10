@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.supplier.controller;
 
 import com.ozz.atlas.supply.supplier.dtos.UpdateSupplierRequest;
+import com.ozz.atlas.supply.supplier.search.dtos.SupplierSearchDto;
 import com.ozz.atlas.supply.supplier.service.SupplierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +23,10 @@ public class SupplierController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getSupplerList(@PageableDefault(size = 10) Pageable pageable) {
-        return ResponseEntity.ok(supplierService.getSupplierList(pageable));
+    public ResponseEntity<?> getSupplerList(
+            SupplierSearchDto supplierSearchDto,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(supplierService.getSupplierList(pageable, supplierSearchDto));
     }
 
     @GetMapping("/tier/{tierLevel}")

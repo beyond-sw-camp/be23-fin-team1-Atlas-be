@@ -1,0 +1,27 @@
+{
+  "index": {
+    "max_ngram_diff": 19
+  },
+  "analysis": {
+    "tokenizer": {
+      "supplier_ngram_tokenizer": {
+        "type": "ngram",
+        "min_gram": 1,
+        "max_gram": 20,
+        "token_chars": ["letter", "digit"]
+      }
+    },
+    "analyzer": {
+      "supplier_ngram_analyzer": {
+        "type": "custom",
+        "tokenizer": "supplier_ngram_tokenizer",
+        "filter": ["lowercase"]
+      },
+      "supplier_search_analyzer": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase"]
+      }
+    }
+  }
+}
