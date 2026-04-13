@@ -13,7 +13,9 @@ public enum SettlementErrorCode implements ErrorCode {
     SETTLEMENT_DETAIL_NOT_FOUND(404, "SETTLEMENT_002", "정산 상세 정보를 찾을 수 없습니다."),
     INVALID_SETTLEMENT_STATUS_TRANSITION(400, "SETTLEMENT_003", "정산 상태 변경 요청이 올바르지 않습니다."),
     SUPPLIER_NOT_FOUND(404, "SETTLEMENT_004", "협력사 정보를 찾을 수 없습니다."),
-    INTERNAL_SERVER_ERROR(500, "SETTLEMENT_999", "서버 내부 오류가 발생했습니다.");
+    INTERNAL_SERVER_ERROR(500, "SETTLEMENT_999", "서버 내부 오류가 발생했습니다."),
+    FORBIDDEN_SETTLEMENT_APPROVAL(403, "SETTLEMENT_005", "정산 승인 권한이 없습니다."),
+    FORBIDDEN_SETTLEMENT_CANCEL(403, "SETTLEMENT_006", "정산 취소 권한이 없습니다.");
 
     private final int status;
     private final String code;

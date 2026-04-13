@@ -1,20 +1,18 @@
 package com.ozz.atlas.supply.settlement.domain;
 
 import com.ozz.atlas.common.id.PublicIdGenerator;
+import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @Getter
 @Entity
-public class SettlementDetail{
+public class SettlementDetail extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

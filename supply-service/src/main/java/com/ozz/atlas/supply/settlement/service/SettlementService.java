@@ -84,7 +84,9 @@ public class SettlementService {
 
     // 정산 승인 -> 연결된 모든 상세 항목 승인 상태로 전환
     @Transactional
-    public SettlementResponseDto approveSettlement(Long settlementId, String approvedByUserPublicId) {
+    public SettlementResponseDto approveSettlement(Long settlementId, String approvedByUserPublicId, String userRole) {
+        validateAdminRole(userRole, SettlementErrorCode.FORBIDDEN_SETTLEMENT_APPROVAL);
+
         Settlement settlement = getSettlementEntity(settlementId);
 
         try {
@@ -105,11 +107,13 @@ public class SettlementService {
 
     // 정산 취소 -> 연결된 모든 상세 항목 취소 상태로 전환
     @Transactional
-    public SettlementResponseDto cancelSettlement(Long settlementId) {
+    public SettlementResponseDto cancelSettlement(Long settlementId, String cancelledByUserPublicId, String userRole) {
+        validateAdminRole(userRole, SettlementErrorCode.FORBIDDEN_SETTLEMENT_CANCEL);
+
         Settlement settlement = getSettlementEntity(settlementId);
 
         try {
-            settlement.cancel();
+            settlement.cancel(cancelledByUserPublicId);
         } catch (IllegalStateException e) {
             throw new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_STATUS_TRANSITION);
         }
@@ -184,6 +188,8 @@ public class SettlementService {
                 .settlementStatus(settlement.getSettlementStatus())
                 .settledAt(settlement.getSettledAt())
                 .approvedByUserPublicId(settlement.getApprovedByUserPublicId())
+                .cancelledAt(settlement.getCancelledAt())
+                .cancelledByUserPublicId(settlement.getCancelledByUserPublicId())
                 .createdAt(settlement.getCreatedAt())
                 .updatedAt(settlement.getUpdatedAt())
                 .details(details.stream()
@@ -208,6 +214,8 @@ public class SettlementService {
                 .settlementStatus(settlement.getSettlementStatus())
                 .settledAt(settlement.getSettledAt())
                 .approvedByUserPublicId(settlement.getApprovedByUserPublicId())
+                .cancelledAt(settlement.getCancelledAt())
+                .cancelledByUserPublicId(settlement.getCancelledByUserPublicId())
                 .createdAt(settlement.getCreatedAt())
                 .updatedAt(settlement.getUpdatedAt())
                 .details(List.of())
@@ -226,4 +234,12 @@ public class SettlementService {
                 .detailStatus(detail.getDetailStatus())
                 .build();
     }
+
+//    정산 승인/취소 권한 체크
+    private void validateAdminRole(String userRole, SettlementErrorCode errorCode) {
+        if (!"ADMIN".equals(userRole)) {
+            throw new SettlementException(errorCode);
+        }
+    }
+
 }

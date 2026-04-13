@@ -45,18 +45,21 @@ public class SettlementController {
     @PatchMapping("/{settlementId}/approve")
     public ResponseEntity<SettlementResponseDto> approveSettlement(
             @PathVariable Long settlementId,
-            @RequestParam String approvedByUserPublicId
+            @RequestHeader("X-User-Public-Id") String approvedByUserPublicId,
+            @RequestHeader("X-User-Role") String userRole
     ) {
         return ResponseEntity.ok(
-                settlementService.approveSettlement(settlementId, approvedByUserPublicId)
+                settlementService.approveSettlement(settlementId, approvedByUserPublicId, userRole)
         );
     }
 
 //    정산 취소
     @PatchMapping("/{settlementId}/cancel")
     public ResponseEntity<SettlementResponseDto> cancelSettlement(
-            @PathVariable Long settlementId
+            @PathVariable Long settlementId,
+            @RequestHeader("X-User-Public-Id") String cancelledByUserPublicId,
+            @RequestHeader("X-User-Role") String userRole
     ) {
-        return ResponseEntity.ok(settlementService.cancelSettlement(settlementId));
+        return ResponseEntity.ok(settlementService.cancelSettlement(settlementId, cancelledByUserPublicId, userRole));
     }
 }
