@@ -138,6 +138,14 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    // 채팅 서비스 등 내부 연동용 사용자 조회
+    @GetMapping("/users/public/{userPublicId}")
+    public ResponseEntity<UserDetailDto> userDetailByPublicId(@PathVariable String userPublicId) {
+        UserDetailDto response = userService.userDetailByPublicId(userPublicId);
+        return ResponseEntity.ok(response);
+    }
+
+
 
 
 

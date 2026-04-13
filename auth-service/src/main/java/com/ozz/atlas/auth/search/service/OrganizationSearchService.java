@@ -43,12 +43,6 @@ public class OrganizationSearchService {
         organizationSearchRepository.save(OrganizationDocument.fromEntity(organization));
     }
 
-    // Elasticsearch 에서 조직 문서를 삭제
-    // 현재는 soft delete 성격이 강해서 자주 쓰이지 않지만 유지
-    public void deleteOrganizationDocument(Long organizationId) {
-        organizationSearchRepository.deleteById(organizationId);
-    }
-
     // 조직 통합검색
     public Page<OrganizationListDto> search(Pageable pageable, OrganizationSearchDto searchDto) {
         // mustQueries:

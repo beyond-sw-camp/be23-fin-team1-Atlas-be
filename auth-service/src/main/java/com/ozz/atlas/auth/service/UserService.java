@@ -192,5 +192,18 @@ public class UserService {
         return value != null && !value.isBlank();
     }
 
+    // userPublicId 기준 사용자 상세 조회
+    public UserDetailDto userDetailByPublicId(String userPublicId) {
+        User user = userRepository.findByPublicId(userPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (user.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
+        }
+
+        return UserDetailDto.fromEntity(user);
+    }
+
+
 
 }

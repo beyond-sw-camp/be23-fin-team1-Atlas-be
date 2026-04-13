@@ -11,10 +11,14 @@ import com.ozz.atlas.control.chat.event.ChatSystemEvent;
 import com.ozz.atlas.control.chat.repository.ChatMessageRepository;
 import com.ozz.atlas.control.chat.repository.ChatParticipantRepository;
 import com.ozz.atlas.control.chat.repository.ChatRoomRepository;
+import com.ozz.atlas.control.chat.search.service.ChatParticipantSearchService;
+import com.ozz.atlas.control.chat.search.service.ChatRoomSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +32,10 @@ public class ChatRoomService {
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ChatParticipantSearchService chatParticipantSearchService;
+    private final ChatRoomSearchService chatRoomSearchService;
+
+
 
     /**
      * 채팅방 생성
@@ -51,6 +59,8 @@ public class ChatRoomService {
                 addParticipant(chatRoom, participantId, "MEMBER");
             }
         }
+        // 참여자까지 모두 추가된 뒤 채팅방 검색 문서를 저장
+        chatRoomSearchService.saveChatRoomDocument(chatRoom);
 
         return convertToDto(chatRoom);
     }
@@ -72,6 +82,9 @@ public class ChatRoomService {
                         .participantRole(role)
                         .build();
                 chatParticipantRepository.save(newParticipant);
+                // 참여자가 새로 추가되면 ES 참여자 검색 문서도 함께 저장
+                // 이때 auth-service 에서 사용자 이름, 로그인아이디, 이메일을 조회해 색인
+                chatParticipantSearchService.saveChatParticipantDocument(newParticipant);
             }
         );
     }
@@ -79,8 +92,8 @@ public class ChatRoomService {
     /**
      * 사용자가 속한 채팅방 목록 조회 (활성 참여자만)
      */
-    public List<ChatRoomDto> findAllRoomsByUser(String userPublicId) {
-        return chatParticipantRepository.findByUserPublicIdActive(userPublicId).stream()
+    public Page<ChatRoomDto> findAllRoomsByUser(String userPublicId, Pageable pageable) {
+        return chatParticipantRepository.findByUserPublicIdActive(userPublicId, pageable)
                 .map(participant -> {
                     ChatRoom chatRoom = participant.getChatRoom();
                     ChatRoomDto dto = convertToDto(chatRoom);
@@ -96,8 +109,8 @@ public class ChatRoomService {
                     });
                     
                     return dto;
-                })
-                .collect(Collectors.toList());
+                });
+
     }
 
     /**
@@ -144,6 +157,7 @@ public class ChatRoomService {
                 .targetUserPublicIds(targetUserPublicIds)
                 .inviterPublicId(inviterPublicId)
                 .build());
+        chatRoomSearchService.saveChatRoomDocument(chatRoom);
     }
 
     /**
@@ -156,12 +170,20 @@ public class ChatRoomService {
         // 해당 유저를 비활성(soft delete) 처리
         chatParticipantRepository.deactivateParticipant(chatRoom, targetUserPublicId);
 
+
+        // 비활성화된 상태를 ES 문서에도 다시 반영
+        // 검색 서비스에서는 activeYn=true 조건만 조회하므로,
+        // 이 문서가 갱신되면 검색 결과에서 빠지게 됨
+        chatParticipantRepository.findByChatRoomAndUserPublicId(chatRoom, targetUserPublicId)
+                .ifPresent(chatParticipantSearchService::saveChatParticipantDocument);
+
         // 시스템 이벤트 발행 (퇴장 메시지용)
         eventPublisher.publishEvent(ChatSystemEvent.builder()
                 .roomPublicId(roomPublicId)
                 .messageType(MessageType.SYSTEM_LEAVE)
                 .targetUserPublicIds(List.of(targetUserPublicId))
                 .build());
+        chatRoomSearchService.saveChatRoomDocument(chatRoom);
     }
 
     private ChatRoomDto convertToDto(ChatRoom chatRoom) {

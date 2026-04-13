@@ -2,6 +2,8 @@ package com.ozz.atlas.control.chat.repository;
 
 import com.ozz.atlas.control.chat.domain.ChatParticipant;
 import com.ozz.atlas.control.chat.domain.ChatRoom;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -33,5 +35,11 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
     @Modifying
     @Query("UPDATE ChatParticipant cp SET cp.activeYn = false WHERE cp.chatRoom = :chatRoom AND cp.userPublicId = :userPublicId")
     void deactivateParticipant(@Param("chatRoom") ChatRoom chatRoom, @Param("userPublicId") String userPublicId);
+
+    // 채팅방 목록 페이지 조회용
+    @Query("SELECT cp FROM ChatParticipant cp WHERE cp.userPublicId = :userPublicId AND cp.activeYn = true")
+    Page<ChatParticipant> findByUserPublicIdActive(@Param("userPublicId") String userPublicId, Pageable pageable);
+
+
 }
 
