@@ -30,6 +30,8 @@ public class SettlementResponseDto {
     private SettlementStatus settlementStatus;
     private LocalDateTime settledAt;
     private String approvedByUserPublicId;
+    private LocalDateTime cancelledAt;
+    private String cancelledByUserPublicId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<SettlementDetailResponseDto> details;

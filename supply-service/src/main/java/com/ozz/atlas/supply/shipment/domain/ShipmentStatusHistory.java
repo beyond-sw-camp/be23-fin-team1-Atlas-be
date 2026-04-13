@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.shipment.domain;
 
+import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @Getter
 @Entity
-public class ShipmentStatusHistory {
+public class ShipmentStatusHistory extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

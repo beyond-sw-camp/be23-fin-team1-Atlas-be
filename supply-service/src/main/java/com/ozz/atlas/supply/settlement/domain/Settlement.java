@@ -15,7 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @Getter
 @Entity
@@ -51,12 +51,20 @@ public class Settlement extends BaseTimeEntity {
     @Builder.Default
     private SettlementStatus settlementStatus = SettlementStatus.PENDING;
 
+//    정산 승인자 저장
     private LocalDateTime settledAt;
 
     @Column(length = 26)
     private String approvedByUserPublicId;
 
-//    정산 계산 결과가 확정되면 금액 갱신
+//    정산 취소자 저장
+    private LocalDateTime cancelledAt;
+
+    @Column(length = 26)
+    private String cancelledByUserPublicId;
+
+
+    //    정산 계산 결과가 확정되면 금액 갱신
     public void updateAmount(BigDecimal amount) {
         if (amount != null) {
             this.amount = amount;
@@ -75,11 +83,13 @@ public class Settlement extends BaseTimeEntity {
     }
 
 //    대기 상태의 정산 취소 처리
-    public void cancel() {
+    public void cancel(String cancelledByUserPublicId) {
         if (this.settlementStatus != SettlementStatus.PENDING) {
             throw new IllegalStateException("대기 상태의 정산만 취소할 수 있습니다.");
         }
 
         this.settlementStatus = SettlementStatus.CANCELLED;
+        this.cancelledAt = LocalDateTime.now();
+        this.cancelledByUserPublicId = cancelledByUserPublicId;
     }
 }
