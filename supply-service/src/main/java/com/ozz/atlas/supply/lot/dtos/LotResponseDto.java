@@ -12,37 +12,35 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class LotResponseDto {
-    private Long id;
     private String publicId;
     private String lotNumber;
-    private Long sourcePoItemId;
-    private Long supplierId;
-    private Long itemId;
+    private String sourcePoItemPublicId;
+    private String supplierPublicId;
+    private String itemPublicId;
     private LotStatus lotStatus;
     private LocalDateTime manufacturedAt;
     private LocalDateTime expiredAt;
     private BigDecimal qty;
     private String unit;
     private QualityStatus qualityStatus;
-    private Long currentNodeId;
+    private String currentNodePublicId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static LotResponseDto from(Lot entity) {
         return LotResponseDto.builder()
-                .id(entity.getId())
                 .publicId(entity.getPublicId())
                 .lotNumber(entity.getLotNumber())
-                .sourcePoItemId(entity.getSourcePoItemId())
-                .supplierId(entity.getSupplierId())
-                .itemId(entity.getItemId())
+                .sourcePoItemPublicId(entity.getSourcePoItemPublicId())
+                .supplierPublicId(entity.getSupplierPublicId())
+                .itemPublicId(entity.getItemPublicId())
                 .lotStatus(entity.getLotStatus())
                 .manufacturedAt(entity.getManufacturedAt())
                 .expiredAt(entity.getExpiredAt())
                 .qty(entity.getQty())
                 .unit(entity.getUnit())
                 .qualityStatus(entity.getQualityStatus())
-                .currentNodeId(entity.getCurrentNodeId())
+                .currentNodePublicId(entity.getCurrentNodePublicId())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

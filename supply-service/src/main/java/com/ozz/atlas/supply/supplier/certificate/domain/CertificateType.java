@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.supplier.certificate.domain;
 
+import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -18,6 +19,9 @@ public class CertificateType extends BaseTimeEntity {
     @Column(name = "certificate_type_id")
     private Long id;
 
+    @Column(nullable = false, unique = true, updatable = false, length = 26)
+    private String publicId;
+
     @Column(nullable = false, length = 50)
     private String certificateCode;
 
@@ -33,6 +37,13 @@ public class CertificateType extends BaseTimeEntity {
 
     @Column(nullable = false)
     private boolean activeYn;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.publicId == null) {
+            this.publicId = PublicIdGenerator.next();
+        }
+    }
 
     @Builder
     public CertificateType(String certificateCode, String certificateName, CertificateScope scopeType, boolean requiredYn, boolean activeYn) {

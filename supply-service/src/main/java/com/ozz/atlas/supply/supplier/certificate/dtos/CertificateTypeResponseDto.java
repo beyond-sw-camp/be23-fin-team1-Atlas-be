@@ -8,7 +8,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class CertificateTypeResponseDto {
-    private Long id;
+    private String publicId;
     private String certificateCode;
     private String certificateName;
     private CertificateScope scopeType;
@@ -17,7 +17,7 @@ public class CertificateTypeResponseDto {
 
     public static CertificateTypeResponseDto from(CertificateType entity) {
         return CertificateTypeResponseDto.builder()
-                .id(entity.getId())
+                .publicId(entity.getPublicId())
                 .certificateCode(entity.getCertificateCode())
                 .certificateName(entity.getCertificateName())
                 .scopeType(entity.getScopeType())

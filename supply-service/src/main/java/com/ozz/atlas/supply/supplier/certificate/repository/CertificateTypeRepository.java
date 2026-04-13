@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface CertificateTypeRepository extends JpaRepository<CertificateType, Long> {
     Optional<CertificateType> findByCertificateCode(String certificateCode);
+    Optional<CertificateType> findByPublicId(String publicId);
 }
