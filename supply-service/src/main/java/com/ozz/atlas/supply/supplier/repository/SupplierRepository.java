@@ -58,5 +58,7 @@ public interface SupplierRepository extends JpaRepository<SupplySupplier, Long> 
             SupplierStatus supplierStatus
     );
 
+    Optional<SupplySupplier> findByOrganizationPublicId(String organizationPublicId);
 
+    boolean existsByOrganizationPublicId(String organizationPublicId);
 }

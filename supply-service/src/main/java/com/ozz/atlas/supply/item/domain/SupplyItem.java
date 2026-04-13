@@ -3,8 +3,12 @@ package com.ozz.atlas.supply.item.domain;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -12,6 +16,7 @@ import lombok.*;
 @Builder
 @Entity
 public class SupplyItem extends BaseTimeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,11 +26,16 @@ public class SupplyItem extends BaseTimeEntity {
     private String publicId = PublicIdGenerator.next();
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT))
+    private SupplySupplier supplier;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_category_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT))
     private SupplyItemCategory itemCategory;
 
     @Column(nullable = false, length = 50)
     private String itemCode;
+
     @Column(nullable = false, length = 100)
     private String itemName;
 
@@ -42,9 +52,10 @@ public class SupplyItem extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private Status status = Status.DEACTIVE;
+    private Status status = Status.ACTIVE;
 
     public static SupplyItem create(
+            SupplySupplier supplier,
             SupplyItemCategory itemCategory,
             String itemCode,
             String itemName,
@@ -53,13 +64,14 @@ public class SupplyItem extends BaseTimeEntity {
             Integer shelfLifeDays
     ) {
         return SupplyItem.builder()
+                .supplier(supplier)
                 .itemCategory(itemCategory)
                 .itemCode(itemCode)
                 .itemName(itemName)
                 .unit(unit)
                 .spec(spec)
                 .shelfLifeDays(shelfLifeDays)
-                .status(Status.DEACTIVE)
+                .status(Status.ACTIVE)
                 .build();
     }
 

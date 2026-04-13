@@ -20,22 +20,29 @@ public class SupplyItemController {
     private final SupplyItemService supplyItemService;
 
     @PostMapping
-    public ResponseEntity<?> createItem(@Valid @RequestBody CreateItemRequest request) {
+    public ResponseEntity<?> createItem(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @Valid @RequestBody CreateItemRequest request
+    ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(supplyItemService.createItem(request));
+                .body(supplyItemService.createItem(organizationPublicId, request));
     }
 
     @PutMapping("/{itemPublicId}")
     public ResponseEntity<?> updateItem(
             @PathVariable String itemPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @Valid @RequestBody UpdateItemRequest request
     ) {
-        return ResponseEntity.ok(supplyItemService.updateItem(itemPublicId, request));
+        return ResponseEntity.ok(supplyItemService.updateItem(organizationPublicId, itemPublicId, request));
     }
 
     @DeleteMapping("/{itemPublicId}")
-    public ResponseEntity<?> deleteItem(@PathVariable String itemPublicId) {
-        supplyItemService.deleteItem(itemPublicId);
+    public ResponseEntity<?> deleteItem(
+            @PathVariable String itemPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId
+    ) {
+        supplyItemService.deleteItem(organizationPublicId, itemPublicId);
         return ResponseEntity.noContent().build();
     }
 

@@ -10,6 +10,10 @@ import com.ozz.atlas.supply.item.exception.ItemErrorCode;
 import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
+import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
+import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -25,8 +30,11 @@ public class SupplyItemService {
 
     private final SupplyItemRepository supplyItemRepository;
     private final SupplyItemCategoryRepository supplyItemCategoryRepository;
+    private final SupplierRepository supplierRepository;
 
-    public ItemResponse createItem(CreateItemRequest request) {
+    public ItemResponse createItem(String organizationPublicId, CreateItemRequest request) {
+        SupplySupplier supplier = getManageableSupplier(organizationPublicId);
+
         if (supplyItemRepository.existsByItemCode(request.getItemCode())) {
             throw new ItemException(ItemErrorCode.ITEM_CODE_ALREADY_EXISTS);
         }
@@ -38,6 +46,7 @@ public class SupplyItemService {
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_CATEGORY_NOT_FOUND));
 
         SupplyItem item = SupplyItem.create(
+                supplier,
                 category,
                 request.getItemCode(),
                 request.getItemName(),
@@ -49,12 +58,20 @@ public class SupplyItemService {
         return ItemResponse.fromEntity(supplyItemRepository.save(item));
     }
 
-    public ItemResponse updateItem(String itemPublicId, UpdateItemRequest request) {
+    public ItemResponse updateItem(
+            String organizationPublicId,
+            String itemPublicId,
+            UpdateItemRequest request
+    ) {
+        SupplySupplier supplier = getManageableSupplier(organizationPublicId);
+
         SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
                         itemPublicId,
                         List.of(Status.ACTIVE, Status.DEACTIVE)
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        validateItemOwner(item, supplier);
 
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(
                         request.getItemCategoryPublicId(),
@@ -78,12 +95,16 @@ public class SupplyItemService {
         return ItemResponse.fromEntity(item);
     }
 
-    public void deleteItem(String itemPublicId) {
+    public void deleteItem(String organizationPublicId, String itemPublicId) {
+        SupplySupplier supplier = getManageableSupplier(organizationPublicId);
+
         SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
                         itemPublicId,
                         List.of(Status.ACTIVE, Status.DEACTIVE)
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        validateItemOwner(item, supplier);
 
         item.changeActiveYn(Status.DELETE);
     }
@@ -103,5 +124,34 @@ public class SupplyItemService {
     public Page<ItemResponse> getItemList(Pageable pageable) {
         return supplyItemRepository.findAllByStatus(Status.ACTIVE, pageable)
                 .map(ItemResponse::fromEntity);
+    }
+
+    private SupplySupplier getManageableSupplier(String organizationPublicId) {
+        validateOrganizationHeader(organizationPublicId);
+
+        SupplySupplier supplier = supplierRepository.findByOrganizationPublicId(organizationPublicId)
+                .orElseThrow(() -> new ItemException(ItemErrorCode.SUPPLIER_NOT_FOUND));
+
+        if (supplier.getApprovalStatus() != ApprovalStatus.APPROVED) {
+            throw new ItemException(ItemErrorCode.SUPPLIER_NOT_APPROVED);
+        }
+
+        if (supplier.getSupplierStatus() != SupplierStatus.ACTIVE) {
+            throw new ItemException(ItemErrorCode.SUPPLIER_NOT_ACTIVE);
+        }
+
+        return supplier;
+    }
+
+    private void validateItemOwner(SupplyItem item, SupplySupplier supplier) {
+        if (!Objects.equals(item.getSupplier().getId(), supplier.getId())) {
+            throw new ItemException(ItemErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    private void validateOrganizationHeader(String organizationPublicId) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()) {
+            throw new ItemException(ItemErrorCode.INVALID_ACTOR_HEADER);
+        }
     }
 }

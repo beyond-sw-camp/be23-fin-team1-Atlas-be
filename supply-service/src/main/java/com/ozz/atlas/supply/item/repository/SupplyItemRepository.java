@@ -24,4 +24,6 @@ public interface SupplyItemRepository extends JpaRepository<SupplyItem, Long> {
     boolean existsByItemCodeAndIdNot(String itemCode, Long id);
 
     boolean existsByItemCategoryAndStatus(SupplyItemCategory category, Status status);
+
+    boolean existsByItemCategoryAndStatusIn(SupplyItemCategory category, Collection<Status> statuses);
 }

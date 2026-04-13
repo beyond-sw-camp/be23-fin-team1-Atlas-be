@@ -20,22 +20,42 @@ public class SupplyItemCategoryController {
     private final SupplyItemCategoryService supplyItemCategoryService;
 
     @PostMapping
-    public ResponseEntity<?> createCategory(@Valid @RequestBody CreateItemCategoryRequest request) {
+    public ResponseEntity<?> createCategory(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader("X-User-Public-Id") String userPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @Valid @RequestBody CreateItemCategoryRequest request
+    ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(supplyItemCategoryService.createCategory(request));
+                .body(supplyItemCategoryService.createCategory(organizationPublicId, userPublicId, userRole, request));
     }
 
     @PutMapping("/{categoryPublicId}")
     public ResponseEntity<?> updateCategory(
             @PathVariable String categoryPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader("X-User-Public-Id") String userPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @Valid @RequestBody UpdateItemCategoryRequest request
     ) {
-        return ResponseEntity.ok(supplyItemCategoryService.updateCategory(categoryPublicId, request));
+        return ResponseEntity.ok(
+                supplyItemCategoryService.updateCategory(
+                        categoryPublicId,
+                        organizationPublicId,
+                        userPublicId,
+                        userRole,
+                        request
+                )
+        );
     }
 
     @DeleteMapping("/{categoryPublicId}")
-    public ResponseEntity<?> deleteCategory(@PathVariable String categoryPublicId) {
-        supplyItemCategoryService.deleteCategory(categoryPublicId);
+    public ResponseEntity<?> deleteCategory(
+            @PathVariable String categoryPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        supplyItemCategoryService.deleteCategory(categoryPublicId, organizationPublicId, userRole);
         return ResponseEntity.noContent().build();
     }
 
