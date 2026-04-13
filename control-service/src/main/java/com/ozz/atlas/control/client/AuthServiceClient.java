@@ -15,7 +15,7 @@ public class AuthServiceClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${auth-service.url:http://localhost:8081}")
+    @Value("${auth-service.url}")
     private String authServiceUrl;
 
     // userPublicId 기준으로 auth-service 에 사용자 상세정보를 요청
