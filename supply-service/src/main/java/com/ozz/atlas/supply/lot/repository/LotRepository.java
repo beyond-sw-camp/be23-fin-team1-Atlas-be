@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface LotRepository extends JpaRepository<Lot, Long> {
     Optional<Lot> findByPublicId(String publicId);
-    List<Lot> findBySupplierId(Long supplierId);
-    List<Lot> findBySourcePoItemId(Long sourcePoItemId);
-    List<Lot> findByItemId(Long itemId);
+    List<Lot> findBySupplierPublicId(String supplierPublicId);
+    List<Lot> findBySourcePoItemPublicId(String sourcePoItemPublicId);
+    List<Lot> findByItemPublicId(String itemPublicId);
 }

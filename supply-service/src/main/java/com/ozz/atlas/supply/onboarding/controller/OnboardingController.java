@@ -18,6 +18,7 @@ public class OnboardingController {
 
     private final OnboardingService onboardingService;
 
+    // 협력사 등록 요청
     @PostMapping
     public ResponseEntity<?> createSupplierRequest(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
@@ -28,30 +29,52 @@ public class OnboardingController {
                 .body(onboardingService.createSupplier(organizationPublicId, requestedByUserPublicId, request));
     }
 
+    // 협력사 등록 요청 상세 조회
     @GetMapping("/{requestPublicId}")
-    public ResponseEntity<?> getRequest(@PathVariable String requestPublicId) {
-        return ResponseEntity.ok(onboardingService.getRequest(requestPublicId));
+    public ResponseEntity<?> getRequest(
+            @PathVariable String requestPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader("X-User-Role") String userRole
+    ) {
+        return ResponseEntity.ok(
+                onboardingService.getRequest(requestPublicId, organizationPublicId, userRole)
+        );
     }
 
+    // 협력사 등록 요청 목록 조회
     @GetMapping
-    public ResponseEntity<?> getRequestList(@PageableDefault(size = 10) Pageable pageable) {
-        return ResponseEntity.ok(onboardingService.getRequestList(pageable));
+    public ResponseEntity<?> getRequestList(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader("X-User-Role") String userRole,
+            @PageableDefault(size = 10) Pageable pageable
+    ) {
+        return ResponseEntity.ok(
+                onboardingService.getRequestList(pageable, organizationPublicId, userRole)
+        );
     }
 
+    // 협력사 등록 요청 승인
     @PatchMapping("/{requestPublicId}/approve")
     public ResponseEntity<?> approveRequest(
             @PathVariable String requestPublicId,
-            @RequestHeader("X-User-Public-Id") String reviewedByUserPublicId
+            @RequestHeader("X-User-Public-Id") String reviewedByUserPublicId,
+            @RequestHeader("X-User-Role") String userRole
     ) {
-        return ResponseEntity.ok(onboardingService.approveRequest(requestPublicId, reviewedByUserPublicId));
+        return ResponseEntity.ok(
+                onboardingService.approveRequest(requestPublicId, reviewedByUserPublicId, userRole)
+        );
     }
 
+    // 협력사 등록 요청 반려
     @PatchMapping("/{requestPublicId}/reject")
     public ResponseEntity<?> rejectRequest(
             @PathVariable String requestPublicId,
             @RequestHeader("X-User-Public-Id") String reviewedByUserPublicId,
+            @RequestHeader("X-User-Role") String userRole,
             @Valid @RequestBody RejectOnboardingRequest request
     ) {
-        return ResponseEntity.ok(onboardingService.rejectRequest(requestPublicId, reviewedByUserPublicId, request));
+        return ResponseEntity.ok(
+                onboardingService.rejectRequest(requestPublicId, reviewedByUserPublicId, userRole, request)
+        );
     }
 }

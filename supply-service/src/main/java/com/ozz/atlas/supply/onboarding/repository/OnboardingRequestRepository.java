@@ -18,6 +18,13 @@ public interface OnboardingRequestRepository extends JpaRepository<OnboardingReq
             Pageable pageable
     );
 
+    Page<OnboardingRequest> findAllByRequestStatusInAndSupplier_OrganizationPublicIdAndSupplier_SupplierStatusNot(
+            Collection<OnboardingRequestStatus> requestStatuses,
+            String organizationPublicId,
+            SupplierStatus supplierStatus,
+            Pageable pageable
+    );
+
     Optional<OnboardingRequest> findByPublicIdAndRequestStatusInAndSupplier_SupplierStatusNot(
             String publicId,
             Collection<OnboardingRequestStatus> requestStatuses,

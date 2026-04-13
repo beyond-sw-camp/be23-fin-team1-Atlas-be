@@ -30,19 +30,19 @@ public class CertificateTypeController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CertificateTypeResponseDto> getCertificateType(@PathVariable Long id) {
+    public ResponseEntity<CertificateTypeResponseDto> getCertificateType(@PathVariable String id) {
         return ResponseEntity.ok(certificateTypeService.getCertificateType(id));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<CertificateTypeResponseDto> updateCertificateType(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @RequestBody UpdateCertificateTypeRequestDto request) {
         return ResponseEntity.ok(certificateTypeService.updateCertificateType(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCertificateType(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteCertificateType(@PathVariable String id) {
         certificateTypeService.deleteCertificateType(id);
         return ResponseEntity.noContent().build();
     }

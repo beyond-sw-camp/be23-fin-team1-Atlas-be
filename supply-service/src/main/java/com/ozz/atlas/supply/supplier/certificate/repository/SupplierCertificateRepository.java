@@ -11,6 +11,6 @@ import java.util.Optional;
 @Repository
 public interface SupplierCertificateRepository extends JpaRepository<SupplierCertificate, Long> {
     Optional<SupplierCertificate> findByPublicId(String publicId);
-    List<SupplierCertificate> findBySupplierId(Long supplierId);
+    List<SupplierCertificate> findBySupplierPublicId(String supplierPublicId);
     List<SupplierCertificate> findByExpiredAtBetween(LocalDate startDate, LocalDate endDate);
 }

@@ -17,17 +17,17 @@ public class SupplierCertificateController {
 
     private final SupplierCertificateService supplierCertificateService;
 
-    @PostMapping("/suppliers/{supplierId}/certificates")
+    @PostMapping("/suppliers/{supplierPublicId}/certificates")
     public ResponseEntity<SupplierCertificateResponseDto> createSupplierCertificate(
-            @PathVariable Long supplierId,
+            @PathVariable String supplierPublicId,
             @Valid @RequestBody CreateSupplierCertificateRequestDto request,
             @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(supplierCertificateService.createSupplierCertificate(supplierId, request, actorPublicId));
+        return ResponseEntity.status(HttpStatus.CREATED).body(supplierCertificateService.createSupplierCertificate(supplierPublicId, request, actorPublicId));
     }
 
-    @GetMapping("/suppliers/{supplierId}/certificates")
-    public ResponseEntity<List<SupplierCertificateResponseDto>> getCertificatesBySupplier(@PathVariable Long supplierId) {
-        return ResponseEntity.ok(supplierCertificateService.getCertificatesBySupplier(supplierId));
+    @GetMapping("/suppliers/{supplierPublicId}/certificates")
+    public ResponseEntity<List<SupplierCertificateResponseDto>> getCertificatesBySupplier(@PathVariable String supplierPublicId) {
+        return ResponseEntity.ok(supplierCertificateService.getCertificatesBySupplier(supplierPublicId));
     }
 
     @GetMapping("/certificates/{publicId}")

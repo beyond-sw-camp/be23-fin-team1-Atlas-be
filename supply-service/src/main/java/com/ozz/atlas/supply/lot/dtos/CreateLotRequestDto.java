@@ -17,14 +17,14 @@ public class CreateLotRequestDto {
     @NotBlank(message = "로트 번호는 필수입니다.")
     private String lotNumber;
 
-    @NotNull(message = "발주 상세 ID는 필수입니다.")
-    private Long sourcePoItemId;
+    @NotBlank(message = "원본 발주 상세 ID는 필수입니다.")
+    private String sourcePoItemPublicId;
 
-    @NotNull(message = "협력사 ID는 필수입니다.")
-    private Long supplierId;
+    @NotBlank(message = "협력사 ID는 필수입니다.")
+    private String supplierPublicId;
 
-    @NotNull(message = "품목 ID는 필수입니다.")
-    private Long itemId;
+    @NotBlank(message = "품목 ID는 필수입니다.")
+    private String itemPublicId;
 
     private LocalDateTime manufacturedAt;
     private LocalDateTime expiredAt;
@@ -36,5 +36,5 @@ public class CreateLotRequestDto {
     @NotBlank(message = "단위는 필수입니다.")
     private String unit;
 
-    private Long currentNodeId;
+    private String currentNodePublicId;
 }

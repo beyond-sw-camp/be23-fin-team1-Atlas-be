@@ -10,9 +10,8 @@ import java.time.LocalDate;
 @Getter
 @Builder
 public class SupplierCertificateResponseDto {
-    private Long id;
     private String publicId;
-    private Long supplierId;
+    private String supplierPublicId;
     private CertificateTypeResponseDto certificateType;
     private String certificateNo;
     private LocalDate issuedAt;
@@ -24,9 +23,8 @@ public class SupplierCertificateResponseDto {
 
     public static SupplierCertificateResponseDto from(SupplierCertificate entity) {
         return SupplierCertificateResponseDto.builder()
-                .id(entity.getId())
                 .publicId(entity.getPublicId())
-                .supplierId(entity.getSupplierId())
+                .supplierPublicId(entity.getSupplierPublicId())
                 .certificateType(CertificateTypeResponseDto.from(entity.getCertificateType()))
                 .certificateNo(entity.getCertificateNo())
                 .issuedAt(entity.getIssuedAt())
