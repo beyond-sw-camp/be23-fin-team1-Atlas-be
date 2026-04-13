@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.shipment.dtos;
 import com.ozz.atlas.supply.shipment.domain.CheckpointStatus;
 import com.ozz.atlas.supply.shipment.domain.CheckpointType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentCheckpoint;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -31,6 +32,7 @@ public class TrackShipmentRequestDto {
     private LocalDateTime plannedAt;
 
     private LocalDateTime actualAt;
+
     private String note;
 
     public ShipmentCheckpoint toEntity(Long shipmentId, Long nodeId) {
