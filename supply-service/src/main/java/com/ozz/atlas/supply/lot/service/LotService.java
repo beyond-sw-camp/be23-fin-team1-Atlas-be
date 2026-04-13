@@ -27,20 +27,20 @@ public class LotService {
 
     @Transactional
     public LotResponseDto createLot(CreateLotRequestDto request) {
-        if (!purchaseOrderItemRepository.existsById(request.getSourcePoItemId())) {
+        if (!purchaseOrderItemRepository.existsByPublicId(request.getSourcePoItemPublicId())) {
             throw new LotException(LotErrorCode.PO_ITEM_NOT_FOUND);
         }
 
         Lot lot = Lot.builder()
                 .lotNumber(request.getLotNumber())
-                .sourcePoItemId(request.getSourcePoItemId())
-                .supplierId(request.getSupplierId())
-                .itemId(request.getItemId())
+                .sourcePoItemPublicId(request.getSourcePoItemPublicId())
+                .supplierPublicId(request.getSupplierPublicId())
+                .itemPublicId(request.getItemPublicId())
                 .manufacturedAt(request.getManufacturedAt())
                 .expiredAt(request.getExpiredAt())
                 .qty(request.getQty())
                 .unit(request.getUnit())
-                .currentNodeId(request.getCurrentNodeId())
+                .currentNodePublicId(request.getCurrentNodePublicId())
                 .build();
 
         return LotResponseDto.from(lotRepository.save(lot));
@@ -63,7 +63,7 @@ public class LotService {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
-        lot.update(request.getQty(), request.getExpiredAt(), request.getCurrentNodeId());
+        lot.update(request.getQty(), request.getExpiredAt(), request.getCurrentNodePublicId());
         return LotResponseDto.from(lot);
     }
 

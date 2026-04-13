@@ -28,14 +28,14 @@ public class Lot extends BaseTimeEntity {
     @Column(nullable = false, length = 50)
     private String lotNumber;
 
-    @Column(nullable = false)
-    private Long sourcePoItemId;
+    @Column(nullable = false, length = 26)
+    private String sourcePoItemPublicId;
 
-    @Column(nullable = false)
-    private Long supplierId;
+    @Column(nullable = false, length = 26)
+    private String supplierPublicId;
 
-    @Column(nullable = false)
-    private Long itemId;
+    @Column(nullable = false, length = 26)
+    private String itemPublicId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -55,7 +55,8 @@ public class Lot extends BaseTimeEntity {
     @Column(length = 20)
     private QualityStatus qualityStatus;
 
-    private Long currentNodeId;
+    @Column(length = 26)
+    private String currentNodePublicId;
 
     @PrePersist
     public void prePersist() {
@@ -74,24 +75,24 @@ public class Lot extends BaseTimeEntity {
     }
 
     @Builder
-    public Lot(String lotNumber, Long sourcePoItemId, Long supplierId, Long itemId, LocalDateTime manufacturedAt, LocalDateTime expiredAt, BigDecimal qty, String unit, Long currentNodeId) {
+    public Lot(String lotNumber, String sourcePoItemPublicId, String supplierPublicId, String itemPublicId, LocalDateTime manufacturedAt, LocalDateTime expiredAt, BigDecimal qty, String unit, String currentNodePublicId) {
         this.lotNumber = lotNumber;
-        this.sourcePoItemId = sourcePoItemId;
-        this.supplierId = supplierId;
-        this.itemId = itemId;
+        this.sourcePoItemPublicId = sourcePoItemPublicId;
+        this.supplierPublicId = supplierPublicId;
+        this.itemPublicId = itemPublicId;
         this.manufacturedAt = manufacturedAt;
         this.expiredAt = expiredAt;
         this.qty = qty;
         this.unit = unit;
-        this.currentNodeId = currentNodeId;
+        this.currentNodePublicId = currentNodePublicId;
         this.lotStatus = LotStatus.CREATED;
         this.qualityStatus = QualityStatus.NORMAL;
     }
 
-    public void update(BigDecimal qty, LocalDateTime expiredAt, Long currentNodeId) {
+    public void update(BigDecimal qty, LocalDateTime expiredAt, String currentNodePublicId) {
         if (qty != null) this.qty = qty;
         if (expiredAt != null) this.expiredAt = expiredAt;
-        if (currentNodeId != null) this.currentNodeId = currentNodeId;
+        if (currentNodePublicId != null) this.currentNodePublicId = currentNodePublicId;
     }
 
     public void changeStatus(LotStatus status) {

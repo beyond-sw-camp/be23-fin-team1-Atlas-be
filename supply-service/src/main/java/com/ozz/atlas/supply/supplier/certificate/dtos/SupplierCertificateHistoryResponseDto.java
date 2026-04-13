@@ -10,8 +10,6 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class SupplierCertificateHistoryResponseDto {
-    private Long id;
-    private Long supplierCertificateId;
     private String actionType;
     private CertificateStatus beforeStatus;
     private CertificateStatus afterStatus;
@@ -21,8 +19,6 @@ public class SupplierCertificateHistoryResponseDto {
 
     public static SupplierCertificateHistoryResponseDto from(SupplierCertificateHistory entity) {
         return SupplierCertificateHistoryResponseDto.builder()
-                .id(entity.getId())
-                .supplierCertificateId(entity.getSupplierCertificateId())
                 .actionType(entity.getActionType())
                 .beforeStatus(entity.getBeforeStatus())
                 .afterStatus(entity.getAfterStatus())

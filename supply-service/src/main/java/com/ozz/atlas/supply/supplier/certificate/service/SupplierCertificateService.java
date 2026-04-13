@@ -28,16 +28,16 @@ public class SupplierCertificateService {
     private final SupplierCertificateHistoryRepository supplierCertificateHistoryRepository;
 
     @Transactional
-    public SupplierCertificateResponseDto createSupplierCertificate(Long supplierId, CreateSupplierCertificateRequestDto request, String actorPublicId) {
+    public SupplierCertificateResponseDto createSupplierCertificate(String supplierPublicId, CreateSupplierCertificateRequestDto request, String actorPublicId) {
         if (request.getIssuedAt() != null && request.getExpiredAt() != null && request.getExpiredAt().isBefore(request.getIssuedAt())) {
             throw new CertificateException(CertificateErrorCode.INVALID_CERTIFICATE_DATES);
         }
 
-        CertificateType type = certificateTypeRepository.findById(request.getCertificateTypeId())
+        CertificateType type = certificateTypeRepository.findByPublicId(request.getCertificateTypePublicId())
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.CERTIFICATE_TYPE_NOT_FOUND));
 
         SupplierCertificate cert = SupplierCertificate.builder()
-                .supplierId(supplierId)
+                .supplierPublicId(supplierPublicId)
                 .certificateType(type)
                 .certificateNo(request.getCertificateNo())
                 .issuedAt(request.getIssuedAt())
@@ -53,8 +53,8 @@ public class SupplierCertificateService {
         return SupplierCertificateResponseDto.from(savedCert);
     }
 
-    public List<SupplierCertificateResponseDto> getCertificatesBySupplier(Long supplierId) {
-        return supplierCertificateRepository.findBySupplierId(supplierId).stream()
+    public List<SupplierCertificateResponseDto> getCertificatesBySupplier(String supplierPublicId) {
+        return supplierCertificateRepository.findBySupplierPublicId(supplierPublicId).stream()
                 .map(SupplierCertificateResponseDto::from)
                 .collect(Collectors.toList());
     }

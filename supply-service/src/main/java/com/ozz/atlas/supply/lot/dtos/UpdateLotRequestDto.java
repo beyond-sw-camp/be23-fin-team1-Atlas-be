@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class UpdateLotRequestDto {
     @Positive(message = "수량은 0보다 커야 합니다.")
     private BigDecimal qty;
-    
+
     private LocalDateTime expiredAt;
-    private Long currentNodeId;
+    private String currentNodePublicId;
 }

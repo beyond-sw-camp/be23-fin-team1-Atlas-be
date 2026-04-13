@@ -50,7 +50,7 @@ public class SupplierSearchService {
 
         // 협력사의 인증서 목록 조회
         List<SupplierCertificate> certificates =
-                supplierCertificateRepository.findBySupplierId(supplier.getId());
+                supplierCertificateRepository.findBySupplierPublicId(supplier.getPublicId());
 
         // 협력사의 최신 ESG 평가 1건 조회
         SupplyEsgAssessment latestEsgAssessment =
