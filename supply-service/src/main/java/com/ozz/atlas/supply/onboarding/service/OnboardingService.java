@@ -5,19 +5,18 @@ import com.ozz.atlas.supply.onboarding.domain.OnboardingRequestStatus;
 import com.ozz.atlas.supply.onboarding.dtos.CreateOnboardingRequest;
 import com.ozz.atlas.supply.onboarding.dtos.OnboardingResponse;
 import com.ozz.atlas.supply.onboarding.dtos.RejectOnboardingRequest;
+import com.ozz.atlas.supply.onboarding.exception.OnboardingErrorCode;
+import com.ozz.atlas.supply.onboarding.exception.OnboardingException;
 import com.ozz.atlas.supply.onboarding.repository.OnboardingRequestRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
-import com.ozz.atlas.supply.supplier.search.repository.SupplierSearchRepository;
 import com.ozz.atlas.supply.supplier.search.service.SupplierSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -29,6 +28,8 @@ public class OnboardingService {
     private static final List<OnboardingRequestStatus> READABLE_REQUEST_STATUSES =
             List.of(OnboardingRequestStatus.REQUESTED, OnboardingRequestStatus.APPROVED, OnboardingRequestStatus.REJECTED);
 
+    private static final String ADMIN_ROLE = "ADMIN";
+
     private final OnboardingRequestRepository onboardingRequestRepository;
     private final SupplierRepository supplierRepository;
     private final SupplierSearchService supplierSearchService;
@@ -38,11 +39,13 @@ public class OnboardingService {
             String requestedByUserPublicId,
             CreateOnboardingRequest request
     ) {
+        validateCreateActor(organizationPublicId, requestedByUserPublicId);
+
         if (supplierRepository.existsBySupplierCodeAndSupplierStatusNot(
                 request.getSupplierCode(),
                 SupplierStatus.TERMINATED
         )) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 협력사 코드입니다.");
+            throw new OnboardingException(OnboardingErrorCode.SUPPLIER_CODE_ALREADY_EXISTS);
         }
 
         SupplySupplier supplier = SupplySupplier.create(
@@ -66,41 +69,61 @@ public class OnboardingService {
     }
 
     @Transactional(readOnly = true)
-    public OnboardingResponse getRequest(String requestPublicId) {
-        OnboardingRequest request = onboardingRequestRepository
-                .findByPublicIdAndRequestStatusInAndSupplier_SupplierStatusNot(
-                        requestPublicId,
-                        READABLE_REQUEST_STATUSES,
-                        SupplierStatus.TERMINATED
-                )
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 요청이 존재하지 않습니다."));
+    public OnboardingResponse getRequest(
+            String requestPublicId,
+            String organizationPublicId,
+            String userRole
+    ) {
+        validateReadActor(organizationPublicId, userRole);
+
+        OnboardingRequest request = getReadableRequest(requestPublicId);
+
+        if (!isAdmin(userRole) && !request.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new OnboardingException(OnboardingErrorCode.ACCESS_DENIED);
+        }
 
         return OnboardingResponse.fromEntity(request);
     }
 
     @Transactional(readOnly = true)
-    public Page<OnboardingResponse> getRequestList(Pageable pageable) {
+    public Page<OnboardingResponse> getRequestList(
+            Pageable pageable,
+            String organizationPublicId,
+            String userRole
+    ) {
+        validateReadActor(organizationPublicId, userRole);
+
+        if (isAdmin(userRole)) {
+            return onboardingRequestRepository
+                    .findAllByRequestStatusInAndSupplier_SupplierStatusNot(
+                            READABLE_REQUEST_STATUSES,
+                            SupplierStatus.TERMINATED,
+                            pageable
+                    )
+                    .map(OnboardingResponse::fromEntity);
+        }
+
         return onboardingRequestRepository
-                .findAllByRequestStatusInAndSupplier_SupplierStatusNot(
+                .findAllByRequestStatusInAndSupplier_OrganizationPublicIdAndSupplier_SupplierStatusNot(
                         READABLE_REQUEST_STATUSES,
+                        organizationPublicId,
                         SupplierStatus.TERMINATED,
                         pageable
                 )
                 .map(OnboardingResponse::fromEntity);
     }
 
-    public OnboardingResponse approveRequest(String requestPublicId, String reviewedByUserPublicId) {
-        OnboardingRequest request = onboardingRequestRepository
-                .findByPublicIdAndRequestStatusAndSupplier_SupplierStatusNot(
-                        requestPublicId,
-                        OnboardingRequestStatus.REQUESTED,
-                        SupplierStatus.TERMINATED
-                )
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "승인 가능한 요청이 존재하지 않습니다."));
+    public OnboardingResponse approveRequest(
+            String requestPublicId,
+            String reviewedByUserPublicId,
+            String userRole
+    ) {
+        validateAdminReviewer(reviewedByUserPublicId, userRole);
+
+        OnboardingRequest request = getPendingRequest(requestPublicId);
 
         request.approve(reviewedByUserPublicId);
         request.getSupplier().approve();
-        // 승인된 협력사는 ES 문서로 저장
         supplierSearchService.saveSupplierDocument(request.getSupplier());
 
         return OnboardingResponse.fromEntity(request);
@@ -109,19 +132,70 @@ public class OnboardingService {
     public OnboardingResponse rejectRequest(
             String requestPublicId,
             String reviewedByUserPublicId,
+            String userRole,
             RejectOnboardingRequest rejectRequest
     ) {
-        OnboardingRequest request = onboardingRequestRepository
-                .findByPublicIdAndRequestStatusAndSupplier_SupplierStatusNot(
-                        requestPublicId,
-                        OnboardingRequestStatus.REQUESTED,
-                        SupplierStatus.TERMINATED
-                )
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "반려 가능한 요청이 존재하지 않습니다."));
+        validateAdminReviewer(reviewedByUserPublicId, userRole);
+
+        OnboardingRequest request = getPendingRequest(requestPublicId);
 
         request.reject(reviewedByUserPublicId, rejectRequest.getRejectReason());
         request.getSupplier().reject();
 
         return OnboardingResponse.fromEntity(request);
+    }
+
+    private OnboardingRequest getReadableRequest(String requestPublicId) {
+        return onboardingRequestRepository
+                .findByPublicIdAndRequestStatusInAndSupplier_SupplierStatusNot(
+                        requestPublicId,
+                        READABLE_REQUEST_STATUSES,
+                        SupplierStatus.TERMINATED
+                )
+                .orElseThrow(() -> new OnboardingException(OnboardingErrorCode.REQUEST_NOT_FOUND));
+    }
+
+    private OnboardingRequest getPendingRequest(String requestPublicId) {
+        return onboardingRequestRepository
+                .findByPublicIdAndRequestStatusAndSupplier_SupplierStatusNot(
+                        requestPublicId,
+                        OnboardingRequestStatus.REQUESTED,
+                        SupplierStatus.TERMINATED
+                )
+                .orElseThrow(() -> new OnboardingException(OnboardingErrorCode.REVIEWABLE_REQUEST_NOT_FOUND));
+    }
+
+    private void validateCreateActor(String organizationPublicId, String requestedByUserPublicId) {
+        if (!hasText(organizationPublicId) || !hasText(requestedByUserPublicId)) {
+            throw new OnboardingException(OnboardingErrorCode.INVALID_ACTOR_HEADER);
+        }
+    }
+
+    private void validateReadActor(String organizationPublicId, String userRole) {
+        if (!hasText(userRole)) {
+            throw new OnboardingException(OnboardingErrorCode.INVALID_ACTOR_HEADER);
+        }
+
+        if (!isAdmin(userRole) && !hasText(organizationPublicId)) {
+            throw new OnboardingException(OnboardingErrorCode.INVALID_ACTOR_HEADER);
+        }
+    }
+
+    private void validateAdminReviewer(String reviewedByUserPublicId, String userRole) {
+        if (!hasText(reviewedByUserPublicId) || !hasText(userRole)) {
+            throw new OnboardingException(OnboardingErrorCode.INVALID_ACTOR_HEADER);
+        }
+
+        if (!isAdmin(userRole)) {
+            throw new OnboardingException(OnboardingErrorCode.ADMIN_ONLY_ACTION);
+        }
+    }
+
+    private boolean isAdmin(String userRole) {
+        return ADMIN_ROLE.equals(userRole);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
