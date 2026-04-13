@@ -10,6 +10,8 @@ import com.ozz.atlas.control.chat.dto.ChatMessageDto;
 import com.ozz.atlas.control.chat.event.ChatSystemEvent;
 import com.ozz.atlas.control.chat.repository.ChatMessageRepository;
 import com.ozz.atlas.control.chat.repository.ChatParticipantRepository;
+import com.ozz.atlas.control.chat.search.service.ChatMessageSearchService;
+import com.ozz.atlas.control.chat.search.service.ChatRoomSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
@@ -34,6 +36,9 @@ public class ChatMessageService {
     private final ChatPresenceService chatPresenceService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final SupplyServiceClient supplyServiceClient;
+    private final ChatMessageSearchService chatMessageSearchService;
+    private final ChatRoomSearchService chatRoomSearchService;
+
 
     /**
      * 메시지 저장 및 Redis 발행 (동적 토픽 및 참여자 알림 포함)
@@ -91,6 +96,12 @@ public class ChatMessageService {
             readUserIds.add(messageDto.getSenderUserPublicId()); // 발신자는 항상 읽은 것으로 처리 (시스템 메시지는 발신자 null 가능)
         }
         chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, readUserIds, chatMessage.getId());
+        // 메시지 저장 후 메시지 검색 인덱스를 갱신
+        chatMessageSearchService.saveChatMessageDocument(chatMessage);
+
+        // 채팅방 검색에서도 마지막 메시지가 보이도록 방 문서도 갱신
+        chatRoomSearchService.saveChatRoomDocument(chatRoom);
+
 
         // 4. DTO 업데이트
         messageDto.setPublicId(chatMessage.getPublicId());
@@ -144,6 +155,12 @@ public class ChatMessageService {
         }
 
         chatMessage.updateMessage(newBody);
+        // 수정된 본문을 메시지 검색 인덱스에 다시 반영
+        chatMessageSearchService.saveChatMessageDocument(chatMessage);
+
+        // 마지막 메시지가 수정된 경우 채팅방 검색 문서도 같이 갱신
+        chatRoomSearchService.saveChatRoomDocument(chatMessage.getChatRoom());
+
         ChatMessageDto dto = convertToDto(chatMessage);
         
         // 수정된 정보 브로드캐스트
@@ -163,6 +180,12 @@ public class ChatMessageService {
         }
         
         chatMessage.delete();
+        // 소프트 삭제 상태를 메시지 검색 인덱스에도 반영
+        chatMessageSearchService.saveChatMessageDocument(chatMessage);
+
+        // 마지막 메시지가 삭제된 경우 채팅방 검색 문서도 다시 저장
+        chatRoomSearchService.saveChatRoomDocument(chatMessage.getChatRoom());
+
         ChatMessageDto dto = convertToDto(chatMessage);
 
         // 삭제된 정보 브로드캐스트

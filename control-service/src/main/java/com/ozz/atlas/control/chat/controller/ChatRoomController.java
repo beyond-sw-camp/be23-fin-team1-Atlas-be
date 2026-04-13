@@ -5,6 +5,13 @@ import com.ozz.atlas.control.chat.service.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.ozz.atlas.control.chat.search.document.ChatParticipantDocument;
+import com.ozz.atlas.control.chat.search.service.ChatParticipantSearchService;
+import com.ozz.atlas.control.chat.search.service.ChatRoomSearchService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +22,10 @@ import java.util.Map;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
+    private final ChatParticipantSearchService chatParticipantSearchService;
+    private final ChatRoomSearchService chatRoomSearchService;
+
+
 
     /**
      * 채팅방 생성
@@ -33,8 +44,15 @@ public class ChatRoomController {
      * 사용자가 속한 채팅방 목록 조회
      */
     @GetMapping
-    public ResponseEntity<List<ChatRoomDto>> getRooms(@RequestParam String userPublicId) {
-        return ResponseEntity.ok(chatRoomService.findAllRoomsByUser(userPublicId));
+    public ResponseEntity<Page<ChatRoomDto>> getRooms(
+            @RequestParam String userPublicId,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        if (keyword == null || keyword.isBlank()) {
+            return ResponseEntity.ok(chatRoomService.findAllRoomsByUser(userPublicId, pageable));
+        }
+        return ResponseEntity.ok(chatRoomSearchService.search(userPublicId, keyword, pageable));
     }
 
     /**
@@ -77,4 +95,23 @@ public class ChatRoomController {
         chatRoomService.leaveRoom(roomPublicId, userPublicId);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 특정 채팅방 안의 참여자를 검색
+     * 이름, 로그인아이디, 이메일 기준으로 부분검색이 가능
+     * GET /api/control/chats/rooms/{roomPublicId}/participants/search?keyword=홍
+     * GET /api/control/chats/rooms/{roomPublicId}/participants/search?keyword=manager
+     */
+    @GetMapping("/{roomPublicId}/participants/search")
+    public ResponseEntity<Page<ChatParticipantDocument>> searchParticipants(
+            @PathVariable String roomPublicId,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        Page<ChatParticipantDocument> response =
+                chatParticipantSearchService.search(roomPublicId, keyword, pageable);
+
+        return ResponseEntity.ok(response);
+    }
+
 }

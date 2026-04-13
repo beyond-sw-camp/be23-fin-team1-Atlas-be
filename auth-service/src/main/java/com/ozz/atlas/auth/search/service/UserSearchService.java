@@ -41,12 +41,6 @@ public class UserSearchService {
         userSearchRepository.save(UserDocument.fromEntity(user));
     }
 
-    // Elasticsearch 에서 사용자 문서를 삭제
-    // 자금은 소프트딜리트라서 자주 쓰이진 않지만,필요할 때를 대비해 유지
-    public void deleteUserDocument(Long userId) {
-        userSearchRepository.deleteById(userId);
-    }
-
     public Page<UserListDto> search(Pageable pageable, UserSearchDto searchDto) {
         // mustQueries:
         // 실제 검색어 조건들

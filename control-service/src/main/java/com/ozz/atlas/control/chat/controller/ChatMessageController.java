@@ -3,6 +3,7 @@ package com.ozz.atlas.control.chat.controller;
 import com.ozz.atlas.control.chat.dto.ChatMessageDto;
 import com.ozz.atlas.control.chat.dto.ChatTypingDto;
 import com.ozz.atlas.control.chat.service.ChatMessageService;
+import com.ozz.atlas.control.chat.search.service.ChatMessageSearchService;
 import com.ozz.atlas.control.config.RedisConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,6 +22,8 @@ public class ChatMessageController {
 
     private final ChatMessageService chatMessageService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ChatMessageSearchService chatMessageSearchService;
+
 
     /**
      * WebSocket 메시지 발행 엔드포인트: /pub/chat.message.{roomPublicId}
@@ -78,6 +81,19 @@ public class ChatMessageController {
             @PageableDefault(size = 50) Pageable pageable) {
         return ResponseEntity.ok(chatMessageService.getMessageHistory(roomPublicId, cursor, pageable));
     }
+
+    /**
+     * 특정 채팅방 안의 메시지를 키워드로 검색한다.
+     * 메시지 본문, 참조 코드, 참조 제목 기준으로 부분검색이 가능하다.
+     */
+    @GetMapping("/api/control/chats/rooms/{roomPublicId}/messages/search")
+    public ResponseEntity<Page<ChatMessageDto>> searchMessages(
+            @PathVariable String roomPublicId,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(chatMessageSearchService.search(roomPublicId, keyword, pageable));
+    }
+
 
     @PutMapping("/api/control/chats/messages/{messagePublicId}")
     public ResponseEntity<ChatMessageDto> updateMessage(
