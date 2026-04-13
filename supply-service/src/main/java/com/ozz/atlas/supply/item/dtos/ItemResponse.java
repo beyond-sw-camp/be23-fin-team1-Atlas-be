@@ -16,6 +16,9 @@ import java.time.LocalDateTime;
 public class ItemResponse {
 
     private String publicId;
+    private String supplierPublicId;
+    private String supplierOrganizationPublicId;
+    private String supplierName;
     private String itemCategoryPublicId;
     private String categoryName;
     private String itemCode;
@@ -30,6 +33,9 @@ public class ItemResponse {
     public static ItemResponse fromEntity(SupplyItem item) {
         return ItemResponse.builder()
                 .publicId(item.getPublicId())
+                .supplierPublicId(item.getSupplier().getPublicId())
+                .supplierOrganizationPublicId(item.getSupplier().getOrganizationPublicId())
+                .supplierName(item.getSupplier().getSupplierName())
                 .itemCategoryPublicId(item.getItemCategory().getPublicId())
                 .categoryName(item.getItemCategory().getCategoryName())
                 .itemCode(item.getItemCode())
