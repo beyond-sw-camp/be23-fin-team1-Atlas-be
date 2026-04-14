@@ -50,6 +50,9 @@ public class Organization extends BaseTimeEntity {
     @Builder.Default
     private Status status = Status.ACTIVE;
 
+    @Column
+    private Integer tierLevel;
+
     public void updateOrganization(OrganizationUpdateDto dto) {
         if (dto.getOrganizationName() != null && !dto.getOrganizationName().isBlank()) {
             this.organizationName = dto.getOrganizationName();
@@ -71,6 +74,9 @@ public class Organization extends BaseTimeEntity {
         }
         if (dto.getContactPhone() != null && !dto.getContactPhone().isBlank()) {
             this.contactPhone = dto.getContactPhone();
+        }
+        if (dto.getTierLevel() != null) {
+            this.tierLevel = dto.getTierLevel();
         }
     }
 

@@ -2,6 +2,7 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.Organization;
+import com.ozz.atlas.auth.domain.OrganizationType;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
@@ -28,6 +29,7 @@ public class OrganizationService {
 
     // 조직 생성
     public String createOrganization(OrganizationCreateDto dto) {
+        validateTierLevel(dto.getOrganizationType(), dto.getTierLevel());
         Organization organization = organizationRepository.save(dto.toEntity());
         organizationSearchService.saveOrganizationDocument(organization);
         return organization.getPublicId();
@@ -76,6 +78,9 @@ public class OrganizationService {
             throw new IllegalArgumentException("수정 권한이 없습니다.");
         }
 
+        Integer nextTierLevel = dto.getTierLevel() != null ? dto.getTierLevel() : organization.getTierLevel();
+        validateTierLevel(organization.getOrganizationType(), nextTierLevel);
+
         organization.updateOrganization(dto);
         organizationSearchService.saveOrganizationDocument(organization);
 
@@ -120,4 +125,18 @@ public class OrganizationService {
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
     }
+
+    private void validateTierLevel(OrganizationType organizationType, Integer tierLevel) {
+        if (organizationType == OrganizationType.SUPPLIER) {
+            if (tierLevel == null || (tierLevel != 1 && tierLevel != 2 && tierLevel != 3)) {
+                throw new IllegalArgumentException("협력사는 tierLevel이 1, 2 또는 3이어야 합니다.");
+            }
+            return;
+        }
+
+        if (tierLevel != null) {
+            throw new IllegalArgumentException("협력사 외 조직은 tierLevel을 가질 수 없습니다.");
+        }
+    }
+
 }

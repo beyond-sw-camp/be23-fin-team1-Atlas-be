@@ -22,6 +22,7 @@ public class OrganizationListDto {
     private String contactEmail;
     private String contactPhone;
     private Status status;
+    private Integer tierLevel;
 
 
     public static OrganizationListDto fromEntity(Organization organization){
@@ -35,6 +36,7 @@ public class OrganizationListDto {
                 .contactEmail(organization.getContactEmail())
                 .contactPhone(organization.getContactPhone())
                 .status(organization.getStatus())
+                .tierLevel(organization.getTierLevel())
                 .build();
 
     }
