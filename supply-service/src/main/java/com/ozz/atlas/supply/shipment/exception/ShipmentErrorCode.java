@@ -14,7 +14,8 @@ public enum ShipmentErrorCode implements ErrorCode {
     INTERNAL_SERVER_ERROR(500, "SHIPMENT_999", "서버 내부 오류가 발생했습니다."),
     LOT_NOT_FOUND(404, "SHIPMENT_003", "LOT 정보를 찾을 수 없습니다."),
     INVALID_SHIPMENT_LOT_MAPPING_REQUEST(400, "SHIPMENT_004", "출하 LOT 매핑 요청이 올바르지 않습니다."),
-    DUPLICATE_SHIPMENT_LOT_MAPPING(409, "SHIPMENT_005", "이미 해당 출하에 매핑된 LOT입니다.");
+    DUPLICATE_SHIPMENT_LOT_MAPPING(409, "SHIPMENT_005", "이미 해당 출하에 매핑된 LOT입니다."),
+    INVALID_SHIPMENT_STATUS_TRANSITION(400, "SHIPMENT_006", "출하 상태 변경 요청이 올바르지 않습니다.");
 
     private final int status;
     private final String code;

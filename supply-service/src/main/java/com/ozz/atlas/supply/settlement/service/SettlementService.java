@@ -85,7 +85,11 @@ public class SettlementService {
     // 정산 승인 -> 연결된 모든 상세 항목 승인 상태로 전환
     @Transactional
     public SettlementResponseDto approveSettlement(Long settlementId, String approvedByUserPublicId, String userRole) {
-        validateAdminRole(userRole, SettlementErrorCode.FORBIDDEN_SETTLEMENT_APPROVAL);
+        validateAdminActor(
+                approvedByUserPublicId,
+                userRole,
+                SettlementErrorCode.FORBIDDEN_SETTLEMENT_APPROVAL
+        );
 
         Settlement settlement = getSettlementEntity(settlementId);
 
@@ -108,7 +112,11 @@ public class SettlementService {
     // 정산 취소 -> 연결된 모든 상세 항목 취소 상태로 전환
     @Transactional
     public SettlementResponseDto cancelSettlement(Long settlementId, String cancelledByUserPublicId, String userRole) {
-        validateAdminRole(userRole, SettlementErrorCode.FORBIDDEN_SETTLEMENT_CANCEL);
+        validateAdminActor(
+                cancelledByUserPublicId,
+                userRole,
+                SettlementErrorCode.FORBIDDEN_SETTLEMENT_CANCEL
+        );
 
         Settlement settlement = getSettlementEntity(settlementId);
 
@@ -235,11 +243,18 @@ public class SettlementService {
                 .build();
     }
 
-//    정산 승인/취소 권한 체크
-    private void validateAdminRole(String userRole, SettlementErrorCode errorCode) {
-        if (!"ADMIN".equals(userRole)) {
-            throw new SettlementException(errorCode);
+
+    private static final String ADMIN_ROLE = "ADMIN";
+
+    //    정산 승인/취소 권한 체크
+    private void validateAdminActor(String actorPublicId, String userRole, SettlementErrorCode forbiddenErrorCode) {
+        if (actorPublicId == null || actorPublicId.isBlank()
+                || userRole == null || userRole.isBlank()) {
+            throw new SettlementException(SettlementErrorCode.INVALID_ACTOR_HEADER);
+        }
+
+        if (!ADMIN_ROLE.equals(userRole)) {
+            throw new SettlementException(forbiddenErrorCode);
         }
     }
-
 }

@@ -28,16 +28,21 @@ public class LogisticsNodeService {
     }
 
 //    창고 생성
-    public LogisticsNodeResponseDto createLogisticsNode(CreateLogisticsNodeRequestDto dto){
-        if (logisticsNodeRepository.existsByNodeCode(dto.getNodeCode())){
+    public LogisticsNodeResponseDto createLogisticsNode(String organizationPublicId, CreateLogisticsNodeRequestDto dto) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        if (logisticsNodeRepository.existsByNodeCode(dto.getNodeCode())) {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.NODE_CODE_ALREADY_EXISTS);
         }
 
-        LogisticsNode savedNode = logisticsNodeRepository.save(dto.toEntity());
+        LogisticsNode savedNode = logisticsNodeRepository.save(dto.toEntity(organizationPublicId));
         return LogisticsNodeResponseDto.from(savedNode);
     }
 
-//    창고 목록 조회
+
+    //    창고 목록 조회
     @Transactional(readOnly = true)
     public Page<LogisticsNodeResponseDto> getLogisticsNodes(Pageable pageable){
         return logisticsNodeRepository.findAll(pageable).map(LogisticsNodeResponseDto::from);

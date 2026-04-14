@@ -26,13 +26,16 @@ public class LogisticsNodeController {
 
 //    창고 생성
     @PostMapping
-    public ResponseEntity<LogisticsNodeResponseDto> createLogisticsNode(@Valid @RequestBody CreateLogisticsNodeRequestDto dto){
-        LogisticsNodeResponseDto createNode = logisticsNodeService.createLogisticsNode(dto);
-
+    public ResponseEntity<LogisticsNodeResponseDto> createLogisticsNode(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @Valid @RequestBody CreateLogisticsNodeRequestDto dto
+    ) {
+        LogisticsNodeResponseDto createNode = logisticsNodeService.createLogisticsNode(organizationPublicId, dto);
         return ResponseEntity.created(URI.create("/api/supply/logistics-nodes/" + createNode.getPublicId())).body(createNode);
     }
 
-//    창고 목록 조회
+
+    //    창고 목록 조회
     @GetMapping
     public Page<LogisticsNodeResponseDto> getLogisticsNodes(
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC)Pageable pageable){

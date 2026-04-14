@@ -56,6 +56,11 @@ public class ShipmentService {
 //    생성 직후 내부 id를 shipment에 저장 후 READY상태 이력 + 출발지 위치 정보 기록
     @Transactional
     public ShipmentResponseDto createShipment(CreateShipmentRequestDto dto){
+
+        if (!dto.getDepartureEta().isBefore(dto.getArrivalEta())) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
+
         LogisticsNode originNode = logisticsNodeService.getLogisticsNodeEntityByPublicId(dto.getOriginNodePublicId());
         LogisticsNode destinationNode = logisticsNodeService.getLogisticsNodeEntityByPublicId(dto.getDestinationNodePublicId());
 
@@ -181,22 +186,28 @@ public class ShipmentService {
 //    service 내부 상태 반영
 //    PASSED 체크포인트만 shipment 현재 상태에 반영
 //    DEPARTURE : IN_TRANSIT / ARRIVAL, WAREHOUSE_IN : ARRIVED / 그외 : 현재 노드만 갱신
-    private  void applyCheckpointToShipment(Shipment shipment, TrackShipmentRequestDto dto, Long nodeId){
-        if (dto.getCheckpointStatus() != CheckpointStatus.PASSED){
+    private void applyCheckpointToShipment(Shipment shipment, TrackShipmentRequestDto dto, Long nodeId) {
+        if (dto.getCheckpointStatus() != CheckpointStatus.PASSED) {
             return;
         }
-        if (dto.getCheckpointType() == CheckpointType.DEPARTURE){
-            shipment.markInTransit(nodeId, dto.getActualAt());
-            return;
+
+        try {
+            if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
+                shipment.markInTransit(nodeId, dto.getActualAt());
+                return;
+            }
+            if (dto.getCheckpointType() == CheckpointType.ARRIVAL || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
+                shipment.markArrived(nodeId, dto.getActualAt());
+                return;
+            }
+            shipment.updateCurrentNode(nodeId);
+        } catch (IllegalStateException e) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
         }
-        if (dto.getCheckpointType() == CheckpointType.ARRIVAL || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN){
-            shipment.markArrived(nodeId, dto.getActualAt());
-            return;
-        }
-        shipment.updateCurrentNode(nodeId);
     }
 
-//    ETA
+
+    //    ETA
 //    shipment상태 + checkpoint 기준 ETA계산
     @Transactional(readOnly = true)
     public ShipmentEtaResponseDto getShipmentEta(String publicId){

@@ -18,9 +18,6 @@ import java.math.BigDecimal;
 public class CreateLogisticsNodeRequestDto {
 
     @NotBlank
-    private String organizationPublicId;
-
-    @NotBlank
     private String nodeCode;
 
     @NotBlank
@@ -33,9 +30,9 @@ public class CreateLogisticsNodeRequestDto {
     private BigDecimal latitude;
     private BigDecimal longitude;
 
-    public LogisticsNode toEntity(){
+    public LogisticsNode toEntity(String organizationPublicId){
         return LogisticsNode.builder()
-                .organizationPublicId(this.organizationPublicId)
+                .organizationPublicId(organizationPublicId)
                 .nodeCode(this.nodeCode)
                 .nodeName(this.nodeName)
                 .nodeType(this.nodeType)

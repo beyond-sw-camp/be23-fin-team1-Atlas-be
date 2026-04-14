@@ -45,8 +45,8 @@ public class SettlementController {
     @PatchMapping("/{settlementId}/approve")
     public ResponseEntity<SettlementResponseDto> approveSettlement(
             @PathVariable Long settlementId,
-            @RequestHeader("X-User-Public-Id") String approvedByUserPublicId,
-            @RequestHeader("X-User-Role") String userRole
+            @RequestHeader(value = "X-User-Public-Id", required = false) String approvedByUserPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
     ) {
         return ResponseEntity.ok(
                 settlementService.approveSettlement(settlementId, approvedByUserPublicId, userRole)
@@ -57,8 +57,8 @@ public class SettlementController {
     @PatchMapping("/{settlementId}/cancel")
     public ResponseEntity<SettlementResponseDto> cancelSettlement(
             @PathVariable Long settlementId,
-            @RequestHeader("X-User-Public-Id") String cancelledByUserPublicId,
-            @RequestHeader("X-User-Role") String userRole
+            @RequestHeader(value = "X-User-Public-Id", required = false) String cancelledByUserPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
     ) {
         return ResponseEntity.ok(settlementService.cancelSettlement(settlementId, cancelledByUserPublicId, userRole));
     }
