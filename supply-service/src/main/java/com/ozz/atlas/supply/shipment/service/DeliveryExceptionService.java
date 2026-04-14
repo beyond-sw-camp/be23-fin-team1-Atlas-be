@@ -9,6 +9,7 @@ import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
 import com.ozz.atlas.supply.shipment.repository.DeliveryExceptionRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
+import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,13 +21,15 @@ public class DeliveryExceptionService {
 
     private final DeliveryExceptionRepository deliveryExceptionRepository;
     private final ShipmentRepository shipmentRepository;
+    private final ShipmentSearchService shipmentSearchService;
 
     public DeliveryExceptionService(
             DeliveryExceptionRepository deliveryExceptionRepository,
-            ShipmentRepository shipmentRepository
+            ShipmentRepository shipmentRepository, ShipmentSearchService shipmentSearchService
     ) {
         this.deliveryExceptionRepository = deliveryExceptionRepository;
         this.shipmentRepository = shipmentRepository;
+        this.shipmentSearchService = shipmentSearchService;
     }
 
     public DeliveryExceptionResponseDto createDeliveryException(CreateDeliveryExceptionRequestDto dto) {
@@ -48,6 +51,8 @@ public class DeliveryExceptionService {
         if (dto.getExceptionType() == DeliveryExceptionType.DELAY) {
             shipment.markDelayed();
         }
+        shipmentSearchService.saveShipmentDocument(shipment);
+
 
         return DeliveryExceptionResponseDto.from(savedException, shipment.getPublicId());
     }

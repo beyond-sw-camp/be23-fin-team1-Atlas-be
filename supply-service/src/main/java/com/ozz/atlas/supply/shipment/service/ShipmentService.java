@@ -9,6 +9,7 @@ import com.ozz.atlas.supply.shipment.exception.ShipmentException;
 import com.ozz.atlas.supply.shipment.repository.ShipmentCheckpointRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentStatusHistoryRepository;
+import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,12 +29,15 @@ public class ShipmentService {
     private final ShipmentCheckpointRepository shipmentCheckpointRepository;
     private final ShipmentStatusHistoryRepository shipmentStatusHistoryRepository;
     private final LogisticsNodeService logisticsNodeService;
+    private final ShipmentSearchService shipmentSearchService;
 
-    public ShipmentService(ShipmentRepository shipmentRepository, ShipmentCheckpointRepository shipmentCheckpointRepository, ShipmentStatusHistoryRepository shipmentStatusHistoryRepository, LogisticsNodeService logisticsNodeService) {
+
+    public ShipmentService(ShipmentRepository shipmentRepository, ShipmentCheckpointRepository shipmentCheckpointRepository, ShipmentStatusHistoryRepository shipmentStatusHistoryRepository, LogisticsNodeService logisticsNodeService, ShipmentSearchService shipmentSearchService) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
         this.shipmentStatusHistoryRepository = shipmentStatusHistoryRepository;
         this.logisticsNodeService = logisticsNodeService;
+        this.shipmentSearchService = shipmentSearchService;
     }
 
 //    출하 생성
@@ -71,6 +75,9 @@ public class ShipmentService {
                 originNode.getLongitude(),
                 "SYSTEM"
         );
+        // 출하가 생성되면 검색 문서도 함께 저장
+        shipmentSearchService.saveShipmentDocument(savedShipment);
+
         return toShipmentResponseDto(savedShipment);
     }
 
@@ -124,6 +131,9 @@ public class ShipmentService {
         applyCheckpointToShipment(shipment, dto, node.getId());
 
         Shipment savedShipment = shipmentRepository.save(shipment);
+        // 현재 위치나 상태가 바뀌었으므로 검색 문서도 다시 저장
+        shipmentSearchService.saveShipmentDocument(savedShipment);
+
 
         if (dto.getCheckpointStatus() == CheckpointStatus.PASSED) {
             saveShipmentStatusHistory(
