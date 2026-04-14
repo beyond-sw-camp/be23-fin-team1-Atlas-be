@@ -18,34 +18,79 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @GetMapping("/{supplierPublicId}")
-    public ResponseEntity<?> getSupplier(@PathVariable String supplierPublicId) {
-        return ResponseEntity.ok(supplierService.getSupplier(supplierPublicId));
+    public ResponseEntity<?> getSupplier(
+            @PathVariable String supplierPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                supplierService.getSupplier(
+                        supplierPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
+
 
     @GetMapping
     public ResponseEntity<?> getSupplerList(
             SupplierSearchDto supplierSearchDto,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @PageableDefault(size = 10) Pageable pageable) {
-        return ResponseEntity.ok(supplierService.getSupplierList(pageable, supplierSearchDto));
+        return ResponseEntity.ok(
+                supplierService.getSupplierList(
+                        pageable,
+                        supplierSearchDto,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
     @GetMapping("/tier/{tierLevel}")
     public ResponseEntity<?> getSuppliersByTierLevel(
             @PathVariable Integer tierLevel,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @PageableDefault(size = 10) Pageable pageable
     ) {
-        return ResponseEntity.ok(supplierService.getSuppliersByTierLevel(tierLevel, pageable));
+        return ResponseEntity.ok(
+                supplierService.getSuppliersByTierLevel(
+                        tierLevel,
+                        pageable,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
     @PutMapping("/{supplierPublicId}")
-    public ResponseEntity<?> updateSupplier(@PathVariable String supplierPublicId, @Valid @RequestBody UpdateSupplierRequest request) {
-        return ResponseEntity.ok(supplierService.updateSupplier(supplierPublicId, request));
+    public ResponseEntity<?> updateSupplier(
+            @PathVariable String supplierPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @Valid @RequestBody UpdateSupplierRequest request
+    ) {
+        return ResponseEntity.ok(
+                supplierService.updateSupplier(supplierPublicId, organizationPublicId, request)
+        );
     }
 
     @DeleteMapping("/{supplierPublicId}/status")
-    public ResponseEntity<?> deleteSupplier(@PathVariable String supplierPublicId) {
-        supplierService.deleteSupplier(supplierPublicId);
+    public ResponseEntity<?> deleteSupplier(
+            @PathVariable String supplierPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId
+    ) {
+        supplierService.deleteSupplier(supplierPublicId, organizationPublicId);
         return ResponseEntity.noContent().build();
     }
+
 
 }

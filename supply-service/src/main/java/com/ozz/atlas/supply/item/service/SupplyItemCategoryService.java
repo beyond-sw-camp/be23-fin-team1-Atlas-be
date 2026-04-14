@@ -9,7 +9,6 @@ import com.ozz.atlas.supply.item.exception.ItemErrorCode;
 import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
-import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -25,30 +23,37 @@ import java.util.Objects;
 public class SupplyItemCategoryService {
 
     private static final String ADMIN_ROLE = "ADMIN";
+    private static final String BUYER_ORGANIZATION_TYPE = "BUYER";
 
     private final SupplyItemCategoryRepository supplyItemCategoryRepository;
     private final SupplyItemRepository supplyItemRepository;
-    private final SupplierRepository supplierRepository;
 
     public ItemCategoryResponse createCategory(
             String organizationPublicId,
-            String userPublicId,
+            String organizationType,
             String userRole,
             CreateItemCategoryRequest request
     ) {
-        validateUserHeader(userPublicId);
-        validateCategoryCreateAuthority(organizationPublicId, userRole);
+        validateCategoryWriteAuthority(organizationPublicId, organizationType, userRole);
 
-        SupplyItemCategory parentCategory = getParentCategory(request.getParentCategoryPublicId());
-        int categoryLevel = parentCategory != null ? parentCategory.getCategoryLevel() + 1 : 1;
+        SupplyItemCategory parentCategory = null;
+        int categoryLevel = 1;
+
+        if (request.getParentCategoryPublicId() != null && !request.getParentCategoryPublicId().isBlank()) {
+            parentCategory = supplyItemCategoryRepository.findByPublicIdAndStatus(
+                            request.getParentCategoryPublicId(),
+                            Status.ACTIVE
+                    )
+                    .orElseThrow(() -> new ItemException(ItemErrorCode.PARENT_CATEGORY_NOT_FOUND));
+            categoryLevel = parentCategory.getCategoryLevel() + 1;
+        }
 
         SupplyItemCategory category = SupplyItemCategory.create(
                 parentCategory,
                 request.getCategoryName(),
                 categoryLevel,
                 request.getSortOrder() != null ? request.getSortOrder() : 1,
-                organizationPublicId,
-                userPublicId
+                organizationPublicId
         );
 
         return ItemCategoryResponse.fromEntity(supplyItemCategoryRepository.save(category));
@@ -57,16 +62,16 @@ public class SupplyItemCategoryService {
     public ItemCategoryResponse updateCategory(
             String categoryPublicId,
             String organizationPublicId,
-            String userPublicId,
+            String organizationType,
             String userRole,
             UpdateItemCategoryRequest request
     ) {
-        validateUserHeader(userPublicId);
+        validateCategoryWriteAuthority(organizationPublicId, organizationType, userRole);
 
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(categoryPublicId, Status.ACTIVE)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
 
-        validateCategoryUpdateAuthority(category, organizationPublicId, userPublicId, userRole);
+        validateCategoryOwner(category, organizationPublicId, userRole);
 
         if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(category.getId(), Status.ACTIVE)) {
             throw new ItemException(ItemErrorCode.CATEGORY_CHILD_EXISTS);
@@ -101,12 +106,15 @@ public class SupplyItemCategoryService {
     public void deleteCategory(
             String categoryPublicId,
             String organizationPublicId,
+            String organizationType,
             String userRole
     ) {
+        validateCategoryWriteAuthority(organizationPublicId, organizationType, userRole);
+
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(categoryPublicId, Status.ACTIVE)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
 
-        validateCategoryDeleteAuthority(category, organizationPublicId, userRole);
+        validateCategoryOwner(category, organizationPublicId, userRole);
 
         if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(category.getId(), Status.ACTIVE)) {
             throw new ItemException(ItemErrorCode.CATEGORY_CHILD_EXISTS);
@@ -133,50 +141,23 @@ public class SupplyItemCategoryService {
                 .map(ItemCategoryResponse::fromEntity);
     }
 
-    private SupplyItemCategory getParentCategory(String parentCategoryPublicId) {
-        if (parentCategoryPublicId == null || parentCategoryPublicId.isBlank()) {
-            return null;
-        }
+    private void validateCategoryWriteAuthority(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateOrganizationHeader(organizationPublicId);
 
-        return supplyItemCategoryRepository.findByPublicIdAndStatus(parentCategoryPublicId, Status.ACTIVE)
-                .orElseThrow(() -> new ItemException(ItemErrorCode.PARENT_CATEGORY_NOT_FOUND));
-    }
-
-    private void validateCategoryCreateAuthority(String organizationPublicId, String userRole) {
         if (isAdmin(userRole)) {
             return;
         }
 
-        validateOrganizationHeader(organizationPublicId);
-
-        if (!isMainCompanyOrganization(organizationPublicId)) {
+        if (!BUYER_ORGANIZATION_TYPE.equals(organizationType)) {
             throw new ItemException(ItemErrorCode.CATEGORY_WRITE_FORBIDDEN);
         }
     }
 
-    private void validateCategoryUpdateAuthority(
-            SupplyItemCategory category,
-            String organizationPublicId,
-            String userPublicId,
-            String userRole
-    ) {
-        if (isAdmin(userRole)) {
-            return;
-        }
-
-        validateOrganizationHeader(organizationPublicId);
-
-        if (!isMainCompanyOrganization(organizationPublicId)) {
-            throw new ItemException(ItemErrorCode.ACCESS_DENIED);
-        }
-
-        if (!Objects.equals(category.getCreatedByOrganizationPublicId(), organizationPublicId)
-                || !Objects.equals(category.getCreatedByUserPublicId(), userPublicId)) {
-            throw new ItemException(ItemErrorCode.CATEGORY_UPDATE_FORBIDDEN);
-        }
-    }
-
-    private void validateCategoryDeleteAuthority(
+    private void validateCategoryOwner(
             SupplyItemCategory category,
             String organizationPublicId,
             String userRole
@@ -185,19 +166,9 @@ public class SupplyItemCategoryService {
             return;
         }
 
-        validateOrganizationHeader(organizationPublicId);
-
-        if (!isMainCompanyOrganization(organizationPublicId)) {
-            throw new ItemException(ItemErrorCode.CATEGORY_WRITE_FORBIDDEN);
+        if (!category.getCreatedByOrganizationPublicId().equals(organizationPublicId)) {
+            throw new ItemException(ItemErrorCode.CATEGORY_OWNER_FORBIDDEN);
         }
-
-        if (!Objects.equals(category.getCreatedByOrganizationPublicId(), organizationPublicId)) {
-            throw new ItemException(ItemErrorCode.ACCESS_DENIED);
-        }
-    }
-
-    private boolean isMainCompanyOrganization(String organizationPublicId) {
-        return !supplierRepository.existsByOrganizationPublicId(organizationPublicId);
     }
 
     private boolean isAdmin(String userRole) {
@@ -206,12 +177,6 @@ public class SupplyItemCategoryService {
 
     private void validateOrganizationHeader(String organizationPublicId) {
         if (organizationPublicId == null || organizationPublicId.isBlank()) {
-            throw new ItemException(ItemErrorCode.INVALID_ACTOR_HEADER);
-        }
-    }
-
-    private void validateUserHeader(String userPublicId) {
-        if (userPublicId == null || userPublicId.isBlank()) {
             throw new ItemException(ItemErrorCode.INVALID_ACTOR_HEADER);
         }
     }

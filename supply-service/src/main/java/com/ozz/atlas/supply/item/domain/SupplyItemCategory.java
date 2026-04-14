@@ -37,11 +37,8 @@ public class SupplyItemCategory extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer sortOrder;
 
-    @Column(length = 26, updatable = false)
-    private String createdByOrganizationPublicId;
-
     @Column(nullable = false, length = 26, updatable = false)
-    private String createdByUserPublicId;
+    private String createdByOrganizationPublicId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -63,8 +60,7 @@ public class SupplyItemCategory extends BaseTimeEntity {
             String categoryName,
             Integer categoryLevel,
             Integer sortOrder,
-            String createdByOrganizationPublicId,
-            String createdByUserPublicId
+            String createdByOrganizationPublicId
     ) {
         return SupplyItemCategory.builder()
                 .parentCategory(parentCategory)
@@ -72,7 +68,6 @@ public class SupplyItemCategory extends BaseTimeEntity {
                 .categoryLevel(categoryLevel)
                 .sortOrder(sortOrder)
                 .createdByOrganizationPublicId(createdByOrganizationPublicId)
-                .createdByUserPublicId(createdByUserPublicId)
                 .status(Status.ACTIVE)
                 .build();
     }
