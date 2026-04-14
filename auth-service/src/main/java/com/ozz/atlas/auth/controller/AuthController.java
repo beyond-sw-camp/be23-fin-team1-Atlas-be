@@ -53,6 +53,7 @@ public class AuthController {
                 user.getUserId(),
                 user.getPublicId(),
                 user.getOrganization().getPublicId(),
+                user.getOrganization().getOrganizationType().name(),
                 user.getUserRole().name()
         );
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());

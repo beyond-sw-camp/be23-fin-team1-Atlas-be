@@ -67,6 +67,7 @@ public class AuthService {
                 user.getUserId(),
                 user.getPublicId(),
                 user.getOrganization().getPublicId(),
+                user.getOrganization().getOrganizationType().name(),
                 user.getUserRole().name()
         );
 
