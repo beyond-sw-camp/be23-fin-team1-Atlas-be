@@ -21,7 +21,6 @@ public class ItemCategoryResponse {
     private Integer categoryLevel;
     private Integer sortOrder;
     private String createdByOrganizationPublicId;
-    private String createdByUserPublicId;
     private Status status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -36,7 +35,6 @@ public class ItemCategoryResponse {
                 .categoryLevel(category.getCategoryLevel())
                 .sortOrder(category.getSortOrder())
                 .createdByOrganizationPublicId(category.getCreatedByOrganizationPublicId())
-                .createdByUserPublicId(category.getCreatedByUserPublicId())
                 .status(category.getStatus())
                 .createdAt(category.getCreatedAt())
                 .updatedAt(category.getUpdatedAt())
