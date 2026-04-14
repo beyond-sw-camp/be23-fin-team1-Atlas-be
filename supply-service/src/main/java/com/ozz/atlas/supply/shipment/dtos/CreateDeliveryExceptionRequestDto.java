@@ -2,7 +2,6 @@ package com.ozz.atlas.supply.shipment.dtos;
 
 import com.ozz.atlas.supply.shipment.domain.DeliveryExceptionSeverity;
 import com.ozz.atlas.supply.shipment.domain.DeliveryExceptionType;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

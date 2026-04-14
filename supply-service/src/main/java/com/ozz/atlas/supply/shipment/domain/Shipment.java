@@ -60,20 +60,37 @@ public class Shipment extends BaseTimeEntity {
     private boolean temperatureRequired;
 
 //    출발 체크포인트를 통과했을 때 호출
-    public void markInTransit(Long currentNodeId, LocalDateTime actualDepartedAt){
+    public void markInTransit(Long currentNodeId, LocalDateTime actualDepartedAt) {
+        if (this.status == ShipmentStatus.ARRIVED || this.status == ShipmentStatus.CANCELLED) {
+            throw new IllegalStateException("이미 종료된 출하입니다.");
+        }
+        if (this.actualDepartedAt != null) {
+            throw new IllegalStateException("이미 출발 처리된 출하입니다.");
+        }
+
         this.currentNodeId = currentNodeId;
         this.actualDepartedAt = actualDepartedAt;
         this.status = ShipmentStatus.IN_TRANSIT;
     }
 
-//    도착 체크포인트를 통과했을 때 호출
-    public void markArrived(Long currentNodeId, LocalDateTime actualArrivedAt){
+    //    도착 체크포인트를 통과했을 때 호출
+    public void markArrived(Long currentNodeId, LocalDateTime actualArrivedAt) {
+        if (this.status == ShipmentStatus.ARRIVED || this.status == ShipmentStatus.CANCELLED) {
+            throw new IllegalStateException("이미 종료된 출하입니다.");
+        }
+        if (this.actualDepartedAt == null) {
+            throw new IllegalStateException("출발 처리되지 않은 출하는 도착 처리할 수 없습니다.");
+        }
+        if (this.actualArrivedAt != null) {
+            throw new IllegalStateException("이미 도착 처리된 출하입니다.");
+        }
+
         this.currentNodeId = currentNodeId;
         this.actualArrivedAt = actualArrivedAt;
         this.status = ShipmentStatus.ARRIVED;
     }
 
-//    상태X/위치만 바꿀 때
+    //    상태X/위치만 바꿀 때
     public void updateCurrentNode(Long currentNodeId){
         this.currentNodeId = currentNodeId;
     }
