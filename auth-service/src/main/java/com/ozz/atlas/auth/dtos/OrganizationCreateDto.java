@@ -34,6 +34,8 @@ public class OrganizationCreateDto {
     @NotBlank(message = "연락처는 비어있으면 안 됩니다.")
     private String contactPhone;
 
+    private Integer tierLevel;
+
     public Organization toEntity() {
         return Organization.builder()
                 .organizationType(this.organizationType)
@@ -44,6 +46,7 @@ public class OrganizationCreateDto {
                 .contactLastName(this.contactLastName)
                 .contactEmail(this.contactEmail)
                 .contactPhone(this.contactPhone)
+                .tierLevel(this.tierLevel)
                 .build();
     }
 }

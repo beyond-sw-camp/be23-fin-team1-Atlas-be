@@ -24,4 +24,6 @@ public class OrganizationUpdateDto {
 
     private String contactPhone;
 
+    private Integer tierLevel;
+
 }
