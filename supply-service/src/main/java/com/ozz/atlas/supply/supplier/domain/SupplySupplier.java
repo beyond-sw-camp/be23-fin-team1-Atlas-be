@@ -28,8 +28,9 @@ public class SupplySupplier extends BaseTimeEntity {
     @Column(nullable = false, length = 100)
     private String supplierName;
 
-    @Column(nullable = false)
-    private Integer tierLevel;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private SupplierTierLevel tierLevel;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -54,7 +55,7 @@ public class SupplySupplier extends BaseTimeEntity {
             String organizationPublicId,
             String supplierCode,
             String supplierName,
-            Integer tierLevel,
+            SupplierTierLevel tierLevel,
             String primaryContactName,
             String primaryContactEmail,
             String primaryContactPhone
@@ -75,7 +76,7 @@ public class SupplySupplier extends BaseTimeEntity {
     public void update(
             String supplierCode,
             String supplierName,
-            Integer tierLevel,
+            SupplierTierLevel tierLevel,
             String primaryContactName,
             String primaryContactEmail,
             String primaryContactPhone
@@ -101,7 +102,4 @@ public class SupplySupplier extends BaseTimeEntity {
     public void softDelete() {
         this.supplierStatus = SupplierStatus.TERMINATED;
     }
-
-
-
 }

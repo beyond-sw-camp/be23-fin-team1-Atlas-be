@@ -58,7 +58,6 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
     @Column(name = "created_by_user_public_id", length = 26)
     private String createdByUserPublicId;
 
-    // 하위발주 상세를 헤더에 묶어서 cascade 저장하려면 연관관계 컬렉션이 있어야 한다.
     @OneToMany(mappedBy = "subPurchaseOrder", cascade = CascadeType.ALL)
     @Builder.Default
     private List<SupplySubPurchaseOrderItem> subPurchaseOrderItems = new ArrayList<>();
@@ -88,7 +87,6 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
         return subPurchaseOrder;
     }
 
-    // 하위발주 헤더와 하위발주 상세의 양방향 연관을 같이 맞춘다.
     public void addItem(SupplySubPurchaseOrderItem item) {
         item.assignSubPurchaseOrder(this);
         this.subPurchaseOrderItems.add(item);
@@ -111,15 +109,16 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
                 .toList();
     }
 
-    // sub_po_item에 public_id가 없으므로 부모 발주 상세 publicId를 라인 식별 키로 사용한다.
-    public SupplySubPurchaseOrderItem findActiveItemByParentPoItemPublicId(String parentPoItemPublicId) {
+    public SupplySubPurchaseOrderItem findActiveItem(String parentPoItemPublicId, String itemPublicId) {
         return getActiveItems().stream()
-                .filter(item -> item.getParentPurchaseOrderItem().getPublicId().equals(parentPoItemPublicId))
+                .filter(item ->
+                        item.getParentPurchaseOrderItem().getPublicId().equals(parentPoItemPublicId)
+                                && item.getItem().getPublicId().equals(itemPublicId)
+                )
                 .findFirst()
                 .orElse(null);
     }
 
-    // 상세 확정 결과를 헤더 상태에 반영한다.
     public void refreshConfirmationStatus() {
         List<SupplySubPurchaseOrderItem> activeItems = getActiveItems();
 

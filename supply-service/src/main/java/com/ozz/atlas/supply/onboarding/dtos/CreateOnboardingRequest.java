@@ -1,6 +1,10 @@
 package com.ozz.atlas.supply.onboarding.dtos;
 
-import jakarta.validation.constraints.*;
+import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,8 +25,7 @@ public class CreateOnboardingRequest {
     private String supplierName;
 
     @NotNull
-    @Min(1)
-    private Integer tierLevel;
+    private SupplierTierLevel tierLevel;
 
     @Size(max = 50)
     private String primaryContactName;

@@ -1,5 +1,7 @@
 package com.ozz.atlas.supply.supplier.controller;
 
+import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
+import com.ozz.atlas.supply.supplier.dtos.CreateSupplierRequest;
 import com.ozz.atlas.supply.supplier.dtos.UpdateSupplierRequest;
 import com.ozz.atlas.supply.supplier.search.dtos.SupplierSearchDto;
 import com.ozz.atlas.supply.supplier.service.SupplierService;
@@ -7,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +19,15 @@ import org.springframework.web.bind.annotation.*;
 public class SupplierController {
 
     private final SupplierService supplierService;
+
+    @PostMapping
+    public ResponseEntity<?> createSupplier(
+            @RequestHeader("X-User-Role") String userRole,
+            @Valid @RequestBody CreateSupplierRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(supplierService.createSupplier(userRole, request));
+    }
 
     @GetMapping("/{supplierPublicId}")
     public ResponseEntity<?> getSupplier(
@@ -55,7 +67,7 @@ public class SupplierController {
 
     @GetMapping("/tier/{tierLevel}")
     public ResponseEntity<?> getSuppliersByTierLevel(
-            @PathVariable Integer tierLevel,
+            @PathVariable SupplierTierLevel tierLevel,
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,

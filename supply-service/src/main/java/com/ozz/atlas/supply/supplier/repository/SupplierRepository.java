@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.supplier.repository;
 
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
+import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,11 +24,12 @@ public interface SupplierRepository extends JpaRepository<SupplySupplier, Long> 
     );
 
     Page<SupplySupplier> findAllByTierLevelAndApprovalStatusAndSupplierStatusNot(
-            Integer tierLevel,
+            SupplierTierLevel tierLevel,
             ApprovalStatus approvalStatus,
             SupplierStatus supplierStatus,
             Pageable pageable
     );
+
 
     Optional<SupplySupplier> findByPublicIdAndSupplierStatusNot(
             String publicId,

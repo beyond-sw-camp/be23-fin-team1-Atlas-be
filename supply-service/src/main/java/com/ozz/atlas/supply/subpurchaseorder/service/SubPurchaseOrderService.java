@@ -1,5 +1,8 @@
 package com.ozz.atlas.supply.subpurchaseorder.service;
 
+import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
@@ -41,24 +44,29 @@ import java.util.stream.Collectors;
 @Transactional
 public class SubPurchaseOrderService {
 
-    private static final List<SubPurchaseOrderLineStatus> ACTIVE_LINE_STATUSES =
-            List.of(
-                    SubPurchaseOrderLineStatus.OPEN,
-                    SubPurchaseOrderLineStatus.PARTIALLY_CONFIRMED,
-                    SubPurchaseOrderLineStatus.CONFIRMED
-            );
+    private static final String ADMIN_ROLE = "ADMIN";
+    private static final String SUPPLIER_ORGANIZATION_TYPE = "SUPPLIER";
+
+    private static final List<SubPurchaseOrderLineStatus> ACTIVE_LINE_STATUSES = List.of(
+            SubPurchaseOrderLineStatus.OPEN,
+            SubPurchaseOrderLineStatus.PARTIALLY_CONFIRMED,
+            SubPurchaseOrderLineStatus.CONFIRMED
+    );
 
     private final SubPurchaseOrderRepository subPurchaseOrderRepository;
     private final SubPurchaseOrderItemRepository subPurchaseOrderItemRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final SupplierRepository supplierRepository;
     private final SupplierItemCapabilityRepository capabilityRepository;
+    private final SupplyItemRepository supplyItemRepository;
 
     public SubPurchaseOrderResponse createSubPurchaseOrder(
             String issuerOrganizationPublicId,
+            String organizationType,
             String createdByUserPublicId,
             CreateSubPurchaseOrderRequest request
     ) {
+        validateSupplierActor(issuerOrganizationPublicId, organizationType);
         validateCreateRequest(request);
 
         SupplyPurchaseOrder parentPurchaseOrder = purchaseOrderRepository
@@ -73,7 +81,6 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_STATUS_NOT_ALLOWED);
         }
 
-        // 부모 발주 엔티티를 이미 찾았으므로 동일 문서 번호 중복 검사는 내부 PK 기준으로 처리한다.
         if (subPurchaseOrderRepository.existsBySubPoNumberAndParentPurchaseOrder_IdAndSubPoStatusNot(
                 request.getSubPoNumber(),
                 parentPurchaseOrder.getId(),
@@ -82,6 +89,8 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_NUMBER_ALREADY_EXISTS);
         }
 
+        SupplySupplier issuerSupplier = parentPurchaseOrder.getSupplier();
+
         SupplySupplier targetSupplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
                         request.getSupplierPublicId(),
                         ApprovalStatus.APPROVED,
@@ -89,12 +98,12 @@ public class SubPurchaseOrderService {
                 )
                 .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.TARGET_SUPPLIER_NOT_FOUND));
 
-        // 둘 다 supply-service 내부 엔티티이므로 동일 협력사 비교는 id가 맞다.
-        if (targetSupplier.getId().equals(parentPurchaseOrder.getSupplier().getId())) {
+        if (targetSupplier.getId().equals(issuerSupplier.getId())) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_SAME_SUPPLIER_NOT_ALLOWED);
         }
 
-        // 요청은 parentPoItemPublicId를 주므로 여기까지는 외부 식별자 해석 단계다.
+        validateTargetSupplierTier(issuerSupplier, targetSupplier);
+
         Map<String, SupplyPurchaseOrderItem> parentItems = parentPurchaseOrder.getActiveItems().stream()
                 .collect(Collectors.toMap(SupplyPurchaseOrderItem::getPublicId, Function.identity()));
 
@@ -121,14 +130,28 @@ public class SubPurchaseOrderService {
 
     @Transactional(readOnly = true)
     public Page<SubPurchaseOrderResponse> getSubPurchaseOrdersByParentPo(
-            String issuerOrganizationPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
             String parentPoPublicId,
             Pageable pageable
     ) {
+        if (isAdmin(userRole)) {
+            return subPurchaseOrderRepository
+                    .findAllByParentPurchaseOrder_PublicIdAndSubPoStatusNot(
+                            parentPoPublicId,
+                            SubPoStatus.DELETED,
+                            pageable
+                    )
+                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+        }
+
+        validateSupplierActor(organizationPublicId, organizationType);
+
         return subPurchaseOrderRepository
                 .findAllByParentPurchaseOrder_PublicIdAndParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
                         parentPoPublicId,
-                        issuerOrganizationPublicId,
+                        organizationPublicId,
                         SubPoStatus.DELETED,
                         pageable
                 )
@@ -137,12 +160,22 @@ public class SubPurchaseOrderService {
 
     @Transactional(readOnly = true)
     public Page<SubPurchaseOrderResponse> getReceivedSubPurchaseOrders(
-            String receiverOrganizationPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
             Pageable pageable
     ) {
+        if (isAdmin(userRole)) {
+            return subPurchaseOrderRepository
+                    .findAllBySubPoStatusNot(SubPoStatus.DELETED, pageable)
+                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+        }
+
+        validateSupplierActor(organizationPublicId, organizationType);
+
         return subPurchaseOrderRepository
                 .findAllBySupplier_OrganizationPublicIdAndSubPoStatusNot(
-                        receiverOrganizationPublicId,
+                        organizationPublicId,
                         SubPoStatus.DELETED,
                         pageable
                 )
@@ -152,8 +185,20 @@ public class SubPurchaseOrderService {
     @Transactional(readOnly = true)
     public SubPurchaseOrderResponse getSubPurchaseOrder(
             String organizationPublicId,
+            String organizationType,
+            String userRole,
             String subPoPublicId
     ) {
+        if (isAdmin(userRole)) {
+            SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository
+                    .findByPublicIdAndSubPoStatusNot(subPoPublicId, SubPoStatus.DELETED)
+                    .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_NOT_FOUND));
+
+            return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
+        }
+
+        validateSupplierActor(organizationPublicId, organizationType);
+
         SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository
                 .findByPublicIdAndParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
                         subPoPublicId,
@@ -175,8 +220,11 @@ public class SubPurchaseOrderService {
 
     public SubPurchaseOrderResponse acceptSubPurchaseOrder(
             String receiverOrganizationPublicId,
+            String organizationType,
             String subPoPublicId
     ) {
+        validateSupplierActor(receiverOrganizationPublicId, organizationType);
+
         SupplySubPurchaseOrder subPurchaseOrder = getReceiverOwnedSubPurchaseOrder(receiverOrganizationPublicId, subPoPublicId);
         validateReceiverActionable(subPurchaseOrder);
 
@@ -186,8 +234,11 @@ public class SubPurchaseOrderService {
 
     public SubPurchaseOrderResponse rejectSubPurchaseOrder(
             String receiverOrganizationPublicId,
+            String organizationType,
             String subPoPublicId
     ) {
+        validateSupplierActor(receiverOrganizationPublicId, organizationType);
+
         SupplySubPurchaseOrder subPurchaseOrder = getReceiverOwnedSubPurchaseOrder(receiverOrganizationPublicId, subPoPublicId);
         validateReceiverActionable(subPurchaseOrder);
 
@@ -197,15 +248,18 @@ public class SubPurchaseOrderService {
 
     public SubPurchaseOrderResponse confirmSubPurchaseOrderItem(
             String receiverOrganizationPublicId,
+            String organizationType,
             String subPoPublicId,
-            String poItemPublicId,
+            String parentPoItemPublicId,
+            String itemPublicId,
             ConfirmSubPurchaseOrderItemRequest request
     ) {
+        validateSupplierActor(receiverOrganizationPublicId, organizationType);
+
         SupplySubPurchaseOrder subPurchaseOrder = getReceiverOwnedSubPurchaseOrder(receiverOrganizationPublicId, subPoPublicId);
         validateReceiverConfirmable(subPurchaseOrder);
 
-        // 외부 path는 parentPoItemPublicId로 받지만, 상세 라인을 찾은 뒤부터는 내부 PK 기반 검증으로 간다.
-        SupplySubPurchaseOrderItem item = subPurchaseOrder.findActiveItemByParentPoItemPublicId(poItemPublicId);
+        SupplySubPurchaseOrderItem item = subPurchaseOrder.findActiveItem(parentPoItemPublicId, itemPublicId);
         if (item == null) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ITEM_NOT_FOUND);
         }
@@ -222,7 +276,7 @@ public class SubPurchaseOrderService {
 
     private void validateCreateRequest(CreateSubPurchaseOrderRequest request) {
         long distinctCount = request.getItems().stream()
-                .map(CreateSubPurchaseOrderItemRequest::getParentPoItemPublicId)
+                .map(item -> item.getParentPoItemPublicId() + "::" + item.getItemPublicId())
                 .distinct()
                 .count();
 
@@ -246,18 +300,10 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_STATUS_NOT_ALLOWED);
         }
 
-        BigDecimal alreadyAllocatedQty =
-                subPurchaseOrderItemRepository.sumOrderedQtyByParentPurchaseOrderItemIdAndLineStatusIn(
-                        parentItem.getPoItemId(),
-                        ACTIVE_LINE_STATUSES
-                );
+        SupplyItem subItem = getActiveItem(request.getItemPublicId());
+        validateItemBelongsToSupplier(subItem, targetSupplier);
 
         BigDecimal requestedQty = request.getOrderedQty();
-        BigDecimal baseQty = parentItem.getSubOrderBaseQty();
-
-        if (alreadyAllocatedQty.add(requestedQty).compareTo(baseQty) > 0) {
-            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_QTY_EXCEEDED);
-        }
 
         LocalDate requiredDate = request.getRequiredDate() != null
                 ? request.getRequiredDate()
@@ -267,10 +313,11 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.INVALID_INPUT_VALUE);
         }
 
-        validateSupplierCapability(targetSupplier.getId(), parentItem, requestedQty, requiredDate);
+        validateSupplierCapability(targetSupplier.getId(), subItem, requestedQty, requiredDate);
 
         return SupplySubPurchaseOrderItem.create(
                 parentItem,
+                subItem,
                 requestedQty,
                 requiredDate
         );
@@ -278,11 +325,11 @@ public class SubPurchaseOrderService {
 
     private void validateSupplierCapability(
             Long targetSupplierId,
-            SupplyPurchaseOrderItem parentItem,
+            SupplyItem subItem,
             BigDecimal requestedQty,
             LocalDate requiredDate
     ) {
-        Long itemId = parentItem.getItem().getId();
+        Long itemId = subItem.getId();
 
         SupplySupplierItemCapability capability = capabilityRepository
                 .findBySupplier_IdAndItem_Id(targetSupplierId, itemId)
@@ -296,12 +343,11 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_MOQ_NOT_MET);
         }
 
-        BigDecimal allocatedOpenQty =
-                subPurchaseOrderItemRepository.sumOrderedQtyBySupplierIdAndItemIdAndLineStatusIn(
-                        targetSupplierId,
-                        itemId,
-                        ACTIVE_LINE_STATUSES
-                );
+        BigDecimal allocatedOpenQty = subPurchaseOrderItemRepository.sumOrderedQtyBySupplierIdAndItemIdAndLineStatusIn(
+                targetSupplierId,
+                itemId,
+                ACTIVE_LINE_STATUSES
+        );
 
         if (allocatedOpenQty.add(requestedQty).compareTo(capability.getAvailableQty()) > 0) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_AVAILABLE_QTY_EXCEEDED);
@@ -310,8 +356,8 @@ public class SubPurchaseOrderService {
         LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
         LocalDateTime nextMonthStart = monthStart.plusMonths(1);
 
-        BigDecimal allocatedMonthQty =
-                subPurchaseOrderItemRepository.sumMonthlyOrderedQtyBySupplierIdAndItemIdAndOrderedAtBetweenAndLineStatusIn(
+        BigDecimal allocatedMonthQty = subPurchaseOrderItemRepository
+                .sumMonthlyOrderedQtyBySupplierIdAndItemIdAndOrderedAtBetweenAndLineStatusIn(
                         targetSupplierId,
                         itemId,
                         monthStart,
@@ -326,6 +372,23 @@ public class SubPurchaseOrderService {
         LocalDate earliestAvailableDate = LocalDate.now().plusDays(capability.getLeadTimeDays());
         if (requiredDate.isBefore(earliestAvailableDate)) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_LEAD_TIME_NOT_MET);
+        }
+    }
+
+    private SupplyItem getActiveItem(String itemPublicId) {
+        return supplyItemRepository.findByPublicIdAndStatusIn(itemPublicId, List.of(Status.ACTIVE))
+                .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ITEM_NOT_FOUND));
+    }
+
+    private void validateItemBelongsToSupplier(SupplyItem item, SupplySupplier supplier) {
+        if (!item.getSupplier().getId().equals(supplier.getId())) {
+            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH);
+        }
+    }
+
+    private void validateTargetSupplierTier(SupplySupplier issuerSupplier, SupplySupplier targetSupplier) {
+        if (targetSupplier.getTierLevel().getOrder() <= issuerSupplier.getTierLevel().getOrder()) {
+            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.TARGET_SUPPLIER_TIER_NOT_ALLOWED);
         }
     }
 
@@ -354,5 +417,23 @@ public class SubPurchaseOrderService {
                 || subPurchaseOrder.getSubPoStatus() == SubPoStatus.CONFIRMED)) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_STATUS_NOT_ALLOWED);
         }
+    }
+
+    private void validateSupplierActor(String organizationPublicId, String organizationType) {
+        validateOrganizationHeader(organizationPublicId);
+
+        if (!SUPPLIER_ORGANIZATION_TYPE.equals(organizationType)) {
+            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ACCESS_DENIED);
+        }
+    }
+
+    private void validateOrganizationHeader(String organizationPublicId) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()) {
+            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+        }
+    }
+
+    private boolean isAdmin(String userRole) {
+        return ADMIN_ROLE.equals(userRole);
     }
 }

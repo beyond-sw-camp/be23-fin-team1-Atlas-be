@@ -29,6 +29,7 @@ public class OnboardingService {
             List.of(OnboardingRequestStatus.REQUESTED, OnboardingRequestStatus.APPROVED, OnboardingRequestStatus.REJECTED);
 
     private static final String ADMIN_ROLE = "ADMIN";
+    private static final String SUPPLIER_ORGANIZATION_TYPE = "SUPPLIER";
 
     private final OnboardingRequestRepository onboardingRequestRepository;
     private final SupplierRepository supplierRepository;
@@ -36,10 +37,11 @@ public class OnboardingService {
 
     public OnboardingResponse createSupplier(
             String organizationPublicId,
+            String organizationType,
             String requestedByUserPublicId,
             CreateOnboardingRequest request
     ) {
-        validateCreateActor(organizationPublicId, requestedByUserPublicId);
+        validateCreateActor(organizationPublicId, organizationType, requestedByUserPublicId);
 
         if (supplierRepository.existsBySupplierCodeAndSupplierStatusNot(
                 request.getSupplierCode(),
@@ -72,9 +74,10 @@ public class OnboardingService {
     public OnboardingResponse getRequest(
             String requestPublicId,
             String organizationPublicId,
+            String organizationType,
             String userRole
     ) {
-        validateReadActor(organizationPublicId, userRole);
+        validateReadActor(organizationPublicId, organizationType, userRole);
 
         OnboardingRequest request = getReadableRequest(requestPublicId);
 
@@ -89,9 +92,10 @@ public class OnboardingService {
     public Page<OnboardingResponse> getRequestList(
             Pageable pageable,
             String organizationPublicId,
+            String organizationType,
             String userRole
     ) {
-        validateReadActor(organizationPublicId, userRole);
+        validateReadActor(organizationPublicId, organizationType, userRole);
 
         if (isAdmin(userRole)) {
             return onboardingRequestRepository
@@ -165,19 +169,39 @@ public class OnboardingService {
                 .orElseThrow(() -> new OnboardingException(OnboardingErrorCode.REVIEWABLE_REQUEST_NOT_FOUND));
     }
 
-    private void validateCreateActor(String organizationPublicId, String requestedByUserPublicId) {
-        if (!hasText(organizationPublicId) || !hasText(requestedByUserPublicId)) {
+    private void validateCreateActor(
+            String organizationPublicId,
+            String organizationType,
+            String requestedByUserPublicId
+    ) {
+        if (!hasText(organizationPublicId) || !hasText(organizationType) || !hasText(requestedByUserPublicId)) {
             throw new OnboardingException(OnboardingErrorCode.INVALID_ACTOR_HEADER);
+        }
+
+        if (!SUPPLIER_ORGANIZATION_TYPE.equals(organizationType)) {
+            throw new OnboardingException(OnboardingErrorCode.SUPPLIER_ONLY_ACTION);
         }
     }
 
-    private void validateReadActor(String organizationPublicId, String userRole) {
+    private void validateReadActor(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
         if (!hasText(userRole)) {
             throw new OnboardingException(OnboardingErrorCode.INVALID_ACTOR_HEADER);
         }
 
-        if (!isAdmin(userRole) && !hasText(organizationPublicId)) {
+        if (isAdmin(userRole)) {
+            return;
+        }
+
+        if (!hasText(organizationPublicId) || !hasText(organizationType)) {
             throw new OnboardingException(OnboardingErrorCode.INVALID_ACTOR_HEADER);
+        }
+
+        if (!SUPPLIER_ORGANIZATION_TYPE.equals(organizationType)) {
+            throw new OnboardingException(OnboardingErrorCode.SUPPLIER_ONLY_ACTION);
         }
     }
 

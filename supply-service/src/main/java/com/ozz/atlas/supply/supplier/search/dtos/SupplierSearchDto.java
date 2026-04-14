@@ -4,6 +4,7 @@ import com.ozz.atlas.supply.supplier.capability.domain.SupplierItemQualityGrade;
 import com.ozz.atlas.supply.supplier.certificate.domain.CertificateStatus;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
+import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import com.ozz.atlas.supply.supplier.esg.domain.EsgGrade;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,7 +23,7 @@ public class SupplierSearchDto {
     private String keyword;
 
     // 1차, 2차 같은 협력사 단계
-    private Integer tierLevel;
+    private SupplierTierLevel tierLevel;
 
     // 승인 요청, 승인 완료, 반려 같은 승인 상태
     private ApprovalStatus approvalStatus;

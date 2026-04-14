@@ -60,13 +60,13 @@ public class PurchaseOrderController {
 
     @PatchMapping("/{poPublicId}")
     public ResponseEntity<?> updatePurchaseOrder(
-            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
-            @PathVariable String poPublicId,
-            @Valid @RequestBody UpdatePurchaseOrderRequest request
+                @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+                @PathVariable String poPublicId,
+                @Valid @RequestBody UpdatePurchaseOrderRequest request
     ) {
-        return ResponseEntity.ok(
-                purchaseOrderService.updatePurchaseOrder(buyerOrganizationPublicId, poPublicId, request)
-        );
+            return ResponseEntity.ok(
+                    purchaseOrderService.updatePurchaseOrder(buyerOrganizationPublicId, poPublicId, request)
+            );
     }
 
     @DeleteMapping("/{poPublicId}")
