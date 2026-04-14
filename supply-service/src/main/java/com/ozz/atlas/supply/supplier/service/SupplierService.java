@@ -1,20 +1,25 @@
 package com.ozz.atlas.supply.supplier.service;
 
+import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.dtos.SupplierResponse;
 import com.ozz.atlas.supply.supplier.dtos.UpdateSupplierRequest;
+import com.ozz.atlas.supply.supplier.exception.SupplierErrorCode;
+import com.ozz.atlas.supply.supplier.exception.SupplierException;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import com.ozz.atlas.supply.supplier.search.dtos.SupplierSearchDto;
 import com.ozz.atlas.supply.supplier.search.service.SupplierSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -24,29 +29,68 @@ public class SupplierService {
     private final SupplierRepository supplierRepository;
 
     private final SupplierSearchService supplierSearchService;
+    private static final String ADMIN_ROLE = "ADMIN";
+    private static final String BUYER_ORGANIZATION_TYPE = "BUYER";
+    private static final String SUPPLIER_ORGANIZATION_TYPE = "SUPPLIER";
+    private final SupplyItemRepository supplyItemRepository;
+
 
     @Transactional(readOnly = true)
-    public SupplierResponse getSupplier(String supplierPublicId) {
-        SupplySupplier supplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
-                        supplierPublicId,
-                        ApprovalStatus.APPROVED,
-                        SupplierStatus.TERMINATED
-                )
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 협력사가 존재하지 않습니다."));
+    public SupplierResponse getSupplier(
+            String supplierPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        SupplySupplier targetSupplier = getApprovedSupplier(supplierPublicId);
 
-        return SupplierResponse.fromEntity(supplier);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<SupplierResponse> getSupplierList(Pageable pageable, SupplierSearchDto searchDto) {
-
-        // 검색 조건이 있으면 ES 통합검색 실행
-        if (hasSearchCondition(searchDto)) {
-            return supplierSearchService.search(pageable, searchDto);
+        if (canViewAllSuppliers(organizationType, userRole)) {
+            return SupplierResponse.fromEntity(targetSupplier);
         }
 
+        SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
+        Integer nextTierLevel = loginSupplier.getTierLevel() + 1;
+
+        if (!targetSupplier.getTierLevel().equals(nextTierLevel)) {
+            throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
+        }
+
+        return SupplierResponse.fromEntity(targetSupplier);
+    }
+
+
+    @Transactional(readOnly = true)
+    public Page<SupplierResponse> getSupplierList(
+            Pageable pageable,
+            SupplierSearchDto searchDto,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (canViewAllSuppliers(organizationType, userRole)) {
+            // 검색 조건이 있으면 ES 통합검색 실행
+            if (hasSearchCondition(searchDto)) {
+                return supplierSearchService.search(pageable, searchDto);
+            }
+
 //        검색 조건이 없으면 db 목록 조회
-        return supplierRepository.findAllByApprovalStatusAndSupplierStatusNot(
+            return supplierRepository.findAllByApprovalStatusAndSupplierStatusNot(
+                            ApprovalStatus.APPROVED,
+                            SupplierStatus.TERMINATED,
+                            pageable
+                    )
+                    .map(SupplierResponse::fromEntity);
+        }
+
+        SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
+        Integer nextTierLevel = loginSupplier.getTierLevel() + 1;
+
+        if (hasSearchCondition(searchDto)) {
+            throw new SupplierException(SupplierErrorCode.SUPPLIER_SEARCH_FORBIDDEN);
+        }
+
+        return supplierRepository.findAllByTierLevelAndApprovalStatusAndSupplierStatusNot(
+                        nextTierLevel,
                         ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED,
                         pageable
@@ -55,7 +99,17 @@ public class SupplierService {
     }
 
     @Transactional(readOnly = true)
-    public Page<SupplierResponse> getSuppliersByTierLevel(Integer tierLevel, Pageable pageable) {
+    public Page<SupplierResponse> getSuppliersByTierLevel(
+            Integer tierLevel,
+            Pageable pageable,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (!canViewAllSuppliers(organizationType, userRole)) {
+            throw new SupplierException(SupplierErrorCode.TIER_LIST_FORBIDDEN);
+        }
+
         return supplierRepository.findAllByTierLevelAndApprovalStatusAndSupplierStatusNot(
                         tierLevel,
                         ApprovalStatus.APPROVED,
@@ -65,20 +119,19 @@ public class SupplierService {
                 .map(SupplierResponse::fromEntity);
     }
 
-    public SupplierResponse updateSupplier(String supplierPublicId, UpdateSupplierRequest request) {
-        SupplySupplier supplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
-                        supplierPublicId,
-                        ApprovalStatus.APPROVED,
-                        SupplierStatus.TERMINATED
-                )
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 협력사가 존재하지 않습니다."));
+
+    public SupplierResponse updateSupplier(String supplierPublicId, String organizationPublicId, UpdateSupplierRequest request) {
+        validateOrganizationHeader(organizationPublicId);
+
+        SupplySupplier supplier = getApprovedSupplier(supplierPublicId);
+        validateOwner(supplier, organizationPublicId);
 
         if (supplierRepository.existsBySupplierCodeAndIdNotAndSupplierStatusNot(
                 request.getSupplierCode(),
                 supplier.getId(),
                 SupplierStatus.TERMINATED
         )) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "...");
+            throw new SupplierException(SupplierErrorCode.SUPPLIER_CODE_ALREADY_EXISTS);
         }
 
         supplier.update(
@@ -89,21 +142,26 @@ public class SupplierService {
                 request.getPrimaryContactEmail(),
                 request.getPrimaryContactPhone()
         );
-
         // 수정된 협력사 정보를 ES 문서에도 반영
         supplierSearchService.saveSupplierDocument(supplier);
 
         return SupplierResponse.fromEntity(supplier);
     }
 
-    public void deleteSupplier(String supplierPublicId) {
-        SupplySupplier supplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
-                        supplierPublicId,
-                        ApprovalStatus.APPROVED,
-                        SupplierStatus.TERMINATED
-                )
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 협력사가 존재하지 않습니다."));
+    public void deleteSupplier(String supplierPublicId, String organizationPublicId) {
+        validateOrganizationHeader(organizationPublicId);
 
+        SupplySupplier supplier = getApprovedSupplier(supplierPublicId);
+        validateOwner(supplier, organizationPublicId);
+
+        List<SupplyItem> items = supplyItemRepository.findAllBySupplier_IdAndStatusIn(
+                supplier.getId(),
+                List.of(Status.ACTIVE, Status.DEACTIVE)
+        );
+
+        for (SupplyItem item : items) {
+            item.changeActiveYn(Status.DELETE);
+        }
         supplier.softDelete();
 
         // 종료된 협력사는 ES 검색 결과에서 제거
@@ -167,5 +225,54 @@ public class SupplierService {
                         || searchDto.getMinTotalScore() != null
         );
     }
+
+    private SupplySupplier getApprovedSupplier(String supplierPublicId) {
+        return supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+                        supplierPublicId,
+                        ApprovalStatus.APPROVED,
+                        SupplierStatus.TERMINATED
+                )
+                .orElseThrow(() -> new SupplierException(SupplierErrorCode.SUPPLIER_NOT_FOUND));
+    }
+
+    private SupplySupplier getLoginSupplier(String organizationPublicId, String organizationType) {
+        validateOrganizationHeader(organizationPublicId);
+
+        if (!SUPPLIER_ORGANIZATION_TYPE.equals(organizationType)) {
+            throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
+        }
+
+        SupplySupplier loginSupplier = supplierRepository.findByOrganizationPublicId(organizationPublicId)
+                .orElseThrow(() -> new SupplierException(SupplierErrorCode.LOGIN_SUPPLIER_NOT_FOUND));
+
+        if (loginSupplier.getApprovalStatus() != ApprovalStatus.APPROVED
+                || loginSupplier.getSupplierStatus() == SupplierStatus.TERMINATED) {
+            throw new SupplierException(SupplierErrorCode.LOGIN_SUPPLIER_NOT_FOUND);
+        }
+
+        return loginSupplier;
+    }
+
+
+    private void validateOwner(SupplySupplier supplier, String organizationPublicId) {
+        if (!supplier.getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    private boolean canViewAllSuppliers(String organizationType, String userRole) {
+        return isAdmin(userRole) || BUYER_ORGANIZATION_TYPE.equals(organizationType);
+    }
+
+    private boolean isAdmin(String userRole) {
+        return ADMIN_ROLE.equals(userRole);
+    }
+
+    private void validateOrganizationHeader(String organizationPublicId) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()) {
+            throw new SupplierException(SupplierErrorCode.INVALID_ACTOR_HEADER);
+        }
+    }
+
 
 }

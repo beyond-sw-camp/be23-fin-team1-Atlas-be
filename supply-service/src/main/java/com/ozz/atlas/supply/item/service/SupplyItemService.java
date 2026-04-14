@@ -21,19 +21,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class SupplyItemService {
 
+    private static final String SUPPLIER_ORGANIZATION_TYPE = "SUPPLIER";
+
     private final SupplyItemRepository supplyItemRepository;
     private final SupplyItemCategoryRepository supplyItemCategoryRepository;
     private final SupplierRepository supplierRepository;
 
-    public ItemResponse createItem(String organizationPublicId, CreateItemRequest request) {
-        SupplySupplier supplier = getManageableSupplier(organizationPublicId);
+    public ItemResponse createItem(
+            String organizationPublicId,
+            String organizationType,
+            CreateItemRequest request
+    ) {
+        SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
 
         if (supplyItemRepository.existsByItemCode(request.getItemCode())) {
             throw new ItemException(ItemErrorCode.ITEM_CODE_ALREADY_EXISTS);
@@ -60,10 +65,11 @@ public class SupplyItemService {
 
     public ItemResponse updateItem(
             String organizationPublicId,
+            String organizationType,
             String itemPublicId,
             UpdateItemRequest request
     ) {
-        SupplySupplier supplier = getManageableSupplier(organizationPublicId);
+        SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
 
         SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
                         itemPublicId,
@@ -71,7 +77,7 @@ public class SupplyItemService {
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
-        validateItemOwner(item, supplier);
+        validateItemOwner(item, organizationPublicId);
 
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(
                         request.getItemCategoryPublicId(),
@@ -95,8 +101,12 @@ public class SupplyItemService {
         return ItemResponse.fromEntity(item);
     }
 
-    public void deleteItem(String organizationPublicId, String itemPublicId) {
-        SupplySupplier supplier = getManageableSupplier(organizationPublicId);
+    public void deleteItem(
+            String organizationPublicId,
+            String organizationType,
+            String itemPublicId
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
 
         SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
                         itemPublicId,
@@ -104,8 +114,7 @@ public class SupplyItemService {
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
-        validateItemOwner(item, supplier);
-
+        validateItemOwner(item, organizationPublicId);
         item.changeActiveYn(Status.DELETE);
     }
 
@@ -126,8 +135,15 @@ public class SupplyItemService {
                 .map(ItemResponse::fromEntity);
     }
 
-    private SupplySupplier getManageableSupplier(String organizationPublicId) {
+    private SupplySupplier getWritableSupplier(
+            String organizationPublicId,
+            String organizationType
+    ) {
         validateOrganizationHeader(organizationPublicId);
+
+        if (!SUPPLIER_ORGANIZATION_TYPE.equals(organizationType)) {
+            throw new ItemException(ItemErrorCode.INVALID_ORGANIZATION_TYPE);
+        }
 
         SupplySupplier supplier = supplierRepository.findByOrganizationPublicId(organizationPublicId)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.SUPPLIER_NOT_FOUND));
@@ -143,8 +159,8 @@ public class SupplyItemService {
         return supplier;
     }
 
-    private void validateItemOwner(SupplyItem item, SupplySupplier supplier) {
-        if (!Objects.equals(item.getSupplier().getId(), supplier.getId())) {
+    private void validateItemOwner(SupplyItem item, String organizationPublicId) {
+        if (!item.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
             throw new ItemException(ItemErrorCode.ACCESS_DENIED);
         }
     }
