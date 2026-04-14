@@ -6,10 +6,13 @@ import com.ozz.atlas.supply.shipment.domain.*;
 import com.ozz.atlas.supply.shipment.dtos.*;
 import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
+import com.ozz.atlas.supply.shipment.repository.EtaProjectionRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentCheckpointRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentStatusHistoryRepository;
 import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,14 +33,22 @@ public class ShipmentService {
     private final ShipmentStatusHistoryRepository shipmentStatusHistoryRepository;
     private final LogisticsNodeService logisticsNodeService;
     private final ShipmentSearchService shipmentSearchService;
+    private final EtaProjectionRepository etaProjectionRepository;
 
-
-    public ShipmentService(ShipmentRepository shipmentRepository, ShipmentCheckpointRepository shipmentCheckpointRepository, ShipmentStatusHistoryRepository shipmentStatusHistoryRepository, LogisticsNodeService logisticsNodeService, ShipmentSearchService shipmentSearchService) {
+    public ShipmentService(
+            ShipmentRepository shipmentRepository,
+            ShipmentCheckpointRepository shipmentCheckpointRepository,
+            ShipmentStatusHistoryRepository shipmentStatusHistoryRepository,
+            LogisticsNodeService logisticsNodeService,
+            ShipmentSearchService shipmentSearchService,
+            EtaProjectionRepository etaProjectionRepository
+    ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
         this.shipmentStatusHistoryRepository = shipmentStatusHistoryRepository;
         this.logisticsNodeService = logisticsNodeService;
         this.shipmentSearchService = shipmentSearchService;
+        this.etaProjectionRepository = etaProjectionRepository;
     }
 
 //    출하 생성
@@ -123,6 +134,11 @@ public class ShipmentService {
 
         LogisticsNode node = logisticsNodeService.getLogisticsNodeEntityByPublicId(dto.getNodePublicId());
 
+        List<ShipmentCheckpoint> previousCheckpoints =
+                shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(shipment.getId());
+
+        EtaCalculationResult previousEtaResult = calculateEta(shipment, previousCheckpoints);
+
         ShipmentCheckpoint checkpoint = dto.toEntity(shipment.getId(), node.getId());
         shipmentCheckpointRepository.save(checkpoint);
 
@@ -145,6 +161,11 @@ public class ShipmentService {
                     node.getLongitude(),
                     "SYSTEM"
             );
+
+            List<ShipmentCheckpoint> updatedCheckpoints =
+                    shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(savedShipment.getId());
+
+            saveEtaProjectionIfChanged(savedShipment, previousEtaResult, updatedCheckpoints);
         }
         return toShipmentResponseDto(savedShipment);
     }
@@ -180,53 +201,13 @@ public class ShipmentService {
     @Transactional(readOnly = true)
     public ShipmentEtaResponseDto getShipmentEta(String publicId){
         Shipment shipment = shipmentRepository.findByPublicId(publicId)
-                .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
+                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
 
         List<ShipmentCheckpoint> checkpoints =
                 shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(shipment.getId());
 
-        ShipmentCheckpoint latestPassedCheckpoint = checkpoints.stream()
-                .filter(checkpoint -> checkpoint.getCheckpointStatus() == CheckpointStatus.PASSED)
-                .filter(checkpoint -> checkpoint.getActualAt() != null)
-                .reduce((first, second) -> second)
-                .orElse(null);
+        EtaCalculationResult etaResult = calculateEta(shipment, checkpoints);
 
-        LocalDateTime estimatedArrivalAt;
-        EtaBasis etaBasis;
-        boolean delayed = false;
-        long delayMinutes = 0L;
-
-        if (shipment.getStatus() == ShipmentStatus.ARRIVED && shipment.getActualArrivedAt() != null){
-            estimatedArrivalAt = shipment.getActualArrivedAt();
-            etaBasis = EtaBasis.ARRIVED;
-
-            if (shipment.getArrivalEta() != null && shipment.getActualArrivedAt().isAfter(shipment.getArrivalEta())){
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), shipment.getActualArrivedAt()).toMinutes();
-            }
-        } else if (shipment.getActualDepartedAt() != null
-                && shipment.getDepartureEta() != null
-                && shipment.getArrivalEta() != null){
-
-            Duration plannedDuration = Duration.between(shipment.getDepartureEta(), shipment.getArrivalEta());
-            estimatedArrivalAt = shipment.getActualDepartedAt().plus(plannedDuration);
-            etaBasis = EtaBasis.ACTUAL_TRACKING;
-
-            if (estimatedArrivalAt.isAfter(shipment.getArrivalEta())){
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), estimatedArrivalAt).toMinutes();
-            }
-        } else {
-            estimatedArrivalAt = shipment.getArrivalEta();
-            etaBasis = EtaBasis.SCHEDULED;
-
-            if (shipment.getArrivalEta() != null
-                    && shipment.getStatus() != ShipmentStatus.ARRIVED
-                    && LocalDateTime.now().isAfter(shipment.getArrivalEta())){
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), LocalDateTime.now()).toMinutes();
-            }
-        }
         return ShipmentEtaResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .status(shipment.getStatus())
@@ -236,18 +217,41 @@ public class ShipmentService {
                 .arrivalEta(shipment.getArrivalEta())
                 .actualDepartedAt(shipment.getActualDepartedAt())
                 .actualArrivedAt(shipment.getActualArrivedAt())
-                .estimatedArrivalAt(estimatedArrivalAt)
-                .delayMinutes(delayMinutes)
-                .delayed(delayed)
-                .etaBasis(etaBasis)
-                .lastCheckpointType(latestPassedCheckpoint != null ? latestPassedCheckpoint.getCheckpointType() : null)
-                .lastCheckpointAt(latestPassedCheckpoint != null ? latestPassedCheckpoint.getActualAt() : null)
+                .estimatedArrivalAt(etaResult.getEstimatedArrivalAt())
+                .delayMinutes(etaResult.getDelayMinutes())
+                .delayed(etaResult.isDelayed())
+                .etaBasis(etaResult.getEtaBasis())
+                .lastCheckpointType(
+                        etaResult.getLatestPassedCheckpoint() != null
+                                ? etaResult.getLatestPassedCheckpoint().getCheckpointType()
+                                : null
+                )
+                .lastCheckpointAt(
+                        etaResult.getLatestPassedCheckpoint() != null
+                                ? etaResult.getLatestPassedCheckpoint().getActualAt()
+                                : null
+                )
                 .lastCheckpointNodePublicId(
-                        latestPassedCheckpoint != null
-                                ? getNodePublicId(latestPassedCheckpoint.getNodeId())
+                        etaResult.getLatestPassedCheckpoint() != null
+                                ? getNodePublicId(etaResult.getLatestPassedCheckpoint().getNodeId())
                                 : null
                 )
                 .build();
+    }
+
+
+    //    ETA projection 이력 조회
+    @Transactional(readOnly = true)
+    public List<EtaProjectionResponseDto> getEtaProjections(String publicId) {
+        Shipment shipment = shipmentRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
+
+        List<EtaProjection> etaProjections =
+                etaProjectionRepository.findByShipmentIdOrderByCalculatedAtDesc(shipment.getId());
+
+        return etaProjections.stream()
+                .map(EtaProjectionResponseDto::from)
+                .toList();
     }
 
 //    출하 / 트랙 상태 이력 저장
@@ -354,4 +358,99 @@ public class ShipmentService {
                 .status(shipment.getStatus())
                 .build();
     }
+
+//    ETA 계산 공통화
+    @Getter
+    @AllArgsConstructor
+    private static class EtaCalculationResult{
+        private LocalDateTime estimatedArrivalAt;
+        private Long delayMinutes;
+        private boolean delayed;
+        private EtaBasis etaBasis;
+        private ShipmentCheckpoint latestPassedCheckpoint;
+    }
+
+//    ETA 계산 공통화 메서드
+    private EtaCalculationResult calculateEta(Shipment shipment, List<ShipmentCheckpoint> checkpoints) {
+        ShipmentCheckpoint latestPassedCheckpoint = checkpoints.stream()
+                .filter(checkpoint -> checkpoint.getCheckpointStatus() == CheckpointStatus.PASSED)
+                .filter(checkpoint -> checkpoint.getActualAt() != null)
+                .reduce((first, second) -> second)
+                .orElse(null);
+
+        LocalDateTime estimatedArrivalAt;
+        EtaBasis etaBasis;
+        boolean delayed = false;
+        long delayMinutes = 0L;
+
+        if (shipment.getStatus() == ShipmentStatus.ARRIVED && shipment.getActualArrivedAt() != null) {
+            estimatedArrivalAt = shipment.getActualArrivedAt();
+            etaBasis = EtaBasis.ARRIVED;
+
+            if (shipment.getArrivalEta() != null && shipment.getActualArrivedAt().isAfter(shipment.getArrivalEta())) {
+                delayed = true;
+                delayMinutes = Duration.between(shipment.getArrivalEta(), shipment.getActualArrivedAt()).toMinutes();
+            }
+        } else if (shipment.getActualDepartedAt() != null
+                && shipment.getDepartureEta() != null
+                && shipment.getArrivalEta() != null) {
+
+            Duration plannedDuration = Duration.between(shipment.getDepartureEta(), shipment.getArrivalEta());
+            estimatedArrivalAt = shipment.getActualDepartedAt().plus(plannedDuration);
+            etaBasis = EtaBasis.ACTUAL_TRACKING;
+
+            if (estimatedArrivalAt.isAfter(shipment.getArrivalEta())) {
+                delayed = true;
+                delayMinutes = Duration.between(shipment.getArrivalEta(), estimatedArrivalAt).toMinutes();
+            }
+        } else {
+            estimatedArrivalAt = shipment.getArrivalEta();
+            etaBasis = EtaBasis.SCHEDULED;
+
+            if (shipment.getArrivalEta() != null
+                    && shipment.getStatus() != ShipmentStatus.ARRIVED
+                    && LocalDateTime.now().isAfter(shipment.getArrivalEta())) {
+                delayed = true;
+                delayMinutes = Duration.between(shipment.getArrivalEta(), LocalDateTime.now()).toMinutes();
+            }
+        }
+
+        return new EtaCalculationResult(
+                estimatedArrivalAt,
+                delayMinutes,
+                delayed,
+                etaBasis,
+                latestPassedCheckpoint
+        );
+    }
+
+//    Projection 저장
+    private void saveEtaProjectionIfChanged(
+            Shipment shipment,
+            EtaCalculationResult previousEtaResult,
+            List<ShipmentCheckpoint> updatedCheckpoints
+    ) {
+        EtaCalculationResult currentEtaResult = calculateEta(shipment, updatedCheckpoints);
+
+        LocalDateTime previousEta =
+                previousEtaResult != null ? previousEtaResult.getEstimatedArrivalAt() : null;
+        LocalDateTime projectedEta = currentEtaResult.getEstimatedArrivalAt();
+
+        if ((previousEta == null && projectedEta == null)
+                || (previousEta != null && previousEta.equals(projectedEta))) {
+            return;
+        }
+
+        EtaProjection etaProjection = EtaProjection.builder()
+                .shipmentId(shipment.getId())
+                .riskEventId(null)
+                .previousEta(previousEta)
+                .projectedEta(projectedEta)
+                .delayMinutes(currentEtaResult.getDelayMinutes())
+                .calculatedAt(LocalDateTime.now())
+                .build();
+
+        etaProjectionRepository.save(etaProjection);
+    }
+
 }

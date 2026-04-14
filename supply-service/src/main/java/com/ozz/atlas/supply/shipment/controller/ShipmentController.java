@@ -70,7 +70,13 @@ public class ShipmentController {
         return ResponseEntity.ok(shipmentService.getShipmentEta(publicId));
     }
 
-//    statusHistory 조회
+//    ETA projection 조회
+    @GetMapping("/{publicId}/eta-projections")
+    public ResponseEntity<List<EtaProjectionResponseDto>> getEtaProjections(@PathVariable String publicId) {
+        return ResponseEntity.ok(shipmentService.getEtaProjections(publicId));
+    }
+
+    //    statusHistory 조회
     @GetMapping("/{publicId}/status-history")
     public ResponseEntity<List<ShipmentStatusHistoryResponseDto>> getShipmentStatusHistories(@PathVariable String publicId){
         return ResponseEntity.ok(shipmentService.getShipmentStatusHistories(publicId));

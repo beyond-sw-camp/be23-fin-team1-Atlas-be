@@ -58,6 +58,7 @@ public class JwtTokenFilter implements GlobalFilter {
             String userId = claims.getSubject();
             String userPublicId = claims.get("userPublicId", String.class);
             String organizationPublicId = claims.get("organizationPublicId", String.class);
+            String organizationType = claims.get("organizationType", String.class);
             String role = claims.get("role", String.class);
 
             ServerWebExchange serverWebExchange = exchange.mutate()
@@ -65,11 +66,16 @@ public class JwtTokenFilter implements GlobalFilter {
                         headers.remove("X-User-Id");
                         headers.remove("X-User-Public-Id");
                         headers.remove("X-Organization-Public-Id");
+                        headers.remove("X-Organization-Type");
                         headers.remove("X-User-Role");
                         headers.set("X-User-Id", userId);
                         headers.set("X-User-Public-Id", userPublicId);
                         headers.set("X-Organization-Public-Id", organizationPublicId);
                         headers.set("X-User-Role", role);
+
+                        if (organizationType != null) {
+                            headers.set("X-Organization-Type", organizationType);
+                        }
                     }))
                     .build();
 

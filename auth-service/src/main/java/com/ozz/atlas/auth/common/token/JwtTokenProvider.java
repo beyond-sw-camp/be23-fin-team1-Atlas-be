@@ -47,7 +47,7 @@ public class JwtTokenProvider {
     }
 
     // 로그인 성공 시 access token 생성
-    public String createAccessToken(Long userId, String userPublicId, String organizationPublicId, String role) {
+    public String createAccessToken(Long userId, String userPublicId, String organizationPublicId, String organizationType, String role) {
         Date now = new Date();
 
         return Jwts.builder()
@@ -57,6 +57,7 @@ public class JwtTokenProvider {
                 .claim("role", role)
                 .claim("userPublicId", userPublicId)
                 .claim("organizationPublicId", organizationPublicId)
+                .claim("organizationType", organizationType)
                 // 발급 시간
                 .issuedAt(now)
                 // 만료 시간
