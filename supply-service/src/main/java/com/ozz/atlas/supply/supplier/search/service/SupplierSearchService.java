@@ -109,7 +109,7 @@ public class SupplierSearchService {
 
         // 협력사 단계 조건
         if (searchDto.getTierLevel() != null) {
-            filters.add(termQuery("tierLevel", searchDto.getTierLevel().longValue()));
+            filters.add(termQuery("tierLevel", searchDto.getTierLevel().name()));
         }
 
         // 특정 조직 소속 협력사만 조회

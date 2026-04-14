@@ -18,6 +18,13 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
     );
 
     @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    Page<SupplySubPurchaseOrder> findAllByParentPurchaseOrder_PublicIdAndSubPoStatusNot(
+            String parentPoPublicId,
+            SubPoStatus subPoStatus,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
     Page<SupplySubPurchaseOrder> findAllByParentPurchaseOrder_PublicIdAndParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
             String parentPoPublicId,
             String issuerOrganizationPublicId,
@@ -28,6 +35,12 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
     @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
     Page<SupplySubPurchaseOrder> findAllBySupplier_OrganizationPublicIdAndSubPoStatusNot(
             String receiverOrganizationPublicId,
+            SubPoStatus subPoStatus,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    Page<SupplySubPurchaseOrder> findAllBySubPoStatusNot(
             SubPoStatus subPoStatus,
             Pageable pageable
     );

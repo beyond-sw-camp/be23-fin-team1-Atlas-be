@@ -18,16 +18,17 @@ public class SubPurchaseOrderController {
 
     private final SubPurchaseOrderService subPurchaseOrderService;
 
-    // 부모 발주를 실제로 수신한 협력사가 자기 하위 협력사에게 다시 발행하는 API다.
     @PostMapping
     public ResponseEntity<?> createSubPurchaseOrder(
             @RequestHeader("X-Organization-Public-Id") String issuerOrganizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
             @RequestHeader("X-User-Public-Id") String createdByUserPublicId,
             @Valid @RequestBody CreateSubPurchaseOrderRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(subPurchaseOrderService.createSubPurchaseOrder(
                         issuerOrganizationPublicId,
+                        organizationType,
                         createdByUserPublicId,
                         request
                 ));
@@ -35,13 +36,17 @@ public class SubPurchaseOrderController {
 
     @GetMapping
     public ResponseEntity<?> getSubPurchaseOrdersByParentPo(
-            @RequestHeader("X-Organization-Public-Id") String issuerOrganizationPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @RequestParam String parentPoPublicId,
             @PageableDefault(size = 10) Pageable pageable
     ) {
         return ResponseEntity.ok(
                 subPurchaseOrderService.getSubPurchaseOrdersByParentPo(
-                        issuerOrganizationPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole,
                         parentPoPublicId,
                         pageable
                 )
@@ -50,57 +55,84 @@ public class SubPurchaseOrderController {
 
     @GetMapping("/received")
     public ResponseEntity<?> getReceivedSubPurchaseOrders(
-            @RequestHeader("X-Organization-Public-Id") String receiverOrganizationPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @PageableDefault(size = 10) Pageable pageable
     ) {
         return ResponseEntity.ok(
-                subPurchaseOrderService.getReceivedSubPurchaseOrders(receiverOrganizationPublicId, pageable)
+                subPurchaseOrderService.getReceivedSubPurchaseOrders(
+                        organizationPublicId,
+                        organizationType,
+                        userRole,
+                        pageable
+                )
         );
     }
 
     @GetMapping("/{subPoPublicId}")
     public ResponseEntity<?> getSubPurchaseOrder(
-            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @PathVariable String subPoPublicId
     ) {
         return ResponseEntity.ok(
-                subPurchaseOrderService.getSubPurchaseOrder(organizationPublicId, subPoPublicId)
+                subPurchaseOrderService.getSubPurchaseOrder(
+                        organizationPublicId,
+                        organizationType,
+                        userRole,
+                        subPoPublicId
+                )
         );
     }
 
     @PostMapping("/{subPoPublicId}/accept")
     public ResponseEntity<?> acceptSubPurchaseOrder(
             @RequestHeader("X-Organization-Public-Id") String receiverOrganizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
             @PathVariable String subPoPublicId
     ) {
         return ResponseEntity.ok(
-                subPurchaseOrderService.acceptSubPurchaseOrder(receiverOrganizationPublicId, subPoPublicId)
+                subPurchaseOrderService.acceptSubPurchaseOrder(
+                        receiverOrganizationPublicId,
+                        organizationType,
+                        subPoPublicId
+                )
         );
     }
 
     @PostMapping("/{subPoPublicId}/reject")
     public ResponseEntity<?> rejectSubPurchaseOrder(
             @RequestHeader("X-Organization-Public-Id") String receiverOrganizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
             @PathVariable String subPoPublicId
     ) {
         return ResponseEntity.ok(
-                subPurchaseOrderService.rejectSubPurchaseOrder(receiverOrganizationPublicId, subPoPublicId)
+                subPurchaseOrderService.rejectSubPurchaseOrder(
+                        receiverOrganizationPublicId,
+                        organizationType,
+                        subPoPublicId
+                )
         );
     }
 
-    // sub_po_item에 public_id가 없으므로 부모 발주 상세 publicId를 line path key로 쓴다.
-    @PatchMapping("/{subPoPublicId}/items/{poItemPublicId}/confirm")
+    @PatchMapping("/{subPoPublicId}/items/{parentPoItemPublicId}/{itemPublicId}/confirm")
     public ResponseEntity<?> confirmSubPurchaseOrderItem(
             @RequestHeader("X-Organization-Public-Id") String receiverOrganizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
             @PathVariable String subPoPublicId,
-            @PathVariable String poItemPublicId,
+            @PathVariable String parentPoItemPublicId,
+            @PathVariable String itemPublicId,
             @Valid @RequestBody ConfirmSubPurchaseOrderItemRequest request
     ) {
         return ResponseEntity.ok(
                 subPurchaseOrderService.confirmSubPurchaseOrderItem(
                         receiverOrganizationPublicId,
+                        organizationType,
                         subPoPublicId,
-                        poItemPublicId,
+                        parentPoItemPublicId,
+                        itemPublicId,
                         request
                 )
         );

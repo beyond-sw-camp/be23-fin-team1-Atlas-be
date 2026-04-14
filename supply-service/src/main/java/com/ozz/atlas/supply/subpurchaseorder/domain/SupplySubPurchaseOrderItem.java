@@ -52,16 +52,15 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
     @Builder.Default
     private SubPurchaseOrderLineStatus lineStatus = SubPurchaseOrderLineStatus.OPEN;
 
-    // 하위발주 상세는 부모 발주 상세를 기준으로 생성되고,
-    // item도 부모 상세의 item을 그대로 따라가야 데이터가 틀어지지 않는다.
     public static SupplySubPurchaseOrderItem create(
             SupplyPurchaseOrderItem parentPurchaseOrderItem,
+            SupplyItem item,
             BigDecimal orderedQty,
             LocalDate requiredDate
     ) {
         return SupplySubPurchaseOrderItem.builder()
                 .parentPurchaseOrderItem(parentPurchaseOrderItem)
-                .item(parentPurchaseOrderItem.getItem())
+                .item(item)
                 .orderedQty(orderedQty)
                 .requiredDate(requiredDate)
                 .lineStatus(SubPurchaseOrderLineStatus.OPEN)

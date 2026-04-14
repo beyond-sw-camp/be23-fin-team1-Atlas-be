@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.supplier.dtos;
 
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
+import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +21,7 @@ public class SupplierResponse {
     private String organizationPublicId;
     private String supplierCode;
     private String supplierName;
-    private Integer tierLevel;
+    private SupplierTierLevel tierLevel;
     private SupplierStatus supplierStatus;
     private ApprovalStatus approvalStatus;
     private String primaryContactName;

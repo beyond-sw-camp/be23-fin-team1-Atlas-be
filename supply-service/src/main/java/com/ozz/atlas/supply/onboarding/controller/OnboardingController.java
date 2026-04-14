@@ -1,3 +1,4 @@
+// 협력사 등록 프로세스 변경으로 auth-service에서 협력사 등록 예정
 package com.ozz.atlas.supply.onboarding.controller;
 
 import com.ozz.atlas.supply.onboarding.dtos.CreateOnboardingRequest;
@@ -18,42 +19,56 @@ public class OnboardingController {
 
     private final OnboardingService onboardingService;
 
-    // 협력사 등록 요청
     @PostMapping
     public ResponseEntity<?> createSupplierRequest(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
             @RequestHeader("X-User-Public-Id") String requestedByUserPublicId,
             @Valid @RequestBody CreateOnboardingRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(onboardingService.createSupplier(organizationPublicId, requestedByUserPublicId, request));
+                .body(onboardingService.createSupplier(
+                        organizationPublicId,
+                        organizationType,
+                        requestedByUserPublicId,
+                        request
+                ));
     }
 
-    // 협력사 등록 요청 상세 조회
     @GetMapping("/{requestPublicId}")
     public ResponseEntity<?> getRequest(
             @PathVariable String requestPublicId,
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
             @RequestHeader("X-User-Role") String userRole
     ) {
         return ResponseEntity.ok(
-                onboardingService.getRequest(requestPublicId, organizationPublicId, userRole)
+                onboardingService.getRequest(
+                        requestPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
         );
     }
 
-    // 협력사 등록 요청 목록 조회
     @GetMapping
     public ResponseEntity<?> getRequestList(
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
             @RequestHeader("X-User-Role") String userRole,
             @PageableDefault(size = 10) Pageable pageable
     ) {
         return ResponseEntity.ok(
-                onboardingService.getRequestList(pageable, organizationPublicId, userRole)
+                onboardingService.getRequestList(
+                        pageable,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
         );
     }
 
-    // 협력사 등록 요청 승인
     @PatchMapping("/{requestPublicId}/approve")
     public ResponseEntity<?> approveRequest(
             @PathVariable String requestPublicId,
@@ -65,7 +80,6 @@ public class OnboardingController {
         );
     }
 
-    // 협력사 등록 요청 반려
     @PatchMapping("/{requestPublicId}/reject")
     public ResponseEntity<?> rejectRequest(
             @PathVariable String requestPublicId,

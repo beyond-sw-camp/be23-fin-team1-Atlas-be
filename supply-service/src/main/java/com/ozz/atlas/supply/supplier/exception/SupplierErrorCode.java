@@ -15,7 +15,10 @@ public enum SupplierErrorCode implements ErrorCode {
     SUPPLIER_CODE_ALREADY_EXISTS(409, "SUP_005", "이미 존재하는 협력사 코드입니다."),
     TIER_LIST_FORBIDDEN(403, "SUP_006", "tier별 조회는 발주사 조직 또는 관리자만 가능합니다."),
     SUPPLIER_SEARCH_FORBIDDEN(403, "SUP_007", "협력사 조직 사용자는 검색 조건 없이 다음 tier 협력사 목록만 조회할 수 있습니다."),
-    INTERNAL_SERVER_ERROR(500, "SUP_999", "서버 내부 오류가 발생했습니다.");
+    INTERNAL_SERVER_ERROR(500, "SUP_999", "서버 내부 오류가 발생했습니다."),
+    SUPPLIER_CREATE_FORBIDDEN(403, "SUP_008", "협력사 직접 등록은 관리자만 가능합니다."),
+    SUPPLIER_ORGANIZATION_ALREADY_EXISTS(409, "SUP_009", "이미 협력사 프로필이 등록된 조직입니다.");
+
 
     private final int status;
     private final String code;

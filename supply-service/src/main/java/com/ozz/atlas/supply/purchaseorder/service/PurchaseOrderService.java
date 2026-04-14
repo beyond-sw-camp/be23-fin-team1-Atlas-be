@@ -81,6 +81,9 @@ public class PurchaseOrderService {
                         .toList()
         );
 
+
+        validateItemsBelongToSupplier(itemMap.values(), supplier);
+
         List<SupplyPurchaseOrderItem> purchaseOrderItems = request.getItems().stream()
                 .map(itemRequest -> {
                     LocalDate requiredDate = itemRequest.getRequiredDate() != null
@@ -287,6 +290,7 @@ public class PurchaseOrderService {
         validateBuyerEditable(purchaseOrder);
 
         SupplyItem item = resolveSingleItem(request.getItemPublicId());
+        validateItemBelongsToSupplier(item, purchaseOrder.getSupplier());
 
         // 요청은 itemPublicId로 들어오지만, 엔티티를 찾은 뒤 중복 비교는 내부 PK로 처리한다.
         boolean duplicatedItem = purchaseOrder.getActiveItems().stream()
@@ -337,6 +341,8 @@ public class PurchaseOrderService {
         SupplyItem targetItem = purchaseOrderItem.getItem();
         if (request.getItemPublicId() != null && !request.getItemPublicId().isBlank()) {
             SupplyItem requestedItem = resolveSingleItem(request.getItemPublicId());
+            validateItemBelongsToSupplier(requestedItem, purchaseOrder.getSupplier());
+
 
             boolean duplicatedItem = purchaseOrder.getActiveItems().stream()
                     .filter(item -> !item.getPoItemId().equals(purchaseOrderItem.getPoItemId()))
@@ -401,8 +407,6 @@ public class PurchaseOrderService {
         if (request.getConfirmedQty().compareTo(purchaseOrderItem.getOrderedQty()) > 0) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_CONFIRM_QTY_INVALID);
         }
-
-        validateConfirmedQtyAgainstAllocatedSubOrders(purchaseOrderItem.getPoItemId(), request.getConfirmedQty());
 
         purchaseOrderItem.confirm(request.getConfirmedQty());
         purchaseOrder.refreshConfirmationStatus();
@@ -528,15 +532,16 @@ public class PurchaseOrderService {
         }
     }
 
-    private void validateConfirmedQtyAgainstAllocatedSubOrders(Long poItemId, BigDecimal confirmedQty) {
-        BigDecimal allocatedSubOrderQty = subPurchaseOrderItemRepository
-                .sumOrderedQtyByParentPurchaseOrderItemIdAndLineStatusIn(
-                        poItemId,
-                        ACTIVE_SUB_ORDER_LINE_STATUSES
-                );
-
-        if (confirmedQty.compareTo(allocatedSubOrderQty) < 0) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_CONFIRM_QTY_LESS_THAN_SUB_ORDER_QTY);
+    private void validateItemsBelongToSupplier(Iterable<SupplyItem> items, SupplySupplier supplier) {
+        for (SupplyItem item : items) {
+            validateItemBelongsToSupplier(item, supplier);
         }
     }
+
+    private void validateItemBelongsToSupplier(SupplyItem item, SupplySupplier supplier) {
+        if (!item.getSupplier().getId().equals(supplier.getId())) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH);
+        }
+    }
+
 }

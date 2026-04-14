@@ -5,6 +5,7 @@ import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
+import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.dtos.SupplierResponse;
 import com.ozz.atlas.supply.supplier.dtos.UpdateSupplierRequest;
@@ -13,6 +14,7 @@ import com.ozz.atlas.supply.supplier.exception.SupplierException;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import com.ozz.atlas.supply.supplier.search.dtos.SupplierSearchDto;
 import com.ozz.atlas.supply.supplier.search.service.SupplierSearchService;
+import com.ozz.atlas.supply.supplier.dtos.CreateSupplierRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +36,39 @@ public class SupplierService {
     private static final String SUPPLIER_ORGANIZATION_TYPE = "SUPPLIER";
     private final SupplyItemRepository supplyItemRepository;
 
+    public SupplierResponse createSupplier(String userRole, CreateSupplierRequest request) {
+        validateAdminCreate(userRole);
+
+        if (supplierRepository.existsByOrganizationPublicId(request.getOrganizationPublicId())) {
+            throw new SupplierException(SupplierErrorCode.SUPPLIER_ORGANIZATION_ALREADY_EXISTS);
+        }
+
+        if (supplierRepository.existsBySupplierCodeAndSupplierStatusNot(
+                request.getSupplierCode(),
+                SupplierStatus.TERMINATED
+        )) {
+            throw new SupplierException(SupplierErrorCode.SUPPLIER_CODE_ALREADY_EXISTS);
+        }
+
+        SupplySupplier supplier = SupplySupplier.create(
+                request.getOrganizationPublicId(),
+                request.getSupplierCode(),
+                request.getSupplierName(),
+                request.getTierLevel(),
+                request.getPrimaryContactName(),
+                request.getPrimaryContactEmail(),
+                request.getPrimaryContactPhone()
+        );
+
+        // 직접 등록이니까 바로 승인 + 활성 처리
+        supplier.approve();
+
+        SupplySupplier savedSupplier = supplierRepository.save(supplier);
+        supplierSearchService.saveSupplierDocument(savedSupplier);
+
+        return SupplierResponse.fromEntity(savedSupplier);
+    }
+
 
     @Transactional(readOnly = true)
     public SupplierResponse getSupplier(
@@ -49,9 +84,9 @@ public class SupplierService {
         }
 
         SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
-        Integer nextTierLevel = loginSupplier.getTierLevel() + 1;
+        SupplierTierLevel nextTierLevel = loginSupplier.getTierLevel().next();
 
-        if (!targetSupplier.getTierLevel().equals(nextTierLevel)) {
+        if (nextTierLevel == null || !targetSupplier.getTierLevel().equals(nextTierLevel)) {
             throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
         }
 
@@ -83,7 +118,11 @@ public class SupplierService {
         }
 
         SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
-        Integer nextTierLevel = loginSupplier.getTierLevel() + 1;
+        SupplierTierLevel nextTierLevel = loginSupplier.getTierLevel().next();
+
+        if (nextTierLevel == null) {
+            return Page.empty(pageable);
+        }
 
         if (hasSearchCondition(searchDto)) {
             throw new SupplierException(SupplierErrorCode.SUPPLIER_SEARCH_FORBIDDEN);
@@ -100,7 +139,7 @@ public class SupplierService {
 
     @Transactional(readOnly = true)
     public Page<SupplierResponse> getSuppliersByTierLevel(
-            Integer tierLevel,
+            SupplierTierLevel tierLevel,
             Pageable pageable,
             String organizationPublicId,
             String organizationType,
@@ -273,6 +312,14 @@ public class SupplierService {
             throw new SupplierException(SupplierErrorCode.INVALID_ACTOR_HEADER);
         }
     }
+
+    private void validateAdminCreate(String userRole) {
+        if (!isAdmin(userRole)) {
+            throw new SupplierException(SupplierErrorCode.SUPPLIER_CREATE_FORBIDDEN);
+        }
+    }
+
+
 
 
 }

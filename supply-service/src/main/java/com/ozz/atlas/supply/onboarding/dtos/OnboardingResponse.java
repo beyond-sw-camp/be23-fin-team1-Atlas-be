@@ -5,6 +5,7 @@ import com.ozz.atlas.supply.onboarding.domain.OnboardingRequestStatus;
 import com.ozz.atlas.supply.onboarding.domain.OnboardingRequestType;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
+import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,7 +32,7 @@ public class OnboardingResponse {
     private String organizationPublicId;
     private String supplierCode;
     private String supplierName;
-    private Integer tierLevel;
+    private SupplierTierLevel tierLevel;
     private SupplierStatus supplierStatus;
     private ApprovalStatus approvalStatus;
     private String primaryContactName;
