@@ -10,6 +10,7 @@ import com.ozz.atlas.supply.shipment.repository.EtaProjectionRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentCheckpointRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentStatusHistoryRepository;
+import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.data.domain.Page;
@@ -31,13 +32,22 @@ public class ShipmentService {
     private final ShipmentCheckpointRepository shipmentCheckpointRepository;
     private final ShipmentStatusHistoryRepository shipmentStatusHistoryRepository;
     private final LogisticsNodeService logisticsNodeService;
+    private final ShipmentSearchService shipmentSearchService;
     private final EtaProjectionRepository etaProjectionRepository;
 
-    public ShipmentService(ShipmentRepository shipmentRepository, ShipmentCheckpointRepository shipmentCheckpointRepository, ShipmentStatusHistoryRepository shipmentStatusHistoryRepository, LogisticsNodeService logisticsNodeService, EtaProjectionRepository etaProjectionRepository) {
+    public ShipmentService(
+            ShipmentRepository shipmentRepository,
+            ShipmentCheckpointRepository shipmentCheckpointRepository,
+            ShipmentStatusHistoryRepository shipmentStatusHistoryRepository,
+            LogisticsNodeService logisticsNodeService,
+            ShipmentSearchService shipmentSearchService,
+            EtaProjectionRepository etaProjectionRepository
+    ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
         this.shipmentStatusHistoryRepository = shipmentStatusHistoryRepository;
         this.logisticsNodeService = logisticsNodeService;
+        this.shipmentSearchService = shipmentSearchService;
         this.etaProjectionRepository = etaProjectionRepository;
     }
 
@@ -76,6 +86,9 @@ public class ShipmentService {
                 originNode.getLongitude(),
                 "SYSTEM"
         );
+        // 출하가 생성되면 검색 문서도 함께 저장
+        shipmentSearchService.saveShipmentDocument(savedShipment);
+
         return toShipmentResponseDto(savedShipment);
     }
 
@@ -134,6 +147,9 @@ public class ShipmentService {
         applyCheckpointToShipment(shipment, dto, node.getId());
 
         Shipment savedShipment = shipmentRepository.save(shipment);
+        // 현재 위치나 상태가 바뀌었으므로 검색 문서도 다시 저장
+        shipmentSearchService.saveShipmentDocument(savedShipment);
+
 
         if (dto.getCheckpointStatus() == CheckpointStatus.PASSED) {
             saveShipmentStatusHistory(
