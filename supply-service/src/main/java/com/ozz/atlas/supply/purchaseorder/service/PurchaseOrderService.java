@@ -20,6 +20,7 @@ import com.ozz.atlas.supply.purchaseorder.exception.PurchaseOrderException;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus;
 import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderItemRepository;
+import com.ozz.atlas.supply.purchaseorder.search.service.PurchaseOrderSearchService;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
@@ -52,6 +53,8 @@ public class PurchaseOrderService {
     private final SupplierRepository supplierRepository;
     private final SupplyItemRepository supplyItemRepository;
     private final SubPurchaseOrderItemRepository subPurchaseOrderItemRepository;
+    private final PurchaseOrderSearchService purchaseOrderSearchService;
+
 
     public PurchaseOrderDetailResponse createPurchaseOrder(
             String buyerOrganizationPublicId,
@@ -115,7 +118,9 @@ public class PurchaseOrderService {
                 purchaseOrderItems
         );
 
-        return PurchaseOrderDetailResponse.fromEntity(purchaseOrderRepository.save(purchaseOrder));
+        SupplyPurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        purchaseOrderSearchService.savePurchaseOrderDocument(savedPurchaseOrder);
+        return PurchaseOrderDetailResponse.fromEntity(savedPurchaseOrder);
     }
 
     @Transactional(readOnly = true)
@@ -223,7 +228,7 @@ public class PurchaseOrderService {
                 request.getDueDate(),
                 request.getMemo()
         );
-
+        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
@@ -236,6 +241,7 @@ public class PurchaseOrderService {
         validateSupplierActionable(purchaseOrder);
 
         purchaseOrder.accept();
+        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
@@ -247,6 +253,7 @@ public class PurchaseOrderService {
         validateSupplierActionable(purchaseOrder);
 
         purchaseOrder.reject();
+        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
@@ -260,6 +267,7 @@ public class PurchaseOrderService {
         if (request.getPoStatus() == PoStatus.CANCELLED) {
             validateNoActiveSubOrdersForPurchaseOrder(purchaseOrder.getId());
             purchaseOrder.cancel();
+            purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
             return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
         }
 
@@ -268,6 +276,7 @@ public class PurchaseOrderService {
                 throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_STATUS_CHANGE_NOT_ALLOWED);
             }
             purchaseOrder.complete();
+            purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
             return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
         }
 
@@ -279,6 +288,7 @@ public class PurchaseOrderService {
 
         validateNoActiveSubOrdersForPurchaseOrder(purchaseOrder.getId());
         purchaseOrder.delete();
+        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
     }
 
     public PurchaseOrderDetailResponse addPurchaseOrderItem(
@@ -316,7 +326,7 @@ public class PurchaseOrderService {
                         requiredDate
                 )
         );
-
+        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
@@ -371,6 +381,7 @@ public class PurchaseOrderService {
         );
 
         purchaseOrder.refreshAfterItemChanged();
+        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
@@ -391,6 +402,7 @@ public class PurchaseOrderService {
 
         purchaseOrderItem.delete();
         purchaseOrder.refreshAfterItemChanged();
+        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
     }
 
     public PurchaseOrderDetailResponse confirmPurchaseOrderItem(
@@ -410,7 +422,7 @@ public class PurchaseOrderService {
 
         purchaseOrderItem.confirm(request.getConfirmedQty());
         purchaseOrder.refreshConfirmationStatus();
-
+        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 

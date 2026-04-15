@@ -11,6 +11,11 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
+import com.ozz.atlas.supply.purchaseorder.domain.PriorityCode;
+import com.ozz.atlas.supply.purchaseorder.search.dtos.PurchaseOrderSearchDto;
+import com.ozz.atlas.supply.purchaseorder.search.service.PurchaseOrderSearchService;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -18,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
+    private final PurchaseOrderSearchService purchaseOrderSearchService;
 
     @PostMapping
     public ResponseEntity<?> createPurchaseOrder(
@@ -40,8 +46,23 @@ public class PurchaseOrderController {
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestParam("viewType") PurchaseOrderViewType viewType,
             @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "poStatus", required = false) PoStatus poStatus,
+            @RequestParam(value = "priorityCode", required = false) PriorityCode priorityCode,
             @PageableDefault(size = 10) Pageable pageable
     ) {
+        PurchaseOrderSearchDto searchDto = PurchaseOrderSearchDto.builder()
+                .organizationPublicId(organizationPublicId)
+                .viewType(viewType)
+                .supplierPublicId(supplierPublicId)
+                .keyword(keyword)
+                .poStatus(poStatus)
+                .priorityCode(priorityCode)
+                .build();
+
+        if (purchaseOrderSearchService.hasSearchCondition(searchDto)) {
+            return ResponseEntity.ok(purchaseOrderSearchService.search(pageable, searchDto));
+        }
         return ResponseEntity.ok(
                 purchaseOrderService.getPurchaseOrderList(
                         organizationPublicId,
