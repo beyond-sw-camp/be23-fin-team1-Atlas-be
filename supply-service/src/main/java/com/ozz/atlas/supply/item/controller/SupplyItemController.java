@@ -11,6 +11,10 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.item.search.dtos.ItemSearchDto;
+import com.ozz.atlas.supply.item.search.service.ItemSearchService;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class SupplyItemController {
 
     private final SupplyItemService supplyItemService;
+    private final ItemSearchService itemSearchService;
 
     @PostMapping
     public ResponseEntity<?> createItem(
@@ -63,8 +68,25 @@ public class SupplyItemController {
 
     @GetMapping
     public ResponseEntity<?> getItemList(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
+            @RequestParam(value = "supplierOrganizationPublicId", required = false) String supplierOrganizationPublicId,
+            @RequestParam(value = "itemCategoryPublicId", required = false) String itemCategoryPublicId,
+            @RequestParam(value = "status", required = false) Status status,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
+        ItemSearchDto searchDto = ItemSearchDto.builder()
+                .keyword(keyword)
+                .supplierPublicId(supplierPublicId)
+                .supplierOrganizationPublicId(supplierOrganizationPublicId)
+                .itemCategoryPublicId(itemCategoryPublicId)
+                .status(status)
+                .build();
+
+        if (itemSearchService.hasSearchCondition(searchDto)) {
+            return ResponseEntity.ok(itemSearchService.search(pageable, searchDto));
+        }
+
         return ResponseEntity.ok(supplyItemService.getItemList(pageable));
     }
 }

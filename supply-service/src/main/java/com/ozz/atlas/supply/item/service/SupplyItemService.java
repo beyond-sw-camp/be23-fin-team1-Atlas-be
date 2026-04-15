@@ -14,6 +14,7 @@ import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
+import com.ozz.atlas.supply.item.search.service.ItemSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,7 @@ public class SupplyItemService {
     private final SupplyItemRepository supplyItemRepository;
     private final SupplyItemCategoryRepository supplyItemCategoryRepository;
     private final SupplierRepository supplierRepository;
+    private final ItemSearchService itemSearchService;
 
     public ItemResponse createItem(
             String organizationPublicId,
@@ -60,7 +62,9 @@ public class SupplyItemService {
                 request.getShelfLifeDays()
         );
 
-        return ItemResponse.fromEntity(supplyItemRepository.save(item));
+        SupplyItem savedItem = supplyItemRepository.save(item);
+        itemSearchService.saveItemDocument(savedItem);
+        return ItemResponse.fromEntity(savedItem);
     }
 
     public ItemResponse updateItem(
@@ -97,7 +101,7 @@ public class SupplyItemService {
                 request.getSpec(),
                 request.getShelfLifeDays()
         );
-
+        itemSearchService.saveItemDocument(item);
         return ItemResponse.fromEntity(item);
     }
 
@@ -116,6 +120,7 @@ public class SupplyItemService {
 
         validateItemOwner(item, organizationPublicId);
         item.changeActiveYn(Status.DELETE);
+        itemSearchService.saveItemDocument(item);
     }
 
     @Transactional(readOnly = true)
