@@ -1,7 +1,16 @@
 package com.ozz.atlas.supply.settlement.service;
 
+import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
+import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
+import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
+import com.ozz.atlas.supply.returns.domain.ReturnItem;
+import com.ozz.atlas.supply.returns.domain.ReturnRequest;
+import com.ozz.atlas.supply.returns.domain.ReturnStatus;
+import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
 import com.ozz.atlas.supply.settlement.domain.Settlement;
 import com.ozz.atlas.supply.settlement.domain.SettlementDetail;
+import com.ozz.atlas.supply.settlement.domain.SettlementStatus;
+import com.ozz.atlas.supply.settlement.domain.SettlementTargetType;
 import com.ozz.atlas.supply.settlement.dtos.CreateSettlementDetailRequestDto;
 import com.ozz.atlas.supply.settlement.dtos.CreateSettlementRequestDto;
 import com.ozz.atlas.supply.settlement.dtos.SettlementDetailResponseDto;
@@ -10,6 +19,8 @@ import com.ozz.atlas.supply.settlement.exception.SettlementErrorCode;
 import com.ozz.atlas.supply.settlement.exception.SettlementException;
 import com.ozz.atlas.supply.settlement.repository.SettlementDetailRepository;
 import com.ozz.atlas.supply.settlement.repository.SettlementRepository;
+import com.ozz.atlas.supply.shipment.domain.Shipment;
+import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
@@ -29,11 +40,16 @@ public class SettlementService {
     private final SettlementRepository settlementRepository;
     private final SettlementDetailRepository settlementDetailRepository;
     private final SupplierRepository supplierRepository;
+    private final ReturnRequestRepository returnRequestRepository;
+    private final ShipmentRepository shipmentRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
 
     // 정산 생성 -> 상세 금액 합계를 헤더 amount에 반영
     @Transactional
     public SettlementResponseDto createSettlement(CreateSettlementRequestDto request) {
         SupplySupplier supplier = getApprovedActiveSupplier(request.getSupplierPublicId());
+
+        validateCreateRequest(request);
 
         Settlement settlement = Settlement.builder()
                 .supplierId(supplier.getId())
@@ -47,9 +63,9 @@ public class SettlementService {
 
         Settlement savedSettlement = settlementRepository.save(settlement);
 
-        List<SettlementDetail> details = request.getDetails().stream()
-                .map(detailRequest -> toSettlementDetail(savedSettlement, detailRequest))
-                .toList();
+        List<SettlementDetail> details = request.getTargetType() == SettlementTargetType.RETURN
+                ? createReturnSettlementDetails(savedSettlement, request)
+                : createManualSettlementDetails(savedSettlement, request);
 
         List<SettlementDetail> savedDetails = settlementDetailRepository.saveAll(details);
 
@@ -61,6 +77,7 @@ public class SettlementService {
 
         return toResponseDto(savedSettlement, supplier.getPublicId(), savedDetails);
     }
+
 
     // 정산 목록 조회
     @Transactional(readOnly = true)
@@ -257,4 +274,90 @@ public class SettlementService {
             throw new SettlementException(forbiddenErrorCode);
         }
     }
+
+//    반품-정산 요청 검증
+    private void validateCreateRequest(CreateSettlementRequestDto request) {
+        if (request.getTargetType() != SettlementTargetType.RETURN) {
+            if (request.getDetails() == null || request.getDetails().isEmpty()) {
+                throw new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST);
+            }
+            return;
+        }
+
+        if (settlementRepository.existsByTargetTypeAndTargetPublicIdAndSettlementStatusNot(
+                SettlementTargetType.RETURN,
+                request.getTargetPublicId(),
+                SettlementStatus.CANCELLED
+        )) {
+            throw new SettlementException(SettlementErrorCode.DUPLICATE_SETTLEMENT_TARGET);
+        }
+    }
+
+//    기존 수동 정산 상세 생성 메서드 분리
+    private List<SettlementDetail> createManualSettlementDetails(
+            Settlement settlement,
+            CreateSettlementRequestDto request
+    ) {
+        return request.getDetails().stream()
+                .map(detailRequest -> toSettlementDetail(settlement, detailRequest))
+                .toList();
+    }
+
+    //    반품 정산 상세 생성
+    private List<SettlementDetail> createReturnSettlementDetails(
+            Settlement settlement,
+            CreateSettlementRequestDto request
+    ) {
+        ReturnRequest returnRequest = returnRequestRepository.findByPublicId(request.getTargetPublicId())
+                .orElseThrow(() -> new SettlementException(SettlementErrorCode.RETURN_NOT_FOUND));
+
+        if (returnRequest.getReturnStatus() != ReturnStatus.COMPLETED) {
+            throw new SettlementException(SettlementErrorCode.RETURN_NOT_SETTLABLE);
+        }
+
+        Shipment shipment = shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId())
+                .orElseThrow(() -> new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST));
+
+        if (shipment.getPoId() == null) {
+            throw new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST);
+        }
+
+        SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findById(shipment.getPoId())
+                .orElseThrow(() -> new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST));
+
+        if (!purchaseOrder.getSupplier().getId().equals(settlement.getSupplierId())) {
+            throw new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST);
+        }
+
+        return returnRequest.getItems().stream()
+                .map(returnItem -> toReturnSettlementDetail(settlement, purchaseOrder, returnItem))
+                .toList();
+    }
+
+
+    //    반품 item 1건을 정산 detail로 바꾸는 메서드
+    private SettlementDetail toReturnSettlementDetail(
+            Settlement settlement,
+            SupplyPurchaseOrder purchaseOrder,
+            ReturnItem returnItem
+    ) {
+        SupplyPurchaseOrderItem poItem = purchaseOrder.getPurchaseOrderItems().stream()
+                .filter(item -> item.getItem().getPublicId().equals(returnItem.getItemPublicId()))
+                .findFirst()
+                .orElseThrow(() -> new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST));
+
+        BigDecimal qty = returnItem.getReturnQty().negate();
+        BigDecimal unitPrice = poItem.getUnitPrice();
+        BigDecimal amount = qty.multiply(unitPrice);
+
+        return SettlementDetail.builder()
+                .settlement(settlement)
+                .poItemId(poItem.getPoItemId())
+                .itemId(poItem.getItem().getId())
+                .qty(qty)
+                .unitPrice(unitPrice)
+                .amount(amount)
+                .build();
+    }
+
 }
