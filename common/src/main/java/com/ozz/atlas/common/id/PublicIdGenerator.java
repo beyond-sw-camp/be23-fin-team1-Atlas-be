@@ -8,6 +8,6 @@ public final class PublicIdGenerator {
     }
 
     public static String next() {
-        return UlidCreator.getMonotonicUlid().toString();
+            return UlidCreator.getMonotonicUlid().toString();
     }
 }
