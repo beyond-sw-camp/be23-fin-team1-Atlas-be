@@ -1,6 +1,9 @@
 spring:
   profiles:
     active: local
+    group:
+      local:
+        - batch
   application:
     name: supply-service
 
