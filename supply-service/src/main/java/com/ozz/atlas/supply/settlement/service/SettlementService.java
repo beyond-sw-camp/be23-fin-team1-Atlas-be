@@ -7,6 +7,7 @@ import com.ozz.atlas.supply.returns.domain.ReturnItem;
 import com.ozz.atlas.supply.returns.domain.ReturnRequest;
 import com.ozz.atlas.supply.returns.domain.ReturnStatus;
 import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
+import com.ozz.atlas.supply.settlement.search.service.SettlementSearchService;
 import com.ozz.atlas.supply.settlement.domain.Settlement;
 import com.ozz.atlas.supply.settlement.domain.SettlementDetail;
 import com.ozz.atlas.supply.settlement.domain.SettlementStatus;
@@ -45,6 +46,8 @@ public class SettlementService {
     private final ReturnRequestRepository returnRequestRepository;
     private final ShipmentRepository shipmentRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final SettlementSearchService settlementSearchService;
+
 
     // 정산 생성 -> 상세 금액 합계를 헤더 amount에 반영
     @Transactional
@@ -76,6 +79,9 @@ public class SettlementService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         savedSettlement.updateAmount(totalAmount);
+
+        // 생성된 정산 데이터를 ES에도 저장
+        settlementSearchService.saveSettlementDocument(savedSettlement);
 
         return toResponseDto(savedSettlement, supplier.getPublicId(), savedDetails);
     }
@@ -123,6 +129,9 @@ public class SettlementService {
 
         details.forEach(SettlementDetail::approve);
 
+        // 승인 상태가 반영된 정산 문서를 ES에도 다시 저장
+        settlementSearchService.saveSettlementDocument(settlement);
+
         String supplierPublicId = getSupplierPublicId(settlement.getSupplierId());
 
         return toResponseDto(settlement, supplierPublicId, details);
@@ -149,6 +158,9 @@ public class SettlementService {
                 settlementDetailRepository.findAllBySettlement_IdOrderByIdAsc(settlement.getId());
 
         details.forEach(SettlementDetail::cancel);
+
+        // 취소 상태가 반영된 정산 문서를 ES에도 다시 저장
+        settlementSearchService.saveSettlementDocument(settlement);
 
         String supplierPublicId = getSupplierPublicId(settlement.getSupplierId());
 
