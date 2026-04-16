@@ -16,11 +16,15 @@ import com.ozz.atlas.supply.returns.exception.ReturnErrorCode;
 import com.ozz.atlas.supply.returns.exception.ReturnException;
 import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
 import com.ozz.atlas.supply.returns.repository.ReturnStatusHistoryRepository;
+import com.ozz.atlas.supply.returns.search.service.ReturnSearchService;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,6 +39,7 @@ public class ReturnService {
     private final ReturnStatusHistoryRepository returnStatusHistoryRepository;
     private final ShipmentRepository shipmentRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final ReturnSearchService returnSearchService;
 
     @Transactional
     public ReturnRequestResponseDto createReturn(CreateReturnRequestDto request, String actorPublicId) {
@@ -90,13 +95,15 @@ public class ReturnService {
 
         saveHistory(savedReturn.getId(), null, savedReturn.getReturnStatus(), "반품 요청 생성", actorPublicId);
 
+        // DB 저장이 끝난 반품 데이터를 ES에도 같이 저장
+        returnSearchService.saveReturnDocument(savedReturn);
+
         return ReturnRequestResponseDto.from(savedReturn);
     }
 
-    public List<ReturnRequestResponseDto> getAllReturns() {
-        return returnRequestRepository.findAll().stream()
-                .map(ReturnRequestResponseDto::from)
-                .collect(Collectors.toList());
+    public Page<ReturnRequestResponseDto> getAllReturns(Pageable pageable) {
+        return returnRequestRepository.findAll(pageable)
+                .map(ReturnRequestResponseDto :: from);
     }
 
     public ReturnRequestResponseDto getReturnByPublicId(String publicId) {
@@ -113,6 +120,9 @@ public class ReturnService {
         String attachments = request.getAttachmentPublicIds() != null ? String.join(",", request.getAttachmentPublicIds()) : null;
         returnRequest.update(request.getReturnType(), request.getReturnReason(), attachments);
 
+        // 수정된 반품 정보를 ES에도 다시 저장
+        returnSearchService.saveReturnDocument(returnRequest);
+
         return ReturnRequestResponseDto.from(returnRequest);
     }
 
@@ -125,6 +135,9 @@ public class ReturnService {
         returnRequest.changeStatus(request.getReturnStatus());
 
         saveHistory(returnRequest.getId(), beforeStatus, returnRequest.getReturnStatus(), request.getReason(), actorPublicId);
+
+        // 상태가 바뀌었으니 ES 문서도 다시 저장
+        returnSearchService.saveReturnDocument(returnRequest);
 
         return ReturnRequestResponseDto.from(returnRequest);
     }
