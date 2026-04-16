@@ -12,6 +12,12 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.ozz.atlas.supply.settlement.domain.SettlementCurrency;
+import com.ozz.atlas.supply.settlement.domain.SettlementStatus;
+import com.ozz.atlas.supply.settlement.domain.SettlementTargetType;
+import com.ozz.atlas.supply.settlement.search.dtos.SettlementSearchDto;
+import com.ozz.atlas.supply.settlement.search.service.SettlementSearchService;
+
 
 @RestController
 @RequestMapping("/api/supply/settlements")
@@ -19,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class SettlementController {
 
     private final SettlementService settlementService;
+    private final SettlementSearchService settlementSearchService;
 
 //    정산 생성
     @PostMapping
@@ -32,8 +39,25 @@ public class SettlementController {
 //    정산 목록 조회
     @GetMapping
     public Page<SettlementResponseDto> getSettlements(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
+            @RequestParam(value = "targetType", required = false) SettlementTargetType targetType,
+            @RequestParam(value = "settlementStatus", required = false) SettlementStatus settlementStatus,
+            @RequestParam(value = "currencyCode", required = false) SettlementCurrency currencyCode,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
+        SettlementSearchDto searchDto = SettlementSearchDto.builder()
+                .keyword(keyword)
+                .supplierPublicId(supplierPublicId)
+                .targetType(targetType)
+                .settlementStatus(settlementStatus)
+                .currencyCode(currencyCode)
+                .build();
+
+        if (settlementSearchService.hasSearchCondition(searchDto)) {
+            return settlementSearchService.search(pageable, searchDto);
+        }
+
         return settlementService.getSettlements(pageable);
     }
 

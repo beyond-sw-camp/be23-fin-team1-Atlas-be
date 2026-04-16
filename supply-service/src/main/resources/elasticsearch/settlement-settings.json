@@ -1,0 +1,27 @@
+{
+  "index": {
+    "max_ngram_diff": 19
+  },
+  "analysis": {
+    "tokenizer": {
+      "settlement_ngram_tokenizer": {
+        "type": "ngram",
+        "min_gram": 1,
+        "max_gram": 20,
+        "token_chars": ["letter", "digit"]
+      }
+    },
+    "analyzer": {
+      "settlement_ngram_analyzer": {
+        "type": "custom",
+        "tokenizer": "settlement_ngram_tokenizer",
+        "filter": ["lowercase"]
+      },
+      "settlement_search_analyzer": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": ["lowercase"]
+      }
+    }
+  }
+}
