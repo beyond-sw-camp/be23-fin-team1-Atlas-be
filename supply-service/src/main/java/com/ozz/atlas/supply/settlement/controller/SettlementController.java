@@ -5,11 +5,13 @@ import com.ozz.atlas.supply.settlement.dtos.SettlementResponseDto;
 import com.ozz.atlas.supply.settlement.service.SettlementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/supply/settlements")
@@ -29,11 +31,14 @@ public class SettlementController {
 
 //    정산 목록 조회
     @GetMapping
-    public ResponseEntity<List<SettlementResponseDto>> getSettlements() {
-        return ResponseEntity.ok(settlementService.getSettlements());
+    public Page<SettlementResponseDto> getSettlements(
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return settlementService.getSettlements(pageable);
     }
 
-//    정산 상세 조회
+
+    //    정산 상세 조회
     @GetMapping("/{settlementId}")
     public ResponseEntity<SettlementResponseDto> getSettlement(
             @PathVariable Long settlementId

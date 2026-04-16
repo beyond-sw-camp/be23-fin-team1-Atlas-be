@@ -26,6 +26,8 @@ import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,11 +83,11 @@ public class SettlementService {
 
     // 정산 목록 조회
     @Transactional(readOnly = true)
-    public List<SettlementResponseDto> getSettlements() {
-        return settlementRepository.findAllByOrderByIdDesc().stream()
-                .map(this::toResponseDtoWithoutDetails)
-                .toList();
+    public Page<SettlementResponseDto> getSettlements(Pageable pageable) {
+        return settlementRepository.findAll(pageable)
+                .map(this::toResponseDtoWithoutDetails);
     }
+
 
     // 정산 상세 조회
     @Transactional(readOnly = true)
