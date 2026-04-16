@@ -17,6 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.ozz.atlas.supply.lot.search.service.LotSearchService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -24,6 +29,8 @@ public class LotService {
 
     private final LotRepository lotRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
+    private final LotSearchService lotSearchService;
+
 
     @Transactional
     public LotResponseDto createLot(CreateLotRequestDto request) {
@@ -43,13 +50,18 @@ public class LotService {
                 .currentNodePublicId(request.getCurrentNodePublicId())
                 .build();
 
-        return LotResponseDto.from(lotRepository.save(lot));
+        Lot savedLot = lotRepository.save(lot);
+
+        // 새로 생성된 LOT를 ES에도 같이 저장
+        lotSearchService.saveLotDocument(savedLot);
+
+        return LotResponseDto.from(savedLot);
+
     }
 
-    public List<LotResponseDto> getAllLots() {
-        return lotRepository.findAll().stream()
-                .map(LotResponseDto::from)
-                .collect(Collectors.toList());
+    public Page<LotResponseDto> getAllLots(Pageable pageable) {
+        return lotRepository.findAll(pageable)
+                .map(LotResponseDto::from);
     }
 
     public LotResponseDto getLotByPublicId(String publicId) {
@@ -64,6 +76,8 @@ public class LotService {
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
         lot.update(request.getQty(), request.getExpiredAt(), request.getCurrentNodePublicId());
+        // 수정된 LOT 정보를 ES에도 다시 저장
+        lotSearchService.saveLotDocument(lot);
         return LotResponseDto.from(lot);
     }
 
@@ -73,6 +87,8 @@ public class LotService {
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
         lot.changeStatus(lotStatus);
+        // 상태가 바뀌었으니 ES 문서도 다시 저장
+        lotSearchService.saveLotDocument(lot);
         return LotResponseDto.from(lot);
     }
 
@@ -82,6 +98,8 @@ public class LotService {
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
         lot.changeQuality(qualityStatus);
+        // 품질 상태가 바뀌었으니 ES 문서도 다시 저장
+        lotSearchService.saveLotDocument(lot);
         return LotResponseDto.from(lot);
     }
 }
