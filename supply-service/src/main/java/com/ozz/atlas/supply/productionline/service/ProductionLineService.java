@@ -8,6 +8,7 @@ import com.ozz.atlas.supply.productionline.dtos.ProductionLineResponseDto;
 import com.ozz.atlas.supply.productionline.dtos.ProductionLineStatusUpdateDto;
 import com.ozz.atlas.supply.productionline.dtos.ProductionLineUpdateDto;
 import com.ozz.atlas.supply.productionline.repository.ProductionLineRepository;
+import com.ozz.atlas.supply.productionline.search.service.ProductionLineSearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,11 +23,14 @@ public class ProductionLineService {
 
     private final ProductionLineRepository productionLineRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
+    private final ProductionLineSearchService productionLineSearchService;
+
 
     @Autowired
-    public ProductionLineService(ProductionLineRepository productionLineRepository, LogisticsNodeRepository logisticsNodeRepository) {
+    public ProductionLineService(ProductionLineRepository productionLineRepository, LogisticsNodeRepository logisticsNodeRepository, ProductionLineSearchService productionLineSearchService) {
         this.productionLineRepository = productionLineRepository;
         this.logisticsNodeRepository = logisticsNodeRepository;
+        this.productionLineSearchService = productionLineSearchService;
     }
 
     //    생산라인 등록
@@ -43,6 +47,8 @@ public class ProductionLineService {
         }
 
         ProductionLine productionLine = productionLineRepository.save(dto.toEntity());
+        // 생성된 생산라인을 ES에도 저장
+        productionLineSearchService.saveProductionLineDocument(productionLine);
         return ProductionLineResponseDto.fromEntity(productionLine);
     }
 
@@ -93,7 +99,8 @@ public class ProductionLineService {
                 dto.getLineType(),
                 dto.getDailyCapacity()
         );
-
+        // 수정된 생산라인을 ES에도 저장
+        productionLineSearchService.saveProductionLineDocument(productionLine);
         return ProductionLineResponseDto.fromEntity(productionLine);
     }
 
@@ -115,6 +122,8 @@ public class ProductionLineService {
             throw new IllegalArgumentException("상태 변경은 ACTIVE 또는 DEACTIVE만 가능합니다.");
         }
 
+        // 상태가 바뀌었으니 ES 문서도 다시 저장
+        productionLineSearchService.saveProductionLineDocument(productionLine);
         return ProductionLineResponseDto.fromEntity(productionLine);
     }
 
@@ -128,6 +137,8 @@ public class ProductionLineService {
         }
 
         productionLine.delete();
+        // 삭제 상태도 ES에 반영
+        productionLineSearchService.saveProductionLineDocument(productionLine);
     }
 
 }
