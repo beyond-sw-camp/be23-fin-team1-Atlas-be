@@ -417,7 +417,7 @@ CT-->>MB: "분산 발주 전략 비교 화면 제공"
 </details>
 
 <details>
-<summary>API 명세서</summary>
+<summary>프로그램 사양서 및 단위테스트결과서</summary>
 
 클릭 -> [Swagger hub link](https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0 ) 
 
