@@ -2,6 +2,12 @@ package com.ozz.atlas.control.notification.controller;
 
 import com.ozz.atlas.control.notification.dto.NotificationDto;
 import com.ozz.atlas.control.notification.service.NotificationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/control/notifications")
 @RequiredArgsConstructor
+@Tag(name = "Notification")
 public class NotificationController {
 
     private final NotificationService notificationService;
@@ -30,6 +37,17 @@ public class NotificationController {
      * 안 읽은 알림 개수 조회
      */
     @GetMapping("/unread-count")
+    @Operation(
+            summary = "안 읽은 알림 개수 조회",
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(
+                            schema = @Schema(type = "integer", format = "int64", example = "5"),
+                            examples = @ExampleObject(value = "5")
+                    )
+            )
+    )
     public ResponseEntity<Long> getUnreadCount(@RequestHeader("X-User-Public-Id") String userPublicId) {
         return ResponseEntity.ok(notificationService.getUnreadCount(userPublicId));
     }

@@ -8,6 +8,14 @@ import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.service.AuthService;
 import com.ozz.atlas.auth.service.LoginHistoryService;
 import com.ozz.atlas.auth.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +31,8 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Auth")
+@SecurityRequirement(name = "bearerAuth")
 public class AuthController {
     private final AuthService authService;
     private final UserService userService;
@@ -39,6 +49,40 @@ public class AuthController {
 
     //    로그인
     @PostMapping("/login")
+    @SecurityRequirements
+    @Operation(
+            summary = "로그인",
+            description = "로그인 ID와 비밀번호로 Access Token과 Refresh Token을 발급한다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = LoginDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "loginId": "atlas_admin",
+                                              "password": "Atlas!234"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "로그인 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = TokenDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "accessToken": "eyJhbGciOiJIUzI1NiJ9.access-token",
+                                              "refreshToken": "eyJhbGciOiJIUzI1NiJ9.refresh-token"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<TokenDto> login(@RequestBody @Valid LoginDto dto,
                                           HttpServletRequest request) {
         User user = authService.login(dto.getLoginId(), dto.getPassword());
@@ -76,6 +120,38 @@ public class AuthController {
 
     //    토큰 재발급
     @PostMapping("/refresh")
+    @SecurityRequirements
+    @Operation(
+            summary = "토큰 재발급",
+            description = "Refresh Token으로 새 Access Token을 발급한다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = RefreshTokenRequestDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "refreshToken": "eyJhbGciOiJIUzI1NiJ9.refresh-token"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "재발급 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = AccessTokenResponseDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "accessToken": "eyJhbGciOiJIUzI1NiJ9.new-access-token"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<AccessTokenResponseDto> refresh(@RequestBody @Valid RefreshTokenRequestDto dto) {
         AccessTokenResponseDto response = authService.refresh(dto.getRefreshToken());
         return ResponseEntity.ok(response);
