@@ -21,8 +21,6 @@ public class UserSearchIndexer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (userSearchRepository.count() == 0) {
-            userSearchService.reindexAllUsers();
-        }
+        userSearchService.reindexAllUsers();
     }
 }
