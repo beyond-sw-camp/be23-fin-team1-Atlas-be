@@ -3,13 +3,18 @@ package com.ozz.atlas.supply.lot.service;
 import com.ozz.atlas.supply.lot.domain.Lot;
 import com.ozz.atlas.supply.lot.domain.LotStatus;
 import com.ozz.atlas.supply.lot.domain.QualityStatus;
+import com.ozz.atlas.supply.lot.domain.LotStatusHistory;
 import com.ozz.atlas.supply.lot.dtos.CreateLotRequestDto;
 import com.ozz.atlas.supply.lot.dtos.LotResponseDto;
 import com.ozz.atlas.supply.lot.dtos.UpdateLotRequestDto;
+import com.ozz.atlas.supply.lot.dtos.LotHistoryResponseDto;
 import com.ozz.atlas.supply.lot.exception.LotErrorCode;
 import com.ozz.atlas.supply.lot.exception.LotException;
 import com.ozz.atlas.supply.lot.repository.LotRepository;
+import com.ozz.atlas.supply.lot.repository.LotStatusHistoryRepository;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderItemRepository;
+import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.item.domain.SupplyItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +35,8 @@ public class LotService {
     private final LotRepository lotRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final LotSearchService lotSearchService;
+    private final SupplyItemRepository supplyItemRepository;
+    private final LotStatusHistoryRepository lotStatusHistoryRepository;
 
 
     @Transactional
@@ -52,22 +59,31 @@ public class LotService {
 
         Lot savedLot = lotRepository.save(lot);
 
+        LotStatusHistory history = LotStatusHistory.builder()
+                .lot(savedLot)
+                .lotStatus(savedLot.getLotStatus())
+                .qualityStatus(savedLot.getQualityStatus())
+                .currentNodePublicId(savedLot.getCurrentNodePublicId())
+                .reason("LOT 생성")
+                .build();
+        lotStatusHistoryRepository.save(history);
+
         // 새로 생성된 LOT를 ES에도 같이 저장
         lotSearchService.saveLotDocument(savedLot);
 
-        return LotResponseDto.from(savedLot);
+        return toResponseDto(savedLot);
 
     }
 
     public Page<LotResponseDto> getAllLots(Pageable pageable) {
         return lotRepository.findAll(pageable)
-                .map(LotResponseDto::from);
+                .map(this::toResponseDto);
     }
 
     public LotResponseDto getLotByPublicId(String publicId) {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
-        return LotResponseDto.from(lot);
+        return toResponseDto(lot);
     }
 
     @Transactional
@@ -75,10 +91,22 @@ public class LotService {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
+        String preNodePublicId = lot.getCurrentNodePublicId();
         lot.update(request.getQty(), request.getExpiredAt(), request.getCurrentNodePublicId());
+
+        LotStatusHistory history = LotStatusHistory.builder()
+                .lot(lot)
+                .lotStatus(lot.getLotStatus())
+                .qualityStatus(lot.getQualityStatus())
+                .preNodePublicId(preNodePublicId)
+                .currentNodePublicId(lot.getCurrentNodePublicId())
+                .reason("LOT 정보 수정")
+                .build();
+        lotStatusHistoryRepository.save(history);
+
         // 수정된 LOT 정보를 ES에도 다시 저장
         lotSearchService.saveLotDocument(lot);
-        return LotResponseDto.from(lot);
+        return toResponseDto(lot);
     }
 
     @Transactional
@@ -86,10 +114,22 @@ public class LotService {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
+        LotStatus preLotStatus = lot.getLotStatus();
         lot.changeStatus(lotStatus);
+
+        LotStatusHistory history = LotStatusHistory.builder()
+                .lot(lot)
+                .preLotStatus(preLotStatus)
+                .lotStatus(lot.getLotStatus())
+                .qualityStatus(lot.getQualityStatus())
+                .currentNodePublicId(lot.getCurrentNodePublicId())
+                .reason("상태 변경")
+                .build();
+        lotStatusHistoryRepository.save(history);
+
         // 상태가 바뀌었으니 ES 문서도 다시 저장
         lotSearchService.saveLotDocument(lot);
-        return LotResponseDto.from(lot);
+        return toResponseDto(lot);
     }
 
     @Transactional
@@ -97,9 +137,43 @@ public class LotService {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
+        QualityStatus preQualityStatus = lot.getQualityStatus();
         lot.changeQuality(qualityStatus);
+
+        LotStatusHistory history = LotStatusHistory.builder()
+                .lot(lot)
+                .lotStatus(lot.getLotStatus())
+                .preQualityStatus(preQualityStatus)
+                .qualityStatus(lot.getQualityStatus())
+                .currentNodePublicId(lot.getCurrentNodePublicId())
+                .reason("품질 상태 변경")
+                .build();
+        lotStatusHistoryRepository.save(history);
+
         // 품질 상태가 바뀌었으니 ES 문서도 다시 저장
         lotSearchService.saveLotDocument(lot);
-        return LotResponseDto.from(lot);
+        return toResponseDto(lot);
+    }
+
+    public List<LotHistoryResponseDto> getLotHistories(String publicId) {
+        return lotStatusHistoryRepository.findByLot_PublicIdOrderByCreatedAtDesc(publicId)
+                .stream()
+                .map(LotHistoryResponseDto::from)
+                .collect(Collectors.toList());
+    }
+
+    private LotResponseDto toResponseDto(Lot lot) {
+        String supplierName = null;
+        String itemName = null;
+        if (lot.getItemPublicId() != null) {
+            SupplyItem item = supplyItemRepository.findByPublicId(lot.getItemPublicId()).orElse(null);
+            if (item != null) {
+                itemName = item.getItemName();
+                if (item.getSupplier() != null) {
+                    supplierName = item.getSupplier().getSupplierName();
+                }
+            }
+        }
+        return LotResponseDto.from(lot, supplierName, itemName);
     }
 }
