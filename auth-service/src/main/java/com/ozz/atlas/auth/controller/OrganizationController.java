@@ -4,6 +4,13 @@ import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.service.OrganizationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -17,6 +24,8 @@ import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Organizations")
+@SecurityRequirement(name = "bearerAuth")
 public class OrganizationController {
     private final OrganizationService organizationService;
 
@@ -27,6 +36,45 @@ public class OrganizationController {
 
     //    조직 등록
     @PostMapping("/organizations")
+    @Operation(
+            summary = "조직 등록",
+            description = "발주사 또는 협력사 조직을 신규 등록한다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = OrganizationCreateDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "organizationType": "SUPPLIER",
+                                              "organizationName": "Atlas Foods Supplier",
+                                              "businessNo": "123-45-67890",
+                                              "contactFirstName": "Minji",
+                                              "contactMiddleName": "J",
+                                              "contactLastName": "Kim",
+                                              "contactEmail": "minji.kim@atlasfoods.com",
+                                              "contactPhone": "010-1234-5678",
+                                              "tierLevel": 1
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            responses = @ApiResponse(
+                    responseCode = "201",
+                    description = "조직 생성 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = OrganizationCreateResponseDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "organizationPublicId": "org_01HZX9X5D4P2Q7F8R9S1T2U3V4"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<OrganizationCreateResponseDto> createOrganization(
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestBody @Valid OrganizationCreateDto dto) {

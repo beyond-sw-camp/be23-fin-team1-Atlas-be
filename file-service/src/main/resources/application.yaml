@@ -17,3 +17,13 @@ management:
     health:
       probes:
         enabled: true
+
+springdoc:
+  api-docs:
+    path: /api/files/v3/api-docs
+  swagger-ui:
+    path: /api/files/swagger-ui.html
+    url: /api/files/v3/api-docs
+    disable-swagger-default-url: true
+    operations-sorter: method
+    tags-sorter: alpha

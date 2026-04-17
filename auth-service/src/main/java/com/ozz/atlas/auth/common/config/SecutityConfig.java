@@ -44,6 +44,11 @@ public class SecutityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/users", "/api/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/users/public/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/swagger-ui.html",
+                                "/api/auth/swagger-ui/**",
+                                "/api/auth/v3/api-docs/**"
+                        ).permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )

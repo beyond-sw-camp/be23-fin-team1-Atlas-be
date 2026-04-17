@@ -5,6 +5,14 @@ import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.service.LoginHistoryService;
 import com.ozz.atlas.auth.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Users")
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
     private final UserService userService;
     private final LoginHistoryService loginHistoryService;
@@ -30,6 +40,47 @@ public class UserController {
 
     //    회원가입
     @PostMapping("/users")
+    @SecurityRequirements
+    @Operation(
+            summary = "회원가입",
+            description = "조직에 소속된 일반 사용자를 생성한다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = UserSignUpDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "organizationPublicId": "org_01HZX9X5D4P2Q7F8R9S1T2U3V4",
+                                              "loginId": "atlas_user01",
+                                              "password": "Atlas!234",
+                                              "firstName": "Seoyeon",
+                                              "middleName": "",
+                                              "lastName": "Lee",
+                                              "email": "seoyeon.lee@atlas.com",
+                                              "phone": "010-8888-9999",
+                                              "jobTitle": "Procurement Manager",
+                                              "profileImagePublicId": "file_01HZXABCDEF1234567890"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            responses = @ApiResponse(
+                    responseCode = "201",
+                    description = "사용자 생성 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = UserCreateResponseDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "userPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<UserCreateResponseDto> signup(@RequestBody @Valid UserSignUpDto dto) {
         String userPublicId = userService.signup(dto);
 
@@ -59,6 +110,26 @@ public class UserController {
 
     //    내정보 조회
     @GetMapping("/me")
+    @Operation(
+            summary = "내 정보 조회",
+            description = "현재 로그인한 사용자의 조직과 역할 정보를 조회한다.",
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "조회 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = MyInfoDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "organizationPublicId": "org_01HZX9X5D4P2Q7F8R9S1T2U3V4",
+                                              "userPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0",
+                                              "role": "ADMIN"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<MyInfoDto> getMyInfo(@AuthenticationPrincipal AuthPrincipal principal) {
         MyInfoDto response = userService.getMyInfo(
                 principal.userPublicId(),
@@ -140,6 +211,7 @@ public class UserController {
 
     // 채팅 서비스 등 내부 연동용 사용자 조회
     @GetMapping("/users/public/{userPublicId}")
+    @SecurityRequirements
     public ResponseEntity<UserDetailDto> userDetailByPublicId(@PathVariable String userPublicId) {
         UserDetailDto response = userService.userDetailByPublicId(userPublicId);
         return ResponseEntity.ok(response);

@@ -4,6 +4,12 @@ import com.ozz.atlas.supply.shipment.dtos.*;
 import com.ozz.atlas.supply.shipment.search.dtos.ShipmentSearchDto;
 import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
 import com.ozz.atlas.supply.shipment.service.ShipmentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +23,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/supply/shipments")
+@Tag(name = "Shipment")
 public class ShipmentController {
 
     private final ShipmentService shipmentService;
@@ -29,6 +36,62 @@ public class ShipmentController {
 
 //    출하 생성
     @PostMapping
+    @Operation(
+            summary = "출하 생성",
+            description = "발주 기준으로 출하 정보를 생성한다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = CreateShipmentRequestDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "shipmentNumber": "SHIP-2026-0001",
+                                              "poId": 101,
+                                              "subPoId": 202,
+                                              "carrierName": "CJ Logistics",
+                                              "vehicleNo": "12가3456",
+                                              "trackingNo": "TRK-ATLAS-20260417",
+                                              "originNodePublicId": "node_origin_01HZY1AAA",
+                                              "destinationNodePublicId": "node_dest_01HZY1BBB",
+                                              "departureEta": "2026-04-18T08:00:00",
+                                              "arrivalEta": "2026-04-18T14:00:00",
+                                              "temperatureRequired": true
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            responses = @ApiResponse(
+                    responseCode = "201",
+                    description = "출하 생성 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = ShipmentResponseDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "publicId": "ship_01HZY1SHIPMENT123456789",
+                                              "shipmentNumber": "SHIP-2026-0001",
+                                              "poId": 101,
+                                              "subPoId": 202,
+                                              "carrierName": "CJ Logistics",
+                                              "vehicleNo": "12가3456",
+                                              "trackingNo": "TRK-ATLAS-20260417",
+                                              "originNodePublicId": "node_origin_01HZY1AAA",
+                                              "destinationNodePublicId": "node_dest_01HZY1BBB",
+                                              "currentNodePublicId": "node_origin_01HZY1AAA",
+                                              "departureEta": "2026-04-18T08:00:00",
+                                              "arrivalEta": "2026-04-18T14:00:00",
+                                              "actualDepartedAt": null,
+                                              "actualArrivedAt": null,
+                                              "status": "READY",
+                                              "temperatureRequired": true
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<ShipmentResponseDto> createShipment(@Valid @RequestBody CreateShipmentRequestDto dto){
         ShipmentResponseDto createdShipment = shipmentService.createShipment(dto);
 

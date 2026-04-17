@@ -1,7 +1,15 @@
 package com.ozz.atlas.control.chat.controller;
 
 import com.ozz.atlas.control.chat.dto.ChatRoomDto;
+import com.ozz.atlas.control.chat.dto.InviteParticipantsDto;
+import com.ozz.atlas.control.chat.dto.MarkAsReadRequestDto;
 import com.ozz.atlas.control.chat.service.ChatRoomService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +27,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/control/chats/rooms")
 @RequiredArgsConstructor
+@Tag(name = "ChatRoom")
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
@@ -32,12 +41,57 @@ public class ChatRoomController {
      * Request Body: { "roomName": "...", "creatorPublicId": "...", "participantIds": ["...", "..."] }
      */
     @PostMapping
+    @Operation(
+            summary = "채팅방 생성",
+            description = "참여자 목록을 포함한 신규 채팅방을 생성한다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(type = "object"),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "roomName": "원재료 공급 이슈 대응",
+                                              "creatorPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0",
+                                              "participantIds": [
+                                                "usr_01HZXA1B2C3D4E5F6G7H8J9K0",
+                                                "usr_01HZY4U2"
+                                              ]
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "생성 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = ChatRoomDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "publicId": "room_01HZY4ROOM123456789",
+                                              "roomName": "원재료 공급 이슈 대응",
+                                              "roomStatus": "ACTIVE",
+                                              "userAccountPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0",
+                                              "createdAt": "2026-04-17T10:20:00",
+                                              "unreadCount": 0,
+                                              "lastMessage": null,
+                                              "lastMessageAt": null
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<ChatRoomDto> createRoom(@RequestBody Map<String, Object> request) {
-        String roomName = (String) request.get("roomName");
-        String creatorPublicId = (String) request.get("creatorPublicId");
-        List<String> participantIds = (List<String>) request.get("participantIds");
-
-        return ResponseEntity.ok(chatRoomService.createRoom(roomName, creatorPublicId, participantIds));
+        return ResponseEntity.ok(
+                chatRoomService.createRoom(
+                        (String) request.get("roomName"),
+                        (String) request.get("creatorPublicId"),
+                        (List<String>) request.get("participantIds")
+                )
+        );
     }
 
     /**
@@ -59,9 +113,25 @@ public class ChatRoomController {
      * 채팅방 메시지 읽음 처리 (수동)
      */
     @PatchMapping("/{roomPublicId}/read")
+    @Operation(
+            summary = "채팅 읽음 처리",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = false,
+                    content = @Content(
+                            schema = @Schema(implementation = MarkAsReadRequestDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "lastReadMessagePublicId": "msg_01HZY4MSG123456789"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<Void> markAsRead(
             @PathVariable String roomPublicId, 
-            @RequestBody(required = false) com.ozz.atlas.control.chat.dto.MarkAsReadRequestDto request,
+            @RequestBody(required = false) MarkAsReadRequestDto request,
             @RequestHeader("X-User-Public-Id") String userPublicId) {
         
         String messagePublicId = (request != null) ? request.getLastReadMessagePublicId() : null;
@@ -75,9 +145,26 @@ public class ChatRoomController {
      * Request Body: { "inviterPublicId": "...", "targetUserPublicIds": ["...", "..."] }
      */
     @PostMapping("/{roomPublicId}/participants")
+    @Operation(
+            summary = "채팅방 참여자 초대",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = InviteParticipantsDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "inviterPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0",
+                                              "targetUserPublicIds": ["usr_01HZY4U2", "usr_01HZY4U3"]
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<Void> inviteParticipants(
             @PathVariable String roomPublicId, 
-            @RequestBody com.ozz.atlas.control.chat.dto.InviteParticipantsDto request) {
+            @RequestBody InviteParticipantsDto request) {
         String inviterPublicId = request.getInviterPublicId();
         List<String> targetUserPublicIds = request.getTargetUserPublicIds();
         

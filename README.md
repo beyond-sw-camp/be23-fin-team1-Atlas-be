@@ -415,3 +415,31 @@ CT-->>MB: "분산 발주 전략 비교 화면 제공"
 이미지를 클릭하면 Google Stitch 프로젝트로 이동한다.
 직접 열기: [Google Stitch](https://stitch.withgoogle.com/projects/3858843644991271330)
 </details>
+
+<details>
+<summary>API 명세서</summary>
+
+클릭 -> [Swagger hub link](https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0 ) 
+
+## Swagger / OpenAPI
+
+Spring Boot 애플리케이션 실행 후 서비스별 Swagger UI는 아래 경로로 접근한다.
+
+| 서비스 | Swagger UI | OpenAPI JSON |
+| --- | --- | --- |
+| auth-service | `/api/auth/swagger-ui.html` | `/api/auth/v3/api-docs` |
+| supply-service | `/api/supply/swagger-ui.html` | `/api/supply/v3/api-docs` |
+| control-service | `/api/control/swagger-ui.html` | `/api/control/v3/api-docs` |
+| file-service | `/api/files/swagger-ui.html` | `/api/files/v3/api-docs` |
+
+참고:
+
+- `auth-service` 문서에는 JWT Bearer 인증 스키마가 포함된다.
+- 일부 공급망 컨트롤러는 `ResponseEntity<?>`를 사용하므로 응답 스키마가 문서에서 일반 `object`로 보일 수 있다.
+- `supply-service`, `control-service`, `file-service`의 일부 엔드포인트는 API Gateway가 전달하는 `X-Organization-Public-Id`, `X-User-Public-Id` 헤더를 사용한다.
+- SwaggerHub 업로드용 통합 스펙 초안 파일은 [docs/openapi/atlas-backend-openapi.json](/Users/iamxoghks/Documents/GitHub/be23-fin-team1-Atlas-be/docs/openapi/atlas-backend-openapi.json)에 둔다.
+- SwaggerHub 문서형 페이지는 [atlas-backend-api docs](https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0?view=uiDocs)에서 확인한다.
+- 이 통합 스펙은 소스 컨트롤러 기준 초안이라, 운영 전에는 예시값과 응답 스키마를 보강하는 것을 권장한다.
+
+
+</details>

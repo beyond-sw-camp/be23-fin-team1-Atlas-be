@@ -7,6 +7,13 @@ import com.ozz.atlas.file.dtos.FileResponseDto;
 import com.ozz.atlas.file.dtos.UpdateAttachmentFileOrderRequestDto;
 import com.ozz.atlas.file.dtos.UpdateAttachmentRequestDto;
 import com.ozz.atlas.file.service.FileService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,6 +25,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/files")
+@Tag(name = "File")
 public class FileController {
 
     private final FileService fileService;
@@ -30,6 +38,70 @@ public class FileController {
     // 새 Attachment를 생성하고 해당 Attachment 아래에 파일들을 업로드할 때 사용하는 API
     // 예: 아이템 등록, 인증서 등록, 반품 등록 시 첨부 묶음을 처음 생성하는 경우
     @PostMapping(value = "/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "첨부 묶음 생성",
+            description = "메타데이터와 파일들을 함께 업로드해 attachment를 생성한다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            schema = @Schema(
+                                    type = "object",
+                                    description = "request 파트는 CreateAttachmentRequestDto JSON, files 파트는 업로드할 바이너리 파일 배열"
+                            ),
+                            encoding = {
+                                    @Encoding(name = "request", contentType = MediaType.APPLICATION_JSON_VALUE),
+                                    @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                            },
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "request": {
+                                                "refType": "ITEM",
+                                                "refPublicId": "item_01HZY2ITEM123456789"
+                                              },
+                                              "files": [
+                                                "(binary file)",
+                                                "(binary file)"
+                                              ]
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            responses = @ApiResponse(
+                    responseCode = "201",
+                    description = "생성 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = AttachmentResponseDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "attachmentPublicId": "att_01HZY3ATT123456789",
+                                              "refType": "ITEM",
+                                              "refPublicId": "item_01HZY2ITEM123456789",
+                                              "uploadedByUserPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0",
+                                              "files": [
+                                                {
+                                                  "attachmentPublicId": "att_01HZY3ATT123456789",
+                                                  "filePublicId": "file_01HZY3FILE123456789",
+                                                  "fileType": "IMAGE",
+                                                  "originalFileName": "invoice-april.png",
+                                                  "fileName": "01HZY3FILE123456789.png",
+                                                  "filePath": "https://cdn.atlas.com/files/01HZY3FILE123456789.png",
+                                                  "fileThumbPath": "https://cdn.atlas.com/files/thumbs/01HZY3FILE123456789.png",
+                                                  "size": 248120,
+                                                  "mimeType": "image/png",
+                                                  "sortOrder": 1,
+                                                  "uploadedByUserPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0"
+                                                }
+                                              ]
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<AttachmentResponseDto> createAttachment(
             @RequestPart("request") CreateAttachmentRequestDto request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
