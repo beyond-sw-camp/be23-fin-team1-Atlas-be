@@ -4,6 +4,7 @@ import com.ozz.atlas.supply.returns.domain.ReturnStatus;
 import com.ozz.atlas.supply.returns.domain.ReturnType;
 import com.ozz.atlas.supply.returns.dtos.CreateReturnRequestDto;
 import com.ozz.atlas.supply.returns.dtos.ReturnRequestResponseDto;
+import com.ozz.atlas.supply.returns.dtos.ReturnStatusHistoryResponseDto;
 import com.ozz.atlas.supply.returns.dtos.UpdateReturnRequestDto;
 import com.ozz.atlas.supply.returns.dtos.UpdateReturnStatusDto;
 import com.ozz.atlas.supply.returns.search.dtos.ReturnSearchDto;
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -149,6 +151,11 @@ public class ReturnController {
     @GetMapping("/{publicId}")
     public ResponseEntity<ReturnRequestResponseDto> getReturn(@PathVariable String publicId) {
         return ResponseEntity.ok(returnService.getReturnByPublicId(publicId));
+    }
+
+    @GetMapping("/{publicId}/histories")
+    public ResponseEntity<List<ReturnStatusHistoryResponseDto>> getReturnHistories(@PathVariable String publicId) {
+        return ResponseEntity.ok(returnService.getReturnHistories(publicId));
     }
 
     @PutMapping("/{publicId}")

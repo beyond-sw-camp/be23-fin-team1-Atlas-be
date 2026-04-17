@@ -8,6 +8,10 @@ import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
 import com.ozz.atlas.supply.returns.search.document.ReturnDocument;
 import com.ozz.atlas.supply.returns.search.dtos.ReturnSearchDto;
 import com.ozz.atlas.supply.returns.search.repository.ReturnSearchRepository;
+import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
+import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -30,6 +34,8 @@ public class ReturnSearchService {
     private final ReturnSearchRepository returnSearchRepository;
     private final ReturnRequestRepository returnRequestRepository;
     private final ElasticsearchOperations elasticsearchOperations;
+    private final SupplierRepository supplierRepository;
+    private final SupplyItemRepository supplyItemRepository;
 
     // 반품 생성/수정/상태변경 후 ES 문서를 저장
     @Transactional
@@ -200,6 +206,22 @@ public class ReturnSearchService {
 
     // ES 문서를 기존 반품 응답 DTO 형태로 바꿈
     private ReturnRequestResponseDto toResponseDto(ReturnDocument document) {
+        String reqOrgName = null;
+        if (document.getRequestOrganizationPublicId() != null) {
+            SupplySupplier reqSupplier = supplierRepository.findByOrganizationPublicId(document.getRequestOrganizationPublicId()).orElse(null);
+            if (reqSupplier != null) {
+                reqOrgName = reqSupplier.getSupplierName();
+            }
+        }
+
+        String tgtOrgName = null;
+        if (document.getTargetOrganizationPublicId() != null) {
+            SupplySupplier tgtSupplier = supplierRepository.findByOrganizationPublicId(document.getTargetOrganizationPublicId()).orElse(null);
+            if (tgtSupplier != null) {
+                tgtOrgName = tgtSupplier.getSupplierName();
+            }
+        }
+
         return ReturnRequestResponseDto.builder()
                 .id(document.getId())
                 .publicId(document.getPublicId())
@@ -207,6 +229,8 @@ public class ReturnSearchService {
                 .sourceShipmentPublicId(document.getSourceShipmentPublicId())
                 .requestOrganizationPublicId(document.getRequestOrganizationPublicId())
                 .targetOrganizationPublicId(document.getTargetOrganizationPublicId())
+                .requestOrganizationName(reqOrgName)
+                .targetOrganizationName(tgtOrgName)
                 .returnType(document.getReturnType())
                 .returnReason(document.getReturnReason())
                 .returnStatus(document.getReturnStatus())
@@ -223,9 +247,18 @@ public class ReturnSearchService {
                                 ? List.of()
                                 : document.getItems().stream()
                                 // ReturnItemResponseDto는 별도 DTO 클래스
-                                .map(item -> ReturnItemResponseDto.builder()
+                                .map(item -> {
+                                    String itemName = null;
+                                    if (item.getItemPublicId() != null) {
+                                        SupplyItem supplyItem = supplyItemRepository.findByPublicId(item.getItemPublicId()).orElse(null);
+                                        if (supplyItem != null) {
+                                            itemName = supplyItem.getItemName();
+                                        }
+                                    }
+                                    return ReturnItemResponseDto.builder()
                                         .id(item.getId())
                                         .itemPublicId(item.getItemPublicId())
+                                        .itemName(itemName)
                                         .lotPublicId(item.getLotPublicId())
                                         .returnQty(item.getReturnQty())
                                         .unit(item.getUnit())
@@ -234,7 +267,8 @@ public class ReturnSearchService {
                                         .attachmentPublicIds(
                                                 item.getAttachmentPublicIds() == null ? List.of() : item.getAttachmentPublicIds()
                                         )
-                                        .build())
+                                        .build();
+                                })
 
                                 .toList()
                 )
