@@ -82,6 +82,7 @@ DDL.md
 **/.venv/
 **/__pycache__/
 **/.pytest_cache/
+/tools
 
 ### Frontend Specs ###
 frontend_api_spec.md
