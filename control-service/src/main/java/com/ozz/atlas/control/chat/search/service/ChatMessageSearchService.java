@@ -111,6 +111,7 @@ public class ChatMessageSearchService {
                 .sentAt(document.getCreatedAt())
                 .editedAt(document.getEditedAt())
                 .isDeleted(document.getStatus() == Status.DELETE)
+                .unreadCount(0) // 검색 결과에서는 unreadCount를 기본값 0으로 처리하거나 별도 조회 로직이 필요합니다.
                 .build();
     }
 

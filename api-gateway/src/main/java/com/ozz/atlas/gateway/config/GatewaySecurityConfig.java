@@ -14,6 +14,7 @@ public class GatewaySecurityConfig {
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .authorizeExchange(exchange -> exchange
+                        .pathMatchers("/api/control/ws-chat/**", "/ws-chat/**").permitAll()
                         .anyExchange().permitAll()
                 )
                 .build();

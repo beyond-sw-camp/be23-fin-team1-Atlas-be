@@ -40,6 +40,7 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
     @Query("SELECT cp FROM ChatParticipant cp WHERE cp.userPublicId = :userPublicId AND cp.activeYn = true")
     Page<ChatParticipant> findByUserPublicIdActive(@Param("userPublicId") String userPublicId, Pageable pageable);
 
-
+    @Query("SELECT COUNT(cp) FROM ChatParticipant cp WHERE cp.chatRoom = :chatRoom AND cp.activeYn = true AND (cp.lastReadMessageId IS NULL OR cp.lastReadMessageId < :messageId)")
+    long countUnreadParticipants(@Param("chatRoom") ChatRoom chatRoom, @Param("messageId") Long messageId);
 }
 
