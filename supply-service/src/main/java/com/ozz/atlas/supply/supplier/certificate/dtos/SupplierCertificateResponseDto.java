@@ -12,6 +12,7 @@ import java.time.LocalDate;
 public class SupplierCertificateResponseDto {
     private String publicId;
     private String supplierPublicId;
+    private String supplierName;
     private CertificateTypeResponseDto certificateType;
     private String certificateNo;
     private LocalDate issuedAt;
@@ -21,10 +22,11 @@ public class SupplierCertificateResponseDto {
     private String attachmentPublicId;
     private String rejectReason;
 
-    public static SupplierCertificateResponseDto from(SupplierCertificate entity) {
+    public static SupplierCertificateResponseDto from(SupplierCertificate entity, String supplierName) {
         return SupplierCertificateResponseDto.builder()
                 .publicId(entity.getPublicId())
                 .supplierPublicId(entity.getSupplierPublicId())
+                .supplierName(supplierName)
                 .certificateType(CertificateTypeResponseDto.from(entity.getCertificateType()))
                 .certificateNo(entity.getCertificateNo())
                 .issuedAt(entity.getIssuedAt())

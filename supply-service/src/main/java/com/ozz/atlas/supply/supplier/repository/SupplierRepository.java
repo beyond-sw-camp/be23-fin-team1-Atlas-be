@@ -30,6 +30,7 @@ public interface SupplierRepository extends JpaRepository<SupplySupplier, Long> 
             Pageable pageable
     );
 
+    Optional<SupplySupplier> findByPublicId(String publicId);
 
     Optional<SupplySupplier> findByPublicIdAndSupplierStatusNot(
             String publicId,

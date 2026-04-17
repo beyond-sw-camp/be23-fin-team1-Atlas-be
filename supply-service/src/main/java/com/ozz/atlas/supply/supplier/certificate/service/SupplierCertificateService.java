@@ -10,7 +10,11 @@ import com.ozz.atlas.supply.supplier.certificate.exception.CertificateException;
 import com.ozz.atlas.supply.supplier.certificate.repository.CertificateTypeRepository;
 import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateHistoryRepository;
 import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateRepository;
+import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +30,7 @@ public class SupplierCertificateService {
     private final SupplierCertificateRepository supplierCertificateRepository;
     private final CertificateTypeRepository certificateTypeRepository;
     private final SupplierCertificateHistoryRepository supplierCertificateHistoryRepository;
+    private final SupplierRepository supplierRepository;
 
     @Transactional
     public SupplierCertificateResponseDto createSupplierCertificate(String supplierPublicId, CreateSupplierCertificateRequestDto request, String actorPublicId) {
@@ -50,19 +55,23 @@ public class SupplierCertificateService {
         
         saveHistory(savedCert.getId(), "CREATE", null, savedCert.getCertificateStatus(), "인증서 등록", actorPublicId);
 
-        return SupplierCertificateResponseDto.from(savedCert);
+        return toResponseDto(savedCert);
+    }
+
+    public Page<SupplierCertificateResponseDto> getAllCertificates(Pageable pageable) {
+        return supplierCertificateRepository.findAll(pageable).map(this::toResponseDto);
     }
 
     public List<SupplierCertificateResponseDto> getCertificatesBySupplier(String supplierPublicId) {
         return supplierCertificateRepository.findBySupplierPublicId(supplierPublicId).stream()
-                .map(SupplierCertificateResponseDto::from)
+                .map(this::toResponseDto)
                 .collect(Collectors.toList());
     }
 
     public SupplierCertificateResponseDto getCertificate(String publicId) {
         SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
-        return SupplierCertificateResponseDto.from(cert);
+        return toResponseDto(cert);
     }
 
     @Transactional
@@ -79,7 +88,7 @@ public class SupplierCertificateService {
         
         saveHistory(cert.getId(), "UPDATE", beforeStatus, cert.getCertificateStatus(), "인증서 수정 및 재심사 요청", actorPublicId);
 
-        return SupplierCertificateResponseDto.from(cert);
+        return toResponseDto(cert);
     }
 
     @Transactional
@@ -115,7 +124,7 @@ public class SupplierCertificateService {
         LocalDate today = LocalDate.now();
         LocalDate targetDate = today.plusDays(days);
         return supplierCertificateRepository.findByExpiredAtBetween(today, targetDate).stream()
-                .map(SupplierCertificateResponseDto::from)
+                .map(this::toResponseDto)
                 .collect(Collectors.toList());
     }
 
@@ -139,5 +148,16 @@ public class SupplierCertificateService {
                 .actorPublicId(actor)
                 .build();
         supplierCertificateHistoryRepository.save(history);
+    }
+
+    private SupplierCertificateResponseDto toResponseDto(SupplierCertificate cert) {
+        String supplierName = null;
+        if (cert.getSupplierPublicId() != null) {
+            SupplySupplier supplier = supplierRepository.findByPublicId(cert.getSupplierPublicId()).orElse(null);
+            if (supplier != null) {
+                supplierName = supplier.getSupplierName();
+            }
+        }
+        return SupplierCertificateResponseDto.from(cert, supplierName);
     }
 }
