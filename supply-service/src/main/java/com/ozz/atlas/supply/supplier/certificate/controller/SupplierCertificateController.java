@@ -4,6 +4,10 @@ import com.ozz.atlas.supply.supplier.certificate.dtos.*;
 import com.ozz.atlas.supply.supplier.certificate.service.SupplierCertificateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +27,12 @@ public class SupplierCertificateController {
             @Valid @RequestBody CreateSupplierCertificateRequestDto request,
             @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
         return ResponseEntity.status(HttpStatus.CREATED).body(supplierCertificateService.createSupplierCertificate(supplierPublicId, request, actorPublicId));
+    }
+
+    @GetMapping("/certificates")
+    public ResponseEntity<Page<SupplierCertificateResponseDto>> getAllCertificates(
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(supplierCertificateService.getAllCertificates(pageable));
     }
 
     @GetMapping("/suppliers/{supplierPublicId}/certificates")
