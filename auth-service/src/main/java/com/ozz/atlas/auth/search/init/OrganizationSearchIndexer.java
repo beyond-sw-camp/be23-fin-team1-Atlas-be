@@ -20,8 +20,8 @@ public class OrganizationSearchIndexer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (organizationSearchRepository.count() == 0) {
-            organizationSearchService.reindexAllOrganizations();
-        }
+        // 로컬에서는 DB 기준으로 검색 인덱스를 매번 다시 맞춤
+        // DB에 직접 넣은 조직 데이터도 검색에 잡히게 하려는 목적
+        organizationSearchService.reindexAllOrganizations();
     }
 }
