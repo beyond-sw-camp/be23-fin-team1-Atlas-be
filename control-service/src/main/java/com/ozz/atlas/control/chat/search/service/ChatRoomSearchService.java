@@ -87,7 +87,7 @@ public class ChatRoomSearchService {
 
         List<ChatRoomDto> content = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
-                .map(this::toDto)
+                .map(document -> toDto(document, userPublicId))
                 .toList();
 
         return new PageImpl<>(content, pageable, searchHits.getTotalHits());
@@ -99,17 +99,39 @@ public class ChatRoomSearchService {
         chatRoomRepository.findAll().forEach(this::saveChatRoomDocument);
     }
 
-    private ChatRoomDto toDto(ChatRoomDocument document) {
+    private ChatRoomDto toDto(ChatRoomDocument document, String userPublicId) {
+        Long unreadCount = 0L;
+
+        // 검색 결과도 일반 목록 조회와 동일하게 안 읽은 메시지 수를 계산합니다.
+        if (hasText(userPublicId) && document.getPublicId() != null) {
+            ChatRoom chatRoom = chatRoomRepository.findByPublicId(document.getPublicId()).orElse(null);
+
+            if (chatRoom != null) {
+                ChatParticipant participant = chatParticipantRepository
+                        .findByChatRoomAndUserPublicId(chatRoom, userPublicId)
+                        .orElse(null);
+
+                if (participant != null) {
+                    unreadCount = chatMessageRepository.countUnreadMessages(
+                            chatRoom,
+                            participant.getLastReadMessageId()
+                    );
+                }
+            }
+        }
+
         return ChatRoomDto.builder()
                 .publicId(document.getPublicId())
                 .roomName(document.getRoomName())
                 .roomStatus(document.getRoomStatus())
                 .userAccountPublicId(document.getUserAccountPublicId())
                 .createdAt(document.getCreatedAt())
+                .unreadCount(unreadCount)
                 .lastMessage(document.getLastMessageBody())
                 .lastMessageAt(document.getLastMessageAt())
                 .build();
     }
+
 
     private Query buildFinalQuery(List<Query> mustQueries, List<Query> filterQueries) {
         // 조건이 아무것도 없으면 전체 조회로 처리
