@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Getter
@@ -29,6 +30,10 @@ public class ReturnRequestResponseDto {
     private String requestOrganizationPublicId;
     @Schema(description = "반품 대상 조직 공개 식별자", example = "org_tgt_01HZY2ORGTGT123456")
     private String targetOrganizationPublicId;
+    @Schema(description = "요청 조직명")
+    private String requestOrganizationName;
+    @Schema(description = "대상 조직명")
+    private String targetOrganizationName;
     @Schema(description = "반품 유형", example = "QUALITY_ISSUE")
     private ReturnType returnType;
     @Schema(description = "반품 사유", example = "유통기한 임박 품목 회수")
@@ -48,7 +53,7 @@ public class ReturnRequestResponseDto {
     @Schema(description = "반품 품목 목록")
     private List<ReturnItemResponseDto> items;
 
-    public static ReturnRequestResponseDto from(ReturnRequest entity) {
+    public static ReturnRequestResponseDto from(ReturnRequest entity, String requestOrganizationName, String targetOrganizationName, Map<String, String> itemNames) {
         List<String> attachments = (entity.getAttachmentPublicIds() != null && !entity.getAttachmentPublicIds().isBlank())
                 ? Arrays.asList(entity.getAttachmentPublicIds().split(","))
                 : Collections.emptyList();
@@ -60,6 +65,8 @@ public class ReturnRequestResponseDto {
                 .sourceShipmentPublicId(entity.getSourceShipmentPublicId())
                 .requestOrganizationPublicId(entity.getRequestOrganizationPublicId())
                 .targetOrganizationPublicId(entity.getTargetOrganizationPublicId())
+                .requestOrganizationName(requestOrganizationName)
+                .targetOrganizationName(targetOrganizationName)
                 .returnType(entity.getReturnType())
                 .returnReason(entity.getReturnReason())
                 .returnStatus(entity.getReturnStatus())
@@ -68,7 +75,7 @@ public class ReturnRequestResponseDto {
                 .completedAt(entity.getCompletedAt())
                 .createdByUserPublicId(entity.getCreatedByUserPublicId())
                 .attachmentPublicIds(attachments)
-                .items(entity.getItems().stream().map(ReturnItemResponseDto::from).collect(Collectors.toList()))
+                .items(entity.getItems().stream().map(item -> ReturnItemResponseDto.from(item, itemNames.getOrDefault(item.getItemPublicId(), null))).collect(Collectors.toList()))
                 .build();
     }
 }

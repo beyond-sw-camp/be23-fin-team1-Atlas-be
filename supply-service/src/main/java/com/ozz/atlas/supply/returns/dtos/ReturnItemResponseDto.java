@@ -18,6 +18,8 @@ public class ReturnItemResponseDto {
     private Long id;
     @Schema(description = "품목 공개 식별자", example = "item_01HZY2ITEM123456789")
     private String itemPublicId;
+    @Schema(description = "품목명", example = "냉동 생지")
+    private String itemName;
     @Schema(description = "LOT 공개 식별자", example = "lot_01HZY2LOT123456789", nullable = true)
     private String lotPublicId;
     @Schema(description = "반품 수량", example = "120.5")
@@ -31,7 +33,7 @@ public class ReturnItemResponseDto {
     @Schema(description = "품목 첨부 파일 공개 식별자 목록", example = "[\"att_01HZY2ATT01\"]")
     private List<String> attachmentPublicIds;
 
-    public static ReturnItemResponseDto from(ReturnItem entity) {
+    public static ReturnItemResponseDto from(ReturnItem entity, String itemName) {
         List<String> attachments = (entity.getAttachmentPublicIds() != null && !entity.getAttachmentPublicIds().isBlank())
                 ? Arrays.asList(entity.getAttachmentPublicIds().split(","))
                 : Collections.emptyList();
@@ -39,6 +41,7 @@ public class ReturnItemResponseDto {
         return ReturnItemResponseDto.builder()
                 .id(entity.getId())
                 .itemPublicId(entity.getItemPublicId())
+                .itemName(itemName)
                 .lotPublicId(entity.getLotPublicId())
                 .returnQty(entity.getReturnQty())
                 .unit(entity.getUnit())

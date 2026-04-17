@@ -10,6 +10,7 @@ import com.ozz.atlas.supply.returns.domain.ReturnStatusHistory;
 import com.ozz.atlas.supply.returns.dtos.CreateReturnItemDto;
 import com.ozz.atlas.supply.returns.dtos.CreateReturnRequestDto;
 import com.ozz.atlas.supply.returns.dtos.ReturnRequestResponseDto;
+import com.ozz.atlas.supply.returns.dtos.ReturnStatusHistoryResponseDto;
 import com.ozz.atlas.supply.returns.dtos.UpdateReturnRequestDto;
 import com.ozz.atlas.supply.returns.dtos.UpdateReturnStatusDto;
 import com.ozz.atlas.supply.returns.exception.ReturnErrorCode;
@@ -19,15 +20,20 @@ import com.ozz.atlas.supply.returns.repository.ReturnStatusHistoryRepository;
 import com.ozz.atlas.supply.returns.search.service.ReturnSearchService;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
+import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
+import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +46,8 @@ public class ReturnService {
     private final ShipmentRepository shipmentRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final ReturnSearchService returnSearchService;
+    private final SupplierRepository supplierRepository;
+    private final SupplyItemRepository supplyItemRepository;
 
     @Transactional
     public ReturnRequestResponseDto createReturn(CreateReturnRequestDto request, String actorPublicId) {
@@ -98,18 +106,18 @@ public class ReturnService {
         // DB 저장이 끝난 반품 데이터를 ES에도 같이 저장
         returnSearchService.saveReturnDocument(savedReturn);
 
-        return ReturnRequestResponseDto.from(savedReturn);
+        return toResponseDto(savedReturn);
     }
 
     public Page<ReturnRequestResponseDto> getAllReturns(Pageable pageable) {
         return returnRequestRepository.findAll(pageable)
-                .map(ReturnRequestResponseDto :: from);
+                .map(this::toResponseDto);
     }
 
     public ReturnRequestResponseDto getReturnByPublicId(String publicId) {
         ReturnRequest returnRequest = returnRequestRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
-        return ReturnRequestResponseDto.from(returnRequest);
+        return toResponseDto(returnRequest);
     }
 
     @Transactional
@@ -123,7 +131,7 @@ public class ReturnService {
         // 수정된 반품 정보를 ES에도 다시 저장
         returnSearchService.saveReturnDocument(returnRequest);
 
-        return ReturnRequestResponseDto.from(returnRequest);
+        return toResponseDto(returnRequest);
     }
 
     @Transactional
@@ -139,7 +147,16 @@ public class ReturnService {
         // 상태가 바뀌었으니 ES 문서도 다시 저장
         returnSearchService.saveReturnDocument(returnRequest);
 
-        return ReturnRequestResponseDto.from(returnRequest);
+        return toResponseDto(returnRequest);
+    }
+
+    public List<ReturnStatusHistoryResponseDto> getReturnHistories(String publicId) {
+        ReturnRequest returnRequest = returnRequestRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+        return returnStatusHistoryRepository.findByReturnRequestIdOrderByRecordedAtDesc(returnRequest.getId())
+                .stream()
+                .map(ReturnStatusHistoryResponseDto::from)
+                .collect(Collectors.toList());
     }
 
     private void saveHistory(Long returnRequestId, ReturnStatus before, ReturnStatus after, String reason, String actor) {
@@ -151,5 +168,37 @@ public class ReturnService {
                 .recordedBy(actor)
                 .build();
         returnStatusHistoryRepository.save(history);
+    }
+
+    private ReturnRequestResponseDto toResponseDto(ReturnRequest returnRequest) {
+        String reqOrgName = null;
+        if (returnRequest.getRequestOrganizationPublicId() != null) {
+            SupplySupplier reqSupplier = supplierRepository.findByOrganizationPublicId(returnRequest.getRequestOrganizationPublicId()).orElse(null);
+            if (reqSupplier != null) {
+                reqOrgName = reqSupplier.getSupplierName();
+            }
+        }
+
+        String tgtOrgName = null;
+        if (returnRequest.getTargetOrganizationPublicId() != null) {
+            SupplySupplier tgtSupplier = supplierRepository.findByOrganizationPublicId(returnRequest.getTargetOrganizationPublicId()).orElse(null);
+            if (tgtSupplier != null) {
+                tgtOrgName = tgtSupplier.getSupplierName();
+            }
+        }
+
+        Map<String, String> itemNames = new HashMap<>();
+        if (returnRequest.getItems() != null) {
+            for (ReturnItem item : returnRequest.getItems()) {
+                if (item.getItemPublicId() != null && !itemNames.containsKey(item.getItemPublicId())) {
+                    SupplyItem supplyItem = supplyItemRepository.findByPublicId(item.getItemPublicId()).orElse(null);
+                    if (supplyItem != null) {
+                        itemNames.put(item.getItemPublicId(), supplyItem.getItemName());
+                    }
+                }
+            }
+        }
+
+        return ReturnRequestResponseDto.from(returnRequest, reqOrgName, tgtOrgName, itemNames);
     }
 }
