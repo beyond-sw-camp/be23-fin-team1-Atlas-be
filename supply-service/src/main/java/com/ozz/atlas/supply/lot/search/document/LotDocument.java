@@ -60,6 +60,14 @@ public class LotDocument {
     @Field(type = FieldType.Keyword)
     private String itemPublicId;
 
+    // 공급사명
+    @Field(type = FieldType.Keyword)
+    private String supplierName;
+
+    // 품목명
+    @Field(type = FieldType.Keyword)
+    private String itemName;
+
     // LOT 상태
     @Field(type = FieldType.Keyword)
     private LotStatus lotStatus;
@@ -96,7 +104,7 @@ public class LotDocument {
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime updatedAt;
 
-    public static LotDocument fromEntity(Lot lot) {
+    public static LotDocument fromEntity(Lot lot, String supplierName, String itemName) {
         return LotDocument.builder()
                 .id(lot.getId())
                 .publicId(lot.getPublicId())
@@ -104,6 +112,8 @@ public class LotDocument {
                 .sourcePoItemPublicId(lot.getSourcePoItemPublicId())
                 .supplierPublicId(lot.getSupplierPublicId())
                 .itemPublicId(lot.getItemPublicId())
+                .supplierName(supplierName)
+                .itemName(itemName)
                 .lotStatus(lot.getLotStatus())
                 .manufacturedAt(lot.getManufacturedAt())
                 .expiredAt(lot.getExpiredAt())

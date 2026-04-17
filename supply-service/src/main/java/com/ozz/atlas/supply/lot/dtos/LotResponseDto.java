@@ -17,6 +17,8 @@ public class LotResponseDto {
     private String sourcePoItemPublicId;
     private String supplierPublicId;
     private String itemPublicId;
+    private String supplierName;
+    private String itemName;
     private LotStatus lotStatus;
     private LocalDateTime manufacturedAt;
     private LocalDateTime expiredAt;
@@ -27,13 +29,15 @@ public class LotResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static LotResponseDto from(Lot entity) {
+    public static LotResponseDto from(Lot entity, String supplierName, String itemName) {
         return LotResponseDto.builder()
                 .publicId(entity.getPublicId())
                 .lotNumber(entity.getLotNumber())
                 .sourcePoItemPublicId(entity.getSourcePoItemPublicId())
                 .supplierPublicId(entity.getSupplierPublicId())
                 .itemPublicId(entity.getItemPublicId())
+                .supplierName(supplierName)
+                .itemName(itemName)
                 .lotStatus(entity.getLotStatus())
                 .manufacturedAt(entity.getManufacturedAt())
                 .expiredAt(entity.getExpiredAt())

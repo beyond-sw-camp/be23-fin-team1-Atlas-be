@@ -14,7 +14,7 @@ import com.ozz.atlas.supply.lot.search.service.LotSearchService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -64,6 +64,11 @@ public class LotController {
     @GetMapping("/{publicId}")
     public ResponseEntity<LotResponseDto> getLot(@PathVariable String publicId) {
         return ResponseEntity.ok(lotService.getLotByPublicId(publicId));
+    }
+
+    @GetMapping("/{publicId}/histories")
+    public ResponseEntity<List<LotHistoryResponseDto>> getLotHistories(@PathVariable String publicId) {
+        return ResponseEntity.ok(lotService.getLotHistories(publicId));
     }
 
     @PutMapping("/{publicId}")

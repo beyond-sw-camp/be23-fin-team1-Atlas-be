@@ -29,11 +29,23 @@ public class LotSearchService {
     private final LotSearchRepository lotSearchRepository;
     private final LotRepository lotRepository;
     private final ElasticsearchOperations elasticsearchOperations;
+    private final com.ozz.atlas.supply.item.repository.SupplyItemRepository supplyItemRepository;
 
     // LOT 생성/수정/상태변경 후 ES 문서를 저장
     @Transactional
     public void saveLotDocument(Lot lot) {
-        lotSearchRepository.save(LotDocument.fromEntity(lot));
+        String supplierName = null;
+        String itemName = null;
+        if (lot.getItemPublicId() != null) {
+            com.ozz.atlas.supply.item.domain.SupplyItem item = supplyItemRepository.findByPublicId(lot.getItemPublicId()).orElse(null);
+            if (item != null) {
+                itemName = item.getItemName();
+                if (item.getSupplier() != null) {
+                    supplierName = item.getSupplier().getSupplierName();
+                }
+            }
+        }
+        lotSearchRepository.save(LotDocument.fromEntity(lot, supplierName, itemName));
     }
 
     // 검색 조건이 하나라도 있으면 ES 경로로 분기할 때 사용
@@ -164,6 +176,8 @@ public class LotSearchService {
                 .sourcePoItemPublicId(document.getSourcePoItemPublicId())
                 .supplierPublicId(document.getSupplierPublicId())
                 .itemPublicId(document.getItemPublicId())
+                .supplierName(document.getSupplierName())
+                .itemName(document.getItemName())
                 .lotStatus(document.getLotStatus())
                 .manufacturedAt(document.getManufacturedAt())
                 .expiredAt(document.getExpiredAt())

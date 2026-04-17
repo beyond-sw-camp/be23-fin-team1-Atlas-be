@@ -17,6 +17,10 @@ public interface SupplyItemRepository extends JpaRepository<SupplyItem, Long> {
 
     Optional<SupplyItem> findByPublicIdAndStatusIn(String publicId, Collection<Status> status);
 
+    Optional<SupplyItem> findByPublicId(String publicId);
+
+    List<SupplyItem> findAllByPublicIdIn(Collection<String> publicIds);
+
     List<SupplyItem> findAllByPublicIdInAndStatus(Collection<String> publicIds, Status status);
 
     boolean existsByItemCode(String itemCode);
