@@ -16,6 +16,8 @@ public class ShipmentListResponseDto {
 
     private String publicId;
     private String shipmentNumber;
+    private String purchaseOrderPublicId;
+    private String subPurchaseOrderPublicId;
     private String carrierName;
     private String destinationNodePublicId;
     private String currentNodePublicId;

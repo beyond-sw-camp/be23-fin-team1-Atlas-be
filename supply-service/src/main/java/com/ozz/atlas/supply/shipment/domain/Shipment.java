@@ -32,6 +32,12 @@ public class Shipment extends BaseTimeEntity {
 
     private Long subPoId;
 
+    @Column(length = 26)
+    private String purchaseOrderPublicId;
+
+    @Column(length = 26)
+    private String subPurchaseOrderPublicId;
+
     @Column(length = 100)
     private String carrierName;
 

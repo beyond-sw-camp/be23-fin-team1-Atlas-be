@@ -1,5 +1,7 @@
 package com.ozz.atlas.supply.shipment.service;
 
+import com.ozz.atlas.supply.event.outbox.OutboxEventAppender;
+import com.ozz.atlas.supply.event.shipment.ShipmentEventFactory;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
 import com.ozz.atlas.supply.shipment.domain.*;
@@ -34,6 +36,8 @@ public class ShipmentService {
     private final LogisticsNodeService logisticsNodeService;
     private final ShipmentSearchService shipmentSearchService;
     private final EtaProjectionRepository etaProjectionRepository;
+    private final OutboxEventAppender outboxEventAppender;
+    private final ShipmentEventFactory shipmentEventFactory;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -41,7 +45,9 @@ public class ShipmentService {
             ShipmentStatusHistoryRepository shipmentStatusHistoryRepository,
             LogisticsNodeService logisticsNodeService,
             ShipmentSearchService shipmentSearchService,
-            EtaProjectionRepository etaProjectionRepository
+            EtaProjectionRepository etaProjectionRepository,
+            OutboxEventAppender outboxEventAppender,
+            ShipmentEventFactory shipmentEventFactory
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
@@ -49,6 +55,8 @@ public class ShipmentService {
         this.logisticsNodeService = logisticsNodeService;
         this.shipmentSearchService = shipmentSearchService;
         this.etaProjectionRepository = etaProjectionRepository;
+        this.outboxEventAppender = outboxEventAppender;
+        this.shipmentEventFactory = shipmentEventFactory;
     }
 
 //    출하 생성
@@ -67,7 +75,9 @@ public class ShipmentService {
         Shipment shipment = Shipment.builder()
                 .shipmentNumber(dto.getShipmentNumber())
                 .poId(dto.getPoId())
+                .purchaseOrderPublicId(dto.getPurchaseOrderPublicId())
                 .subPoId(dto.getSubPoId())
+                .subPurchaseOrderPublicId(dto.getSubPurchaseOrderPublicId())
                 .carrierName(dto.getCarrierName())
                 .vehicleNo(dto.getVehicleNo())
                 .trackingNo(dto.getTrackingNo())
@@ -93,6 +103,15 @@ public class ShipmentService {
         );
         // 출하가 생성되면 검색 문서도 함께 저장
         shipmentSearchService.saveShipmentDocument(savedShipment);
+        outboxEventAppender.append(
+                shipmentEventFactory.createShipmentCreatedEvent(
+                        savedShipment,
+                        originNode.getPublicId(),
+                        destinationNode.getPublicId(),
+                        null,
+                        null
+                )
+        );
 
         return toShipmentResponseDto(savedShipment);
     }
@@ -340,7 +359,9 @@ public class ShipmentService {
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
                 .poId(shipment.getPoId())
+                .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
                 .subPoId(shipment.getSubPoId())
+                .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
                 .carrierName(shipment.getCarrierName())
                 .vehicleNo(shipment.getVehicleNo())
                 .trackingNo(shipment.getTrackingNo())
@@ -362,6 +383,8 @@ public class ShipmentService {
         return ShipmentListResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
+                .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
+                .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
                 .carrierName(shipment.getCarrierName())
                 .destinationNodePublicId(nodePublicIdMap.get(shipment.getDestinationNodeId()))
                 .currentNodePublicId(nodePublicIdMap.get(shipment.getCurrentNodeId()))
