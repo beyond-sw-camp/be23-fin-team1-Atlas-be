@@ -16,6 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Pageable;
+import java.util.UUID;
+
+
 
 @Service
 @Transactional
@@ -51,6 +54,119 @@ public class UserService {
         userSearchService.saveUserDocument(savedUser);
         return savedUser.getPublicId();
     }
+    // 관리자가 조직의 최초 ORG_ADMIN 계정을 생성
+    // 임시 비밀번호는 서버가 생성해서 응답으로 내려줌
+    public InitialOrgAdminCreateResponseDto createInitialOrgAdmin(
+            String organizationPublicId,
+            InitialOrgAdminCreateDto dto
+    ) {
+        // 이미 쓰는 로그인 ID면 생성할 수 없음
+        if (userRepository.existsByLoginId(dto.getLoginId())) {
+            throw new IllegalArgumentException("이미 사용 중인 로그인 ID입니다.");
+        }
+
+        // 조직이 없으면 대표자 계정을 만들 수 없음
+        Organization organization = organizationRepository.findByPublicId(organizationPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+
+        // 해당 조직에 활성 상태 ORG_ADMIN 이 이미 있으면 최초 관리자 생성을 막음
+        boolean orgAdminExists = userRepository.existsByOrganization_PublicIdAndUserRoleAndStatus(
+                organizationPublicId,
+                UserRole.ORG_ADMIN,
+                Status.ACTIVE
+        );
+
+        if (orgAdminExists) {
+            throw new IllegalArgumentException("해당 조직에는 이미 대표자 계정이 존재합니다.");
+        }
+
+        // 최초 로그인용 임시 비밀번호를 생성
+        String temporaryPassword = createTemporaryPassword();
+
+        // DB에는 암호화된 비밀번호를 저장
+        String encodedPassword = passwordEncoder.encode(temporaryPassword);
+
+        // 최초 대표자 계정을 생성
+        User user = User.builder()
+                .organization(organization)
+                .loginId(dto.getLoginId())
+                .password(encodedPassword)
+                .firstName(dto.getFirstName())
+                .middleName(dto.getMiddleName())
+                .lastName(dto.getLastName())
+                .email(dto.getEmail())
+                .phone(dto.getPhone())
+                .jobTitle(dto.getJobTitle())
+                .userRole(UserRole.ORG_ADMIN)
+                .status(Status.ACTIVE)
+                .passwordChangeRequired(true)
+                .build();
+
+        User savedUser = userRepository.save(user);
+        userSearchService.saveUserDocument(savedUser);
+
+        return InitialOrgAdminCreateResponseDto.builder()
+                .userPublicId(savedUser.getPublicId())
+                .organizationPublicId(organization.getPublicId())
+                .temporaryPassword(temporaryPassword)
+                .passwordChangeRequired(true)
+                .build();
+    }
+
+    // 조직 관리자가 자기 조직의 일반 직원 계정을 생성
+    // 조직 정보는 로그인한 ORG_ADMIN 의 토큰에서 가져
+    public OrganizationUserCreateResponseDto createOrganizationUser(
+            OrganizationUserCreateDto dto,
+            AuthPrincipal principal
+    ) {
+        // ORG_ADMIN 만 직원 계정을 만들 수 있음
+        if (principal.role() != UserRole.ORG_ADMIN) {
+            throw new IllegalArgumentException("직원 계정 생성 권한이 없습니다.");
+        }
+
+        // 이미 쓰는 로그인 ID면 생성할 수 없음
+        if (userRepository.existsByLoginId(dto.getLoginId())) {
+            throw new IllegalArgumentException("이미 사용 중인 로그인 ID입니다.");
+        }
+
+        // 현재 로그인한 대표자의 조직을 기준으로 직원을 생성
+        Organization organization = organizationRepository.findByPublicId(principal.organizationPublicId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+
+        // 직원 첫 로그인용 임시 비밀번호를 생성
+        String temporaryPassword = createTemporaryPassword();
+
+        // DB에는 암호화된 비밀번호를 저장
+        String encodedPassword = passwordEncoder.encode(temporaryPassword);
+
+        // 일반 직원(USER) 계정을 생성
+        User user = User.builder()
+                .organization(organization)
+                .loginId(dto.getLoginId())
+                .password(encodedPassword)
+                .firstName(dto.getFirstName())
+                .middleName(dto.getMiddleName())
+                .lastName(dto.getLastName())
+                .email(dto.getEmail())
+                .phone(dto.getPhone())
+                .jobTitle(dto.getJobTitle())
+                .userRole(UserRole.USER)
+                .status(Status.ACTIVE)
+                .passwordChangeRequired(true)
+                .build();
+
+        User savedUser = userRepository.save(user);
+        userSearchService.saveUserDocument(savedUser);
+
+        return OrganizationUserCreateResponseDto.builder()
+                .userPublicId(savedUser.getPublicId())
+                .organizationPublicId(organization.getPublicId())
+                .temporaryPassword(temporaryPassword)
+                .passwordChangeRequired(true)
+                .build();
+    }
+
+
 
     //    사용자 정보 조회 (내정보조회)
     public MyInfoDto getMyInfo(String userPublicId, String organizationPublicId, UserRole role) {
@@ -166,7 +282,12 @@ public class UserService {
         }
 
         user.updatePassword(passwordEncoder.encode(dto.getNewPassword()));
+
+        // 비밀번호를 정상적으로 바꿨으므로 강제 변경 상태를 해제합니다.
+        user.clearPasswordChangeRequired();
+
         jwtTokenProvider.revokeRefreshToken(userId);
+
     }
 
 
@@ -203,6 +324,12 @@ public class UserService {
 
         return UserDetailDto.fromEntity(user);
     }
+    // 임시 비밀번호를 간단히 생성
+    // 나중에 규칙이 필요하면 별도 유틸로 분리할 수 있음
+    private String createTemporaryPassword() {
+        return "Atlas!" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+    }
+
 
 
 

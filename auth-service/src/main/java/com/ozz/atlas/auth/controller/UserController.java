@@ -91,6 +91,23 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // 조직 관리자가 자기 조직의 일반 직원 계정을 생성
+    @PostMapping("/org-admin/users")
+    public ResponseEntity<OrganizationUserCreateResponseDto> createOrganizationUser(
+            @RequestBody @Valid OrganizationUserCreateDto dto,
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        if (principal.role() != UserRole.ORG_ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        OrganizationUserCreateResponseDto response =
+                userService.createOrganizationUser(dto, principal);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+
     //사용자 목록 조회
     @GetMapping("/users")
     public ResponseEntity<Page<UserListDto>> userList(
