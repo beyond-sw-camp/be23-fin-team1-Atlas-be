@@ -5,6 +5,7 @@ public enum AggregateType {
     SHIPMENT,
     DELIVERY_EXCEPTION,
     LOT,
+    RETURN_REQUEST,
     SUPPLIER_CERTIFICATE,
     RISK,
     RECOMMENDATION
