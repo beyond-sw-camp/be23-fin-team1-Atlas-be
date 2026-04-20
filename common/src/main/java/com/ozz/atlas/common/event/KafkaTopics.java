@@ -6,11 +6,13 @@ public final class KafkaTopics {
     public static final String SUPPLY_SHIPMENT = "atlas.supply.shipment";
     public static final String SUPPLY_DELIVERY_EXCEPTION = "atlas.supply.delivery-exception";
     public static final String SUPPLY_LOT = "atlas.supply.lot";
+    public static final String SUPPLY_RETURN_REQUEST = "atlas.supply.return-request";
     public static final String SUPPLY_SUPPLIER_CERTIFICATE = "atlas.supply.supplier-certificate";
 
     public static final String CONTROL_RECOMMENDATION_REQUESTED = "atlas.control.recommendation-requested";
     public static final String CONTROL_RECOMMENDATION_GENERATED = "atlas.control.recommendation-generated";
     public static final String CONTROL_RECOMMENDATION_FAILED = "atlas.control.recommendation-failed";
+    public static final String CONTROL_RECOMMENDATION_DECISION = "atlas.control.recommendation-decision";
 
     private KafkaTopics() {
     }
