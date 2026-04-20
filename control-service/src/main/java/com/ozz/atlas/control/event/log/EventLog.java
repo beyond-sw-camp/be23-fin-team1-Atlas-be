@@ -87,6 +87,7 @@ public class EventLog extends BaseTimeEntity {
     }
 
     public static EventLog publishedFrom(OutboxEvent outboxEvent) {
+        // event_log는 재시도용 큐가 아니라 최종 발행 결과만 남기는 이력 테이블이다.
         return EventLog.builder()
                 .eventId(outboxEvent.getEventId())
                 .topic(outboxEvent.getTopic())

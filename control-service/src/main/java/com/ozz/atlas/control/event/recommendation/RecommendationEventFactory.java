@@ -40,8 +40,10 @@ public class RecommendationEventFactory {
                 KafkaTopics.CONTROL_RECOMMENDATION_REQUESTED,
                 AggregateType.RECOMMENDATION,
                 recommendationPublicId,
+                // 같은 조직 단위 이벤트는 같은 파티션으로 보내 순서를 최대한 유지한다.
                 sourceEvent.organizationPublicId() != null ? sourceEvent.organizationPublicId() : recommendationPublicId,
                 Instant.now(),
+                // correlationId는 원본 supply 이벤트를 이어받고, causationId는 직접 원인이 된 이벤트를 가리킨다.
                 sourceEvent.correlationId() != null ? sourceEvent.correlationId() : sourceEvent.eventId(),
                 sourceEvent.eventId(),
                 sourceEvent.actorUserPublicId(),

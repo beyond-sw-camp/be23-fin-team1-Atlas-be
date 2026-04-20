@@ -25,6 +25,7 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "outbox_event",
         indexes = {
+                // 스케줄러가 발행 가능한 이벤트를 빠르게 집계하기 위한 인덱스
                 @Index(name = "idx_outbox_event_status_next_attempt", columnList = "status,next_attempt_at"),
                 @Index(name = "idx_outbox_event_aggregate", columnList = "aggregate_type,aggregate_public_id")
         }
@@ -150,6 +151,7 @@ public class OutboxEvent extends BaseTimeEntity {
             LocalDateTime occurredAt,
             String eventJson
     ) {
+        // control-service도 도메인 처리 중에는 Kafka로 직접 보내지 않고 outbox에 먼저 적재한다.
         return OutboxEvent.builder()
                 .eventId(eventId)
                 .topic(topic)
@@ -191,6 +193,7 @@ public class OutboxEvent extends BaseTimeEntity {
     }
 
     public void markFailed(String lastError, LocalDateTime nextAttemptAt) {
+        // 실패 이벤트는 지우지 않고 재시도 큐에 남겨 다음 스케줄 사이클에서 다시 발행한다.
         this.status = OutboxEventStatus.FAILED;
         this.retryCount = this.retryCount + 1;
         this.lastError = lastError;
