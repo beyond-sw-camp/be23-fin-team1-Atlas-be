@@ -5,6 +5,7 @@ import com.ozz.atlas.supply.shipment.search.dtos.ShipmentSearchDto;
 import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
 import com.ozz.atlas.supply.shipment.service.ShipmentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -96,8 +97,14 @@ public class ShipmentController {
                     )
             )
     )
-    public ResponseEntity<ShipmentResponseDto> createShipment(@Valid @RequestBody CreateShipmentRequestDto dto){
-        ShipmentResponseDto createdShipment = shipmentService.createShipment(dto);
+    public ResponseEntity<ShipmentResponseDto> createShipment(
+            @Parameter(description = "요청 사용자 공개 식별자", example = "usr_01HZXA1B2C3D4E5F6G7H8J9K0")
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
+            @Parameter(description = "요청 조직 공개 식별자", example = "org_01HZX9X5D4P2Q7F8R9S1T2U3V4")
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @Valid @RequestBody CreateShipmentRequestDto dto
+    ){
+        ShipmentResponseDto createdShipment = shipmentService.createShipment(dto, actorUserPublicId, organizationPublicId);
 
         return ResponseEntity
                 .created(URI.create("/api/supply/shipments/" + createdShipment.getPublicId()))

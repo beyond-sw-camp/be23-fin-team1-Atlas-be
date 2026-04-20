@@ -63,7 +63,11 @@ public class ShipmentService {
 //    출발지/도착지 물류거점 존재 여부 검증(publicId) 뒤 출하 저장
 //    생성 직후 내부 id를 shipment에 저장 후 READY상태 이력 + 출발지 위치 정보 기록
     @Transactional
-    public ShipmentResponseDto createShipment(CreateShipmentRequestDto dto){
+    public ShipmentResponseDto createShipment(
+            CreateShipmentRequestDto dto,
+            String actorUserPublicId,
+            String organizationPublicId
+    ){
 
         if (!dto.getDepartureEta().isBefore(dto.getArrivalEta())) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
@@ -108,8 +112,8 @@ public class ShipmentService {
                         savedShipment,
                         originNode.getPublicId(),
                         destinationNode.getPublicId(),
-                        null,
-                        null
+                        actorUserPublicId,
+                        organizationPublicId
                 )
         );
 
