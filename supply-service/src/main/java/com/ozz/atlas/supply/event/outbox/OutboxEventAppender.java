@@ -18,6 +18,7 @@ public class OutboxEventAppender {
 
     @Transactional
     public void append(EventEnvelope<?> eventEnvelope) {
+        // 도메인 저장과 outbox를 같은 트랜잭션으로 묶음
         String eventJson = serialize(eventEnvelope);
 
         OutboxEvent outboxEvent = OutboxEvent.pending(

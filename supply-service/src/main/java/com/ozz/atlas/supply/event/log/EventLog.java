@@ -142,6 +142,7 @@ public class EventLog extends BaseTimeEntity {
     }
 
     public static EventLog publishedFrom(OutboxEvent outboxEvent) {
+        // event_log는 "보낼 예정"이 아니라 "실제로 어떤 결과로 끝났는가"를 남기는 이력 테이블
         LocalDateTime now = LocalDateTime.now();
         return EventLog.builder()
                 .eventId(outboxEvent.getEventId())

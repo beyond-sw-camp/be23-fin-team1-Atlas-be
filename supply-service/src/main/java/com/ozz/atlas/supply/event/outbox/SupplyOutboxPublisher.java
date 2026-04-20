@@ -25,6 +25,7 @@ public class SupplyOutboxPublisher {
 
     @Scheduled(fixedDelayString = "${atlas.kafka.outbox.publish-delay-ms:2000}")
     public void publishPendingEvents() {
+        // 성공하지 못한 이벤트까지 함께 읽어서 재시도
         List<OutboxEvent> events = outboxEventRepository.findPublishableEvents(
                 List.of(OutboxEventStatus.PENDING, OutboxEventStatus.FAILED),
                 LocalDateTime.now(),
@@ -39,6 +40,7 @@ public class SupplyOutboxPublisher {
     @Transactional
     protected void publishSingleEvent(OutboxEvent outboxEvent) {
         try {
+            // 실제 Kafka 발행은 outbox publisher가 담당, 서비스 계층은 DB
             kafkaTemplate.send(
                     outboxEvent.getTopic(),
                     outboxEvent.getPartitionKey(),
