@@ -1,5 +1,7 @@
 package com.ozz.atlas.supply.event.outbox;
 
+import com.ozz.atlas.supply.event.log.EventLog;
+import com.ozz.atlas.supply.event.log.EventLogRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

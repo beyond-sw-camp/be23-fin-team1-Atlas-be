@@ -1,4 +1,4 @@
-package com.ozz.atlas.supply.event.outbox;
+package com.ozz.atlas.supply.event.log;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

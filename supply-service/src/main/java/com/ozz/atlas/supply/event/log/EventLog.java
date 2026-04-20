@@ -1,7 +1,8 @@
-package com.ozz.atlas.supply.event.outbox;
+package com.ozz.atlas.supply.event.log;
 
 import com.ozz.atlas.common.event.AggregateType;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
+import com.ozz.atlas.supply.event.outbox.OutboxEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
