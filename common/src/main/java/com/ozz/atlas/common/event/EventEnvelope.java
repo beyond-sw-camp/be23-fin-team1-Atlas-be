@@ -34,4 +34,6 @@ public record EventEnvelope<T>(
         @Schema(description = "도메인별 상세 payload")
         T payload
 ) {
+    // topic과 eventType은 역할이 다름
+    // topic은 큰 도메인 분류, eventType은 실제 상태 변화나 행위
 }
