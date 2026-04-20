@@ -73,6 +73,7 @@ public class RecommendationResultConsumer {
                 payload.recommendationPublicId(), payload.shipmentPublicId());
 
         if (eventEnvelope.actorUserPublicId() == null || eventEnvelope.actorUserPublicId().isBlank()) {
+            // 현재는 사용자 식별자가 없으면 결과를 저장하지 않고 알림도 생략한다.
             return;
         }
 

@@ -37,6 +37,7 @@ class KafkaConsumerRunner:
             auto_offset_reset="earliest",
             value_deserializer=lambda value: json.loads(value.decode("utf-8")),
         )
+        # ai-orchestrator는 생성 성공/실패 이벤트를 직접 발행한 뒤에만 offset을 커밋한다.
         self._task = None
         self._running = False
 
@@ -67,6 +68,7 @@ class KafkaConsumerRunner:
                 result = await self._recommendation_service.generate(
                     request_payload.to_recommendation_request()
                 )
+                # 생성 성공 시 generated 이벤트를 먼저 발행하고 offset을 커밋한다.
                 result_event = build_generated_event(envelope, request_payload, result)
                 await self._producer_client.publish(
                     settings.recommendation_result_topic,
@@ -76,6 +78,7 @@ class KafkaConsumerRunner:
                 await self._consumer.commit()
             except Exception as exc:
                 logger.exception("권고안 생성 이벤트 처리에 실패했습니다.")
+                # 생성 실패도 failed 이벤트로 남겨 control-service가 후속 처리할 수 있게 한다.
                 failed_event = build_failed_event(envelope, request_payload, str(exc))
                 await self._producer_client.publish(
                     settings.recommendation_failed_topic,

@@ -7,6 +7,7 @@ from app.config import settings
 
 class KafkaProducerClient:
     def __init__(self) -> None:
+        # Java 서비스와 같은 SASL/PLAIN 설정으로 동일한 클러스터에 접속한다.
         self._producer = AIOKafkaProducer(
             bootstrap_servers=settings.kafka_bootstrap_servers,
             security_protocol=settings.kafka_security_protocol,

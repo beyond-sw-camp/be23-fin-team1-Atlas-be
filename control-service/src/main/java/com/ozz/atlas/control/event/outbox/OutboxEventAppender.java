@@ -18,6 +18,7 @@ public class OutboxEventAppender {
 
     @Transactional
     public void append(EventEnvelope<?> eventEnvelope) {
+        // 도메인 처리와 outbox 적재를 같은 트랜잭션으로 묶어서 DB/Kafka 불일치를 줄인다.
         OutboxEvent outboxEvent = OutboxEvent.pending(
                 eventEnvelope.eventId(),
                 eventEnvelope.topic(),

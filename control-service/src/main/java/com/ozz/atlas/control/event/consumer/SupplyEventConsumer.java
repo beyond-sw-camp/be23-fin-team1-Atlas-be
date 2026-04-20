@@ -40,6 +40,7 @@ public class SupplyEventConsumer {
             );
 
             if (processedEventService.isAlreadyProcessed(eventEnvelope.eventId())) {
+                // 같은 eventId를 다시 받았을 때는 비즈니스 처리를 건너뛰고 offset만 커밋한다.
                 acknowledgment.acknowledge();
                 return;
             }
@@ -78,6 +79,7 @@ public class SupplyEventConsumer {
                 objectMapper.convertValue(eventEnvelope.payload(), ShipmentDelayDetectedPayload.class);
         log.info("출하 지연 이벤트 수신. shipmentPublicId={}, delayMinutes={}",
                 payload.shipmentPublicId(), payload.delayMinutes());
+        // 지연 이벤트는 control-service 내부 recommendation.requested 이벤트로 한 번 더 변환한다.
         outboxEventAppender.append(recommendationEventFactory.shipmentDelayRequested(eventEnvelope, payload));
     }
 }
