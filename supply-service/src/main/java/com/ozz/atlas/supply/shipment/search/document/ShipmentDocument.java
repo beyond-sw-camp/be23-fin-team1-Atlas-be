@@ -50,8 +50,14 @@ public class ShipmentDocument {
     @Field(type = FieldType.Long)
     private Long poId;
 
+    @Field(type = FieldType.Keyword)
+    private String purchaseOrderPublicId;
+
     @Field(type = FieldType.Long)
     private Long subPoId;
+
+    @Field(type = FieldType.Keyword)
+    private String subPurchaseOrderPublicId;
 
     @MultiField(
             mainField = @Field(type = FieldType.Text),
@@ -178,7 +184,9 @@ public class ShipmentDocument {
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
                 .poId(shipment.getPoId())
+                .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
                 .subPoId(shipment.getSubPoId())
+                .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
                 .carrierName(shipment.getCarrierName())
                 .vehicleNo(shipment.getVehicleNo())
                 .trackingNo(shipment.getTrackingNo())

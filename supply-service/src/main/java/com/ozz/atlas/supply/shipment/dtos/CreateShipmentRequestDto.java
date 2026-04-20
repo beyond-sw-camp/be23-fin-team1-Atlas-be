@@ -22,8 +22,14 @@ public class CreateShipmentRequestDto {
     @Schema(description = "상위 발주 ID", example = "101")
     private Long poId;
 
+    @Schema(description = "상위 발주 공개 식별자", example = "po_01HZY1PO123456789")
+    private String purchaseOrderPublicId;
+
     @Schema(description = "하위 발주 ID", example = "202", nullable = true)
     private Long subPoId;
+
+    @Schema(description = "하위 발주 공개 식별자", example = "subpo_01HZY1SUBPO123456789", nullable = true)
+    private String subPurchaseOrderPublicId;
 
     @NotBlank
     @Schema(description = "운송사명", example = "CJ Logistics")
