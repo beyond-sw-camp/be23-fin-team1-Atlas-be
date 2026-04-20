@@ -6,6 +6,8 @@ import com.ozz.atlas.common.event.EventEnvelope;
 import com.ozz.atlas.common.event.EventTypes;
 import com.ozz.atlas.common.event.KafkaTopics;
 import com.ozz.atlas.control.event.processed.ProcessedEventService;
+import com.ozz.atlas.control.event.outbox.OutboxEventAppender;
+import com.ozz.atlas.control.event.recommendation.RecommendationEventFactory;
 import com.ozz.atlas.control.event.shipment.ShipmentCreatedPayload;
 import com.ozz.atlas.control.event.shipment.ShipmentDelayDetectedPayload;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,8 @@ public class SupplyEventConsumer {
 
     private final ObjectMapper objectMapper;
     private final ProcessedEventService processedEventService;
+    private final OutboxEventAppender outboxEventAppender;
+    private final RecommendationEventFactory recommendationEventFactory;
 
     @KafkaListener(
             topics = KafkaTopics.SUPPLY_SHIPMENT,
@@ -74,5 +78,6 @@ public class SupplyEventConsumer {
                 objectMapper.convertValue(eventEnvelope.payload(), ShipmentDelayDetectedPayload.class);
         log.info("출하 지연 이벤트 수신. shipmentPublicId={}, delayMinutes={}",
                 payload.shipmentPublicId(), payload.delayMinutes());
+        outboxEventAppender.append(recommendationEventFactory.shipmentDelayRequested(eventEnvelope, payload));
     }
 }
