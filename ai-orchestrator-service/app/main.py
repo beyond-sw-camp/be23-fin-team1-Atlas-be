@@ -2,6 +2,8 @@ from fastapi import FastAPI
 
 from app.api.health import router as health_router
 from app.handlers.recommendation_handler import RecommendationHandler
+from app.messaging.kafka_consumer import KafkaConsumerRunner
+from app.messaging.kafka_producer import KafkaProducerClient
 from app.providers.local_llm_provider import LocalLlmProvider
 from app.providers.openai_provider import OpenAIProvider
 from app.providers.router import ProviderRouter
@@ -27,6 +29,23 @@ recommendation_service = RecommendationService(
     openai_provider=openai_provider,
 )
 recommendation_handler = RecommendationHandler(recommendation_service)
+producer_client = KafkaProducerClient()
+consumer_runner = KafkaConsumerRunner(
+    recommendation_service=recommendation_service,
+    producer_client=producer_client,
+)
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    await producer_client.start()
+    await consumer_runner.start()
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    await consumer_runner.stop()
+    await producer_client.stop()
 
 
 @app.post("/internal/recommendations/generate", response_model=RecommendationResult)
