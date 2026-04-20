@@ -103,6 +103,7 @@ public class AuthController {
         TokenDto tokenDto = TokenDto.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .passwordChangeRequired(user.isPasswordChangeRequired())
                 .build();
 
         return ResponseEntity.ok(tokenDto);

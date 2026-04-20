@@ -4,6 +4,7 @@ import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.service.OrganizationService;
+import com.ozz.atlas.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -28,10 +29,12 @@ import org.springframework.data.domain.Pageable;
 @SecurityRequirement(name = "bearerAuth")
 public class OrganizationController {
     private final OrganizationService organizationService;
+    private final UserService userService;
 
     @Autowired
-    public OrganizationController(OrganizationService organizationService) {
+    public OrganizationController(OrganizationService organizationService, UserService userService) {
         this.organizationService = organizationService;
+        this.userService = userService;
     }
 
     //    조직 등록
@@ -91,6 +94,23 @@ public class OrganizationController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+    // 관리자가 조직의 최초 ORG_ADMIN 계정을 생성
+    @PostMapping("/organizations/{organizationPublicId}/org-admin")
+    public ResponseEntity<InitialOrgAdminCreateResponseDto> createInitialOrgAdmin(
+            @PathVariable String organizationPublicId,
+            @RequestBody @Valid InitialOrgAdminCreateDto dto,
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        if (principal.role() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        InitialOrgAdminCreateResponseDto response =
+                userService.createInitialOrgAdmin(organizationPublicId, dto);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
 
     //    조직 목록 조회
     @GetMapping("/organizations")

@@ -17,4 +17,8 @@ public class TokenDto {
 
     @Schema(description = "Access Token 재발급에 사용하는 Refresh Token", example = "eyJhbGciOiJIUzI1NiJ9.refresh-token")
     private String refreshToken;
+
+    @Schema(description = "첫 로그인 후 비밀번호 변경 필요 여부", example = "true")
+    private boolean passwordChangeRequired;
+
 }

@@ -62,6 +62,12 @@ public class User extends BaseTimeEntity {
     @Column
     private LocalDateTime passwordChangedAt;
 
+    // 임시 비밀번호로 만든 계정인지 표시
+    // true 면 첫 로그인 후 비밀번호를 꼭 수정해야함
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean passwordChangeRequired = false;
+
     public void updateUser(UserUpdateDto dto) {
         if (dto.getFirstName() != null && !dto.getFirstName().isBlank()) this.firstName = dto.getFirstName();
         if (dto.getMiddleName() != null) this.middleName = dto.getMiddleName();
@@ -82,6 +88,15 @@ public class User extends BaseTimeEntity {
     public void updatePassword(String encodedPassword) {
         this.password = encodedPassword;
         this.passwordChangedAt = LocalDateTime.now();
+    }
+    // 최초 생성 계정처럼 비밀번호 변경을 강제해야 할 때 호출
+    public void requirePasswordChange() {
+        this.passwordChangeRequired = true;
+    }
+
+    // 비밀번호를 정상적으로 바꾼 뒤에는 강제 변경 상태를 해제
+    public void clearPasswordChangeRequired() {
+        this.passwordChangeRequired = false;
     }
 
 
