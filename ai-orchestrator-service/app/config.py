@@ -5,9 +5,25 @@ import os
 @dataclass(frozen=True)
 class Settings:
     kafka_bootstrap_servers: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    recommendation_request_topic: str = os.getenv("KAFKA_RECOMMENDATION_REQUEST_TOPIC", "recommendation.requested.v1")
-    recommendation_result_topic: str = os.getenv("KAFKA_RECOMMENDATION_RESULT_TOPIC", "recommendation.generated.v1")
-    recommendation_failed_topic: str = os.getenv("KAFKA_RECOMMENDATION_FAILED_TOPIC", "recommendation.failed.v1")
+    kafka_security_protocol: str = os.getenv("KAFKA_SECURITY_PROTOCOL", "SASL_PLAINTEXT")
+    kafka_sasl_mechanism: str = os.getenv("KAFKA_SASL_MECHANISM", "PLAIN")
+    kafka_username: str = os.getenv("KAFKA_USERNAME", "atlas")
+    kafka_password: str = os.getenv("KAFKA_PASSWORD", "atlas")
+    kafka_consumer_group_id: str = os.getenv("KAFKA_CONSUMER_GROUP_ID", "atlas-ai-recommendation")
+    kafka_client_id: str = os.getenv("KAFKA_CLIENT_ID", "ai-orchestrator-service")
+
+    recommendation_request_topic: str = os.getenv(
+        "KAFKA_RECOMMENDATION_REQUEST_TOPIC",
+        "atlas.control.recommendation-requested"
+    )
+    recommendation_result_topic: str = os.getenv(
+        "KAFKA_RECOMMENDATION_RESULT_TOPIC",
+        "atlas.control.recommendation-generated"
+    )
+    recommendation_failed_topic: str = os.getenv(
+        "KAFKA_RECOMMENDATION_FAILED_TOPIC",
+        "atlas.control.recommendation-failed"
+    )
 
     local_llm_base_url: str = os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:8001")
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")

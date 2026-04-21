@@ -23,8 +23,8 @@ import java.time.temporal.ChronoUnit;
                 )
         }
 )
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class SupplyExpiryWarning extends BaseTimeEntity {
 

@@ -35,14 +35,12 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "bearerAuth")
 public class AuthController {
     private final AuthService authService;
-    private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginHistoryService loginHistoryService;
 
     @Autowired
-    public AuthController(AuthService authService, UserService userService, JwtTokenProvider jwtTokenProvider, LoginHistoryService loginHistoryService) {
+    public AuthController(AuthService authService, JwtTokenProvider jwtTokenProvider, LoginHistoryService loginHistoryService) {
         this.authService = authService;
-        this.userService = userService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.loginHistoryService = loginHistoryService;
     }
@@ -105,6 +103,7 @@ public class AuthController {
         TokenDto tokenDto = TokenDto.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .passwordChangeRequired(user.isPasswordChangeRequired())
                 .build();
 
         return ResponseEntity.ok(tokenDto);
