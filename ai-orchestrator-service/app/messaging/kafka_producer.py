@@ -1,8 +1,11 @@
 import json
+import logging
 
 from aiokafka import AIOKafkaProducer
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class KafkaProducerClient:
@@ -19,10 +22,17 @@ class KafkaProducerClient:
         )
 
     async def start(self) -> None:
+        logger.info(
+            "Kafka producer connecting. bootstrap_servers=%s client_id=%s",
+            settings.kafka_bootstrap_servers,
+            settings.kafka_client_id,
+        )
         await self._producer.start()
+        logger.info("Kafka producer connected")
 
     async def stop(self) -> None:
         await self._producer.stop()
+        logger.info("Kafka producer stopped")
 
     async def publish(self, topic: str, payload: dict, key: str | None = None) -> None:
         encoded_key = key.encode("utf-8") if key else None

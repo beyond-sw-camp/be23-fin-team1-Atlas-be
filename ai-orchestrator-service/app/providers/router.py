@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from app.config import settings
+
 
 @dataclass(frozen=True)
 class ModelConfig:
@@ -9,10 +11,11 @@ class ModelConfig:
 
 
 MODEL_REGISTRY = {
-    "KR_MAIN": ModelConfig(provider="LOCAL", model="exaone-3.5-7.8b-instruct"),
-    "KR_LIGHT": ModelConfig(provider="LOCAL", model="koni-7b-r"),
-    "EN_MAIN": ModelConfig(provider="LOCAL", model="qwen3-8b"),
-    "EN_LIGHT": ModelConfig(provider="LOCAL", model="bonsai-8b"),
+    # 현재 로컬 개발 기본값은 LM Studio에 올라간 단일 모델을 공통으로 사용한다.
+    "KR_MAIN": ModelConfig(provider="LOCAL", model=settings.local_llm_default_model),
+    "KR_LIGHT": ModelConfig(provider="LOCAL", model=settings.local_llm_default_model),
+    "EN_MAIN": ModelConfig(provider="LOCAL", model=settings.local_llm_default_model),
+    "EN_LIGHT": ModelConfig(provider="LOCAL", model=settings.local_llm_default_model),
     "GPT": ModelConfig(provider="OPENAI", model="gpt-5.4-mini"),
 }
 

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 
 from app.api.health import router as health_router
@@ -12,6 +14,12 @@ from app.schemas.recommendation_result import RecommendationResult
 from app.services.output_parser import OutputParser
 from app.services.prompt_builder import PromptBuilder
 from app.services.recommendation_service import RecommendationService
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AI Orchestrator Service")
 app.include_router(health_router)
@@ -38,14 +46,22 @@ consumer_runner = KafkaConsumerRunner(
 
 @app.on_event("startup")
 async def startup() -> None:
+    logger.info("AI orchestrator startup begin")
+    logger.info("Kafka producer start begin")
     await producer_client.start()
+    logger.info("Kafka producer start complete")
+    logger.info("Kafka consumer start begin")
     await consumer_runner.start()
+    logger.info("Kafka consumer start complete")
+    logger.info("AI orchestrator startup complete")
 
 
 @app.on_event("shutdown")
 async def shutdown() -> None:
+    logger.info("AI orchestrator shutdown begin")
     await consumer_runner.stop()
     await producer_client.stop()
+    logger.info("AI orchestrator shutdown complete")
 
 
 @app.post("/internal/recommendations/generate", response_model=RecommendationResult)
