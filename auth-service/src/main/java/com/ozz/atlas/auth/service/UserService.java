@@ -16,8 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Pageable;
-import java.util.UUID;
 
+import java.util.UUID;
 
 
 @Service
@@ -54,6 +54,7 @@ public class UserService {
         userSearchService.saveUserDocument(savedUser);
         return savedUser.getPublicId();
     }
+
     // 관리자가 조직의 최초 ORG_ADMIN 계정을 생성
     // 임시 비밀번호는 서버가 생성해서 응답으로 내려줌
     public InitialOrgAdminCreateResponseDto createInitialOrgAdmin(
@@ -167,7 +168,6 @@ public class UserService {
     }
 
 
-
     //    사용자 정보 조회 (내정보조회)
     public MyInfoDto getMyInfo(String userPublicId, String organizationPublicId, UserRole role) {
         return MyInfoDto.builder()
@@ -189,7 +189,6 @@ public class UserService {
         return userRepository.findAll(pageable)
                 .map(UserListDto::fromEntity);
     }
-
 
 
     //    사용자 상세 조회
@@ -269,8 +268,11 @@ public class UserService {
             throw new IllegalArgumentException("비밀번호 변경 권한이 없습니다.");
         }
 
-        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        // 강제 비밀번호 변경 상태가 아닐 때만 현재 비밀번호를 검사
+        if (!user.isPasswordChangeRequired()) {
+            if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
+                throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+            }
         }
 
         if (!dto.getNewPassword().equals(dto.getNewPasswordConfirm())) {
@@ -324,13 +326,12 @@ public class UserService {
 
         return UserDetailDto.fromEntity(user);
     }
+
     // 임시 비밀번호를 간단히 생성
     // 나중에 규칙이 필요하면 별도 유틸로 분리할 수 있음
     private String createTemporaryPassword() {
         return "Atlas!" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
     }
-
-
 
 
 }
