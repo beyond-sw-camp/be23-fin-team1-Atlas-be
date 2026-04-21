@@ -1,5 +1,9 @@
 package com.ozz.atlas.control.recommendation.service;
 
+import com.ozz.atlas.common.event.EventEnvelope;
+import com.ozz.atlas.control.event.outbox.OutboxEventAppender;
+import com.ozz.atlas.control.event.recommendation.RecommendationDecisionPayload;
+import com.ozz.atlas.control.event.recommendation.RecommendationEventFactory;
 import com.ozz.atlas.control.event.recommendation.RecommendationFailedPayload;
 import com.ozz.atlas.control.event.recommendation.RecommendationGeneratedPayload;
 import com.ozz.atlas.control.event.recommendation.RecommendationItemPayload;
@@ -23,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
+    private final RecommendationEventFactory recommendationEventFactory;
+    private final OutboxEventAppender outboxEventAppender;
 
     @Transactional
     public Recommendation saveGenerated(
@@ -105,6 +111,35 @@ public class RecommendationService {
     public RecommendationResponseDto getRecommendation(String publicId, String organizationPublicId) {
         Recommendation recommendation = recommendationRepository.findByPublicIdAndOrganizationPublicId(publicId, organizationPublicId)
                 .orElseThrow(() -> new IllegalArgumentException("권고안을 찾을 수 없습니다. publicId=" + publicId));
+
+        return toResponseDto(recommendation);
+    }
+
+    @Transactional
+    public RecommendationResponseDto accept(String publicId, String organizationPublicId, String actorUserPublicId) {
+        Recommendation recommendation = recommendationRepository.findByPublicIdAndOrganizationPublicId(publicId, organizationPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("권고안을 찾을 수 없습니다. publicId=" + publicId));
+
+        recommendation.markAccepted();
+
+        // 상태 변경과 decision 이벤트 적재를 같은 트랜잭션으로 묶어 control 관점 판단 이력을 남긴다.
+        EventEnvelope<RecommendationDecisionPayload> eventEnvelope =
+                recommendationEventFactory.accepted(recommendation, actorUserPublicId, organizationPublicId);
+        outboxEventAppender.append(eventEnvelope);
+
+        return toResponseDto(recommendation);
+    }
+
+    @Transactional
+    public RecommendationResponseDto reject(String publicId, String organizationPublicId, String actorUserPublicId) {
+        Recommendation recommendation = recommendationRepository.findByPublicIdAndOrganizationPublicId(publicId, organizationPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("권고안을 찾을 수 없습니다. publicId=" + publicId));
+
+        recommendation.markRejected();
+
+        EventEnvelope<RecommendationDecisionPayload> eventEnvelope =
+                recommendationEventFactory.rejected(recommendation, actorUserPublicId, organizationPublicId);
+        outboxEventAppender.append(eventEnvelope);
 
         return toResponseDto(recommendation);
     }

@@ -9,6 +9,7 @@ import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.control.event.shipment.ShipmentDelayDetectedPayload;
 import java.time.Instant;
 import org.springframework.stereotype.Component;
+import com.ozz.atlas.control.recommendation.domain.Recommendation;
 
 @Component
 public class RecommendationEventFactory {
@@ -49,6 +50,65 @@ public class RecommendationEventFactory {
                 sourceEvent.actorUserPublicId(),
                 sourceEvent.organizationPublicId(),
                 requestPayload
+        );
+    }
+
+    public EventEnvelope<RecommendationDecisionPayload> accepted(
+            Recommendation recommendation,
+            String actorUserPublicId,
+            String organizationPublicId
+    ) {
+        return decisionEvent(
+                recommendation,
+                EventTypes.RECOMMENDATION_ACCEPTED,
+                actorUserPublicId,
+                organizationPublicId
+        );
+    }
+
+    public EventEnvelope<RecommendationDecisionPayload> rejected(
+            Recommendation recommendation,
+            String actorUserPublicId,
+            String organizationPublicId
+    ) {
+        return decisionEvent(
+                recommendation,
+                EventTypes.RECOMMENDATION_REJECTED,
+                actorUserPublicId,
+                organizationPublicId
+        );
+    }
+
+    private EventEnvelope<RecommendationDecisionPayload> decisionEvent(
+            Recommendation recommendation,
+            String eventType,
+            String actorUserPublicId,
+            String organizationPublicId
+    ) {
+        Instant decidedAt = Instant.now();
+        RecommendationDecisionPayload payload = new RecommendationDecisionPayload(
+                recommendation.getPublicId(),
+                recommendation.getShipmentPublicId(),
+                recommendation.getRiskType(),
+                actorUserPublicId,
+                decidedAt
+        );
+
+        return new EventEnvelope<>(
+                PublicIdGenerator.next(),
+                eventType,
+                EventSchemaVersions.V1,
+                "control-service",
+                KafkaTopics.CONTROL_RECOMMENDATION_DECISION,
+                AggregateType.RECOMMENDATION,
+                recommendation.getPublicId(),
+                organizationPublicId != null ? organizationPublicId : recommendation.getPublicId(),
+                decidedAt,
+                recommendation.getSourceEventId(),
+                recommendation.getSourceEventId(),
+                actorUserPublicId,
+                organizationPublicId,
+                payload
         );
     }
 }

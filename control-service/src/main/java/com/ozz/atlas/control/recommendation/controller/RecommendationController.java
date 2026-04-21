@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -120,5 +121,51 @@ public class RecommendationController {
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId
     ) {
         return ResponseEntity.ok(recommendationService.getRecommendation(recommendationPublicId, organizationPublicId));
+    }
+
+    @PostMapping("/{recommendationPublicId}/accept")
+    @Operation(
+            summary = "권고안 수락",
+            description = "GENERATED 상태의 권고안을 수락하고 recommendation.accepted 이벤트를 outbox에 적재한다.",
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "수락 성공",
+                    content = @Content(schema = @Schema(implementation = RecommendationResponseDto.class))
+            )
+    )
+    public ResponseEntity<RecommendationResponseDto> acceptRecommendation(
+            @Parameter(description = "권고안 공개 식별자", example = "01KPPQ2N7Q9P4H2R8V4QHTR7S9", required = true)
+            @PathVariable String recommendationPublicId,
+            @Parameter(description = "조직 공개 식별자", example = "org00000000000000000000001", required = true)
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @Parameter(description = "의사결정 사용자 공개 식별자", example = "usr00000000000000000000001", required = true)
+            @RequestHeader("X-User-Public-Id") String actorUserPublicId
+    ) {
+        return ResponseEntity.ok(
+                recommendationService.accept(recommendationPublicId, organizationPublicId, actorUserPublicId)
+        );
+    }
+
+    @PostMapping("/{recommendationPublicId}/reject")
+    @Operation(
+            summary = "권고안 거절",
+            description = "GENERATED 상태의 권고안을 거절하고 recommendation.rejected 이벤트를 outbox에 적재한다.",
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "거절 성공",
+                    content = @Content(schema = @Schema(implementation = RecommendationResponseDto.class))
+            )
+    )
+    public ResponseEntity<RecommendationResponseDto> rejectRecommendation(
+            @Parameter(description = "권고안 공개 식별자", example = "01KPPQ2N7Q9P4H2R8V4QHTR7S9", required = true)
+            @PathVariable String recommendationPublicId,
+            @Parameter(description = "조직 공개 식별자", example = "org00000000000000000000001", required = true)
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @Parameter(description = "의사결정 사용자 공개 식별자", example = "usr00000000000000000000001", required = true)
+            @RequestHeader("X-User-Public-Id") String actorUserPublicId
+    ) {
+        return ResponseEntity.ok(
+                recommendationService.reject(recommendationPublicId, organizationPublicId, actorUserPublicId)
+        );
     }
 }
