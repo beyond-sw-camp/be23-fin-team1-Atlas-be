@@ -11,10 +11,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +23,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "recommendation")
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Recommendation extends BaseTimeEntity {
 
     @Id
@@ -30,8 +32,9 @@ public class Recommendation extends BaseTimeEntity {
     @Column(name = "recommendation_id")
     private Long id;
 
-    @Column(name = "public_id", nullable = false, length = 26, unique = true)
-    private String publicId;
+    @Column(name = "public_id", nullable = false, unique = true, length = 26, updatable = false)
+    @Builder.Default
+    private String publicId = PublicIdGenerator.next();
 
     @Column(name = "source_event_id", nullable = false, length = 26)
     private String sourceEventId;
@@ -71,38 +74,8 @@ public class Recommendation extends BaseTimeEntity {
     private String organizationPublicId;
 
     @OneToMany(mappedBy = "recommendation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<RecommendationItem> items = new ArrayList<>();
-
-    @Builder
-    private Recommendation(
-            String publicId,
-            String sourceEventId,
-            String sourceEventType,
-            String shipmentPublicId,
-            String riskType,
-            RecommendationStatus recommendationStatus,
-            String provider,
-            String model,
-            String modelVersion,
-            String summary,
-            String failureReason,
-            String actorUserPublicId,
-            String organizationPublicId
-    ) {
-        this.publicId = publicId;
-        this.sourceEventId = sourceEventId;
-        this.sourceEventType = sourceEventType;
-        this.shipmentPublicId = shipmentPublicId;
-        this.riskType = riskType;
-        this.recommendationStatus = recommendationStatus;
-        this.provider = provider;
-        this.model = model;
-        this.modelVersion = modelVersion;
-        this.summary = summary;
-        this.failureReason = failureReason;
-        this.actorUserPublicId = actorUserPublicId;
-        this.organizationPublicId = organizationPublicId;
-    }
+    @Builder.Default
+    private List<RecommendationItem> items = new ArrayList<>();
 
     public static Recommendation generated(
             String sourceEventId,
@@ -169,12 +142,5 @@ public class Recommendation extends BaseTimeEntity {
 
     public void markRejected() {
         this.recommendationStatus = RecommendationStatus.REJECTED;
-    }
-
-    @PrePersist
-    void prePersist() {
-        if (this.publicId == null) {
-            this.publicId = PublicIdGenerator.next();
-        }
     }
 }
