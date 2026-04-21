@@ -28,4 +28,9 @@ public class CreateSubPurchaseOrderItemRequest {
     private BigDecimal orderedQty;
 
     private LocalDate requiredDate;
+
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
+    private BigDecimal unitPrice;
+
 }

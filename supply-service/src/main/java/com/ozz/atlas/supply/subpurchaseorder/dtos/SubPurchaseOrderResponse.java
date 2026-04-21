@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,7 @@ public class SubPurchaseOrderResponse {
     private String supplierPublicId;
     private String supplierCode;
     private String supplierName;
+    private BigDecimal totalAmount;
     private SubPoStatus subPoStatus;
     private LocalDateTime orderedAt;
     private LocalDate dueDate;
@@ -43,6 +45,7 @@ public class SubPurchaseOrderResponse {
                 .supplierPublicId(subPo.getSupplier().getPublicId())
                 .supplierCode(subPo.getSupplier().getSupplierCode())
                 .supplierName(subPo.getSupplier().getSupplierName())
+                .totalAmount(subPo.getTotalAmount())
                 .subPoStatus(subPo.getSubPoStatus())
                 .orderedAt(subPo.getOrderedAt())
                 .dueDate(subPo.getDueDate())

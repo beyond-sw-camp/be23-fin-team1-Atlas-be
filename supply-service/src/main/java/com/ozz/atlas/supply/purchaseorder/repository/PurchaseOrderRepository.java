@@ -6,7 +6,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Optional;
 
 public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrder, Long> {
@@ -69,6 +73,17 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
             String supplierPublicId,
             PoStatus poStatus,
             Pageable pageable
+    );
+
+    @Query("""
+        select coalesce(sum(po.totalAmount), 0)
+        from SupplyPurchaseOrder po
+        where po.supplier.id = :supplierId
+          and po.poStatus not in :excludedStatuses
+        """)
+    BigDecimal sumReceivedAmountBySupplierId(
+            @Param("supplierId") Long supplierId,
+            @Param("excludedStatuses") Collection<PoStatus> excludedStatuses
     );
 
 }

@@ -319,8 +319,10 @@ public class SubPurchaseOrderService {
                 parentItem,
                 subItem,
                 requestedQty,
+                request.getUnitPrice(),
                 requiredDate
         );
+
     }
 
     private void validateSupplierCapability(
