@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class UserPasswordUpdateDto {
-    @NotBlank
+
     private String currentPassword;
 
     @NotBlank
