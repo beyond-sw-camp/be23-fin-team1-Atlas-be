@@ -78,6 +78,7 @@ public class Recommendation extends BaseTimeEntity {
     private List<RecommendationItem> items = new ArrayList<>();
 
     public static Recommendation generated(
+            String publicId,
             String sourceEventId,
             String sourceEventType,
             String shipmentPublicId,
@@ -90,6 +91,7 @@ public class Recommendation extends BaseTimeEntity {
             String organizationPublicId
     ) {
         return Recommendation.builder()
+                .publicId(publicId)
                 .sourceEventId(sourceEventId)
                 .sourceEventType(sourceEventType)
                 .shipmentPublicId(shipmentPublicId)
@@ -105,6 +107,7 @@ public class Recommendation extends BaseTimeEntity {
     }
 
     public static Recommendation failed(
+            String publicId,
             String sourceEventId,
             String sourceEventType,
             String shipmentPublicId,
@@ -115,6 +118,7 @@ public class Recommendation extends BaseTimeEntity {
             String organizationPublicId
     ) {
         return Recommendation.builder()
+                .publicId(publicId)
                 .sourceEventId(sourceEventId)
                 .sourceEventType(sourceEventType)
                 .shipmentPublicId(shipmentPublicId)
@@ -125,6 +129,57 @@ public class Recommendation extends BaseTimeEntity {
                 .actorUserPublicId(actorUserPublicId)
                 .organizationPublicId(organizationPublicId)
                 .build();
+    }
+
+    public void applyGenerated(
+            String sourceEventId,
+            String sourceEventType,
+            String shipmentPublicId,
+            String riskType,
+            String provider,
+            String model,
+            String modelVersion,
+            String summary,
+            String actorUserPublicId,
+            String organizationPublicId
+    ) {
+        this.sourceEventId = sourceEventId;
+        this.sourceEventType = sourceEventType;
+        this.shipmentPublicId = shipmentPublicId;
+        this.riskType = riskType;
+        this.recommendationStatus = RecommendationStatus.GENERATED;
+        this.provider = provider;
+        this.model = model;
+        this.modelVersion = modelVersion;
+        this.summary = summary;
+        this.failureReason = null;
+        this.actorUserPublicId = actorUserPublicId;
+        this.organizationPublicId = organizationPublicId;
+    }
+
+    public void applyFailed(
+            String sourceEventId,
+            String sourceEventType,
+            String shipmentPublicId,
+            String riskType,
+            String summary,
+            String failureReason,
+            String actorUserPublicId,
+            String organizationPublicId
+    ) {
+        this.sourceEventId = sourceEventId;
+        this.sourceEventType = sourceEventType;
+        this.shipmentPublicId = shipmentPublicId;
+        this.riskType = riskType;
+        this.recommendationStatus = RecommendationStatus.FAILED;
+        this.provider = null;
+        this.model = null;
+        this.modelVersion = null;
+        this.summary = summary;
+        this.failureReason = failureReason;
+        this.actorUserPublicId = actorUserPublicId;
+        this.organizationPublicId = organizationPublicId;
+        this.items.clear();
     }
 
     public void replaceItems(List<RecommendationItem> recommendationItems) {

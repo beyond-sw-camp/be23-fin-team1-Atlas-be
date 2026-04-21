@@ -10,6 +10,7 @@ import com.ozz.atlas.control.event.recommendation.RecommendationFailedPayload;
 import com.ozz.atlas.control.event.recommendation.RecommendationGeneratedPayload;
 import com.ozz.atlas.control.notification.dto.NotificationDto;
 import com.ozz.atlas.control.notification.service.NotificationService;
+import com.ozz.atlas.control.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -25,6 +26,7 @@ public class RecommendationResultConsumer {
     private final ObjectMapper objectMapper;
     private final ProcessedEventService processedEventService;
     private final NotificationService notificationService;
+    private final RecommendationService recommendationService;
 
     @KafkaListener(
             topics = {
@@ -69,11 +71,18 @@ public class RecommendationResultConsumer {
         RecommendationGeneratedPayload payload =
                 objectMapper.convertValue(eventEnvelope.payload(), RecommendationGeneratedPayload.class);
 
+        // 결과 이벤트를 먼저 저장해두면 알림 발행 실패와 무관하게 권고안 조회/API는 일관되게 유지된다.
+        recommendationService.saveGenerated(
+                payload,
+                eventEnvelope.actorUserPublicId(),
+                eventEnvelope.organizationPublicId()
+        );
+
         log.info("권고안 생성 완료 이벤트 수신. recommendationPublicId={}, shipmentPublicId={}",
                 payload.recommendationPublicId(), payload.shipmentPublicId());
 
         if (eventEnvelope.actorUserPublicId() == null || eventEnvelope.actorUserPublicId().isBlank()) {
-            // 현재는 사용자 식별자가 없으면 결과를 저장하지 않고 알림도 생략한다.
+            // 사용자 식별자가 없으면 저장만 수행하고 사용자 알림은 생략한다.
             return;
         }
 
@@ -90,6 +99,13 @@ public class RecommendationResultConsumer {
     private void handleFailed(EventEnvelope<JsonNode> eventEnvelope) {
         RecommendationFailedPayload payload =
                 objectMapper.convertValue(eventEnvelope.payload(), RecommendationFailedPayload.class);
+
+        // 실패 결과도 동일한 recommendation 엔티티에 반영해 UI와 운영 로그에서 최종 상태를 바로 볼 수 있게 한다.
+        recommendationService.saveFailed(
+                payload,
+                eventEnvelope.actorUserPublicId(),
+                eventEnvelope.organizationPublicId()
+        );
 
         log.warn("권고안 생성 실패 이벤트 수신. recommendationPublicId={}, error={}",
                 payload.recommendationPublicId(), payload.errorMessage());
