@@ -94,7 +94,7 @@ public class PurchaseOrderService {
                             : request.getDueDate();
 
                     if (requiredDate.isAfter(request.getDueDate())) {
-                        throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+                        throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_REQUIRED_DATE_AFTER_DUE_DATE);
                     }
 
                     return SupplyPurchaseOrderItem.create(

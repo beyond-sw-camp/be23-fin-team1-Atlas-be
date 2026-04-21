@@ -3,10 +3,15 @@ package com.ozz.atlas.supply.supplier.service;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
+import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
+import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
+import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.dtos.SupplierListResponse;
 import com.ozz.atlas.supply.supplier.dtos.SupplierResponse;
 import com.ozz.atlas.supply.supplier.dtos.UpdateSupplierRequest;
 import com.ozz.atlas.supply.supplier.exception.SupplierErrorCode;
@@ -21,6 +26,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
@@ -35,6 +42,8 @@ public class SupplierService {
     private static final String BUYER_ORGANIZATION_TYPE = "BUYER";
     private static final String SUPPLIER_ORGANIZATION_TYPE = "SUPPLIER";
     private final SupplyItemRepository supplyItemRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final SubPurchaseOrderRepository subPurchaseOrderRepository;
 
     public SupplierResponse createSupplier(String userRole, CreateSupplierRequest request) {
         validateAdminCreate(userRole);
@@ -95,7 +104,7 @@ public class SupplierService {
 
 
     @Transactional(readOnly = true)
-    public Page<SupplierResponse> getSupplierList(
+    public Page<SupplierListResponse> getSupplierList(
             Pageable pageable,
             SupplierSearchDto searchDto,
             String organizationPublicId,
@@ -105,7 +114,9 @@ public class SupplierService {
         if (canViewAllSuppliers(organizationType, userRole)) {
             // 검색 조건이 있으면 ES 통합검색 실행
             if (hasSearchCondition(searchDto)) {
-                return supplierSearchService.search(pageable, searchDto);
+                return supplierSearchService.search(pageable, searchDto)
+                        .map(searchResult -> getApprovedSupplier(searchResult.getPublicId()))
+                        .map(this::toSupplierListResponse);
             }
 
 //        검색 조건이 없으면 db 목록 조회
@@ -114,7 +125,7 @@ public class SupplierService {
                             SupplierStatus.TERMINATED,
                             pageable
                     )
-                    .map(SupplierResponse::fromEntity);
+                    .map(this::toSupplierListResponse);
         }
 
         SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
@@ -134,7 +145,7 @@ public class SupplierService {
                         SupplierStatus.TERMINATED,
                         pageable
                 )
-                .map(SupplierResponse::fromEntity);
+                .map(this::toSupplierListResponse);
     }
 
     @Transactional(readOnly = true)
@@ -157,6 +168,7 @@ public class SupplierService {
                 )
                 .map(SupplierResponse::fromEntity);
     }
+
 
 
     public SupplierResponse updateSupplier(String supplierPublicId, String organizationPublicId, UpdateSupplierRequest request) {
@@ -318,6 +330,56 @@ public class SupplierService {
             throw new SupplierException(SupplierErrorCode.SUPPLIER_CREATE_FORBIDDEN);
         }
     }
+
+    private BigDecimal calculateCumulativeAmount(SupplySupplier supplier) {
+        return switch (supplier.getTierLevel()) {
+            case TIER1 -> safeAmount(
+                    purchaseOrderRepository.sumReceivedAmountBySupplierId(
+                            supplier.getId(),
+                            EnumSet.of(PoStatus.REJECTED, PoStatus.CANCELLED, PoStatus.DELETED)
+                    )
+            );
+            case TIER2, TIER3 -> safeAmount(
+                    subPurchaseOrderRepository.sumReceivedAmountBySupplierId(
+                            supplier.getId(),
+                            EnumSet.of(SubPoStatus.REJECTED, SubPoStatus.CANCELLED, SubPoStatus.DELETED)
+                    )
+            );
+        };
+    }
+
+    private BigDecimal safeAmount(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private SupplierListResponse toSupplierListResponse(SupplySupplier supplier) {
+        return SupplierListResponse.of(
+                supplier,
+                null,
+                null,
+                null,
+                0L,
+                BigDecimal.ZERO,
+                calculateCumulativeAmount(supplier),
+                resolveListStatus(supplier)
+        );
+    }
+
+    private String resolveListStatus(SupplySupplier supplier) {
+        if (supplier.getApprovalStatus() == ApprovalStatus.REQUESTED) {
+            return "REQUESTED";
+        }
+
+        if (supplier.getApprovalStatus() == ApprovalStatus.REJECTED) {
+            return "REJECTED";
+        }
+
+        return supplier.getSupplierStatus().name();
+    }
+
+
+
+
 
 
 

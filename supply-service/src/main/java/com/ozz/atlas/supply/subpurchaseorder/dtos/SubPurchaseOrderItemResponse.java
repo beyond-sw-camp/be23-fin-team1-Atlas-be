@@ -22,6 +22,8 @@ public class SubPurchaseOrderItemResponse {
     private String itemCode;
     private String itemName;
     private String unit;
+    private BigDecimal unitPrice;
+    private BigDecimal lineAmount;
     private BigDecimal orderedQty;
     private BigDecimal confirmedQty;
     private LocalDate requiredDate;
@@ -36,6 +38,8 @@ public class SubPurchaseOrderItemResponse {
                 .itemCode(item.getItem().getItemCode())
                 .itemName(item.getItem().getItemName())
                 .unit(item.getItem().getUnit().name())
+                .unitPrice(item.getUnitPrice())
+                .lineAmount(item.getLineAmount())
                 .orderedQty(item.getOrderedQty())
                 .confirmedQty(item.getConfirmedQty())
                 .requiredDate(item.getRequiredDate())

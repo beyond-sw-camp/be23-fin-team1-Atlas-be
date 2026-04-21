@@ -55,6 +55,9 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
+    @Column(name = "total_amount", nullable = false, precision = 18, scale = 2)
+    private java.math.BigDecimal totalAmount;
+
     @Column(name = "created_by_user_public_id", length = 26)
     private String createdByUserPublicId;
 
@@ -77,6 +80,7 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
                 .subPoStatus(SubPoStatus.CREATED)
                 .orderedAt(LocalDateTime.now())
                 .dueDate(dueDate)
+                .totalAmount(java.math.BigDecimal.ZERO)
                 .createdByUserPublicId(createdByUserPublicId)
                 .build();
 
@@ -90,6 +94,7 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
     public void addItem(SupplySubPurchaseOrderItem item) {
         item.assignSubPurchaseOrder(this);
         this.subPurchaseOrderItems.add(item);
+        recalculateTotalAmount();
     }
 
     public void accept() {
@@ -142,5 +147,13 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
         }
 
         this.subPoStatus = SubPoStatus.ACCEPTED;
+    }
+
+    private void recalculateTotalAmount() {
+        this.totalAmount = this.subPurchaseOrderItems.stream()
+                .filter(item -> !item.isDeleted())
+                .map(SupplySubPurchaseOrderItem::getLineAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add)
+                .setScale(2, java.math.RoundingMode.HALF_UP);
     }
 }

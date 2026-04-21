@@ -25,7 +25,8 @@ public enum PurchaseOrderErrorCode implements ErrorCode {
     PURCHASE_ORDER_ITEM_HAS_ACTIVE_SUB_PURCHASE_ORDER(409, "PO_015", "활성 하위 발주가 존재하여 해당 발주 상세를 수정 또는 삭제할 수 없습니다."),
     PURCHASE_ORDER_ITEM_CONFIRM_QTY_LESS_THAN_SUB_ORDER_QTY(409, "PO_016", "확정 수량은 이미 하위 발주로 내려간 총 발주 수량보다 작을 수 없습니다."),
     INTERNAL_SERVER_ERROR(500, "PO_999", "서버 내부 오류가 발생했습니다."),
-    PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH(400, "PO_017", "선택한 품목이 발주 대상 협력사의 품목이 아닙니다.");
+    PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH(400, "PO_017", "선택한 품목이 발주 대상 협력사의 품목이 아닙니다."),
+    PURCHASE_ORDER_REQUIRED_DATE_AFTER_DUE_DATE(400, "PO_018", "요청 납기일은 발주 납기일보다 늦을 수 없습니다.");
 
 
     private final int status;

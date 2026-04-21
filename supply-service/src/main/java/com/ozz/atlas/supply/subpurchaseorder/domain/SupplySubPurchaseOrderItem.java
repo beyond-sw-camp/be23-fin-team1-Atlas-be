@@ -41,6 +41,13 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
     @Column(name = "ordered_qty", nullable = false, precision = 18, scale = 2)
     private BigDecimal orderedQty;
 
+    @Column(name = "unit_price", nullable = false, precision = 18, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(name = "line_amount", nullable = false, precision = 18, scale = 2)
+    private BigDecimal lineAmount;
+
+
     @Column(name = "confirmed_qty", precision = 18, scale = 2)
     private BigDecimal confirmedQty;
 
@@ -56,15 +63,22 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
             SupplyPurchaseOrderItem parentPurchaseOrderItem,
             SupplyItem item,
             BigDecimal orderedQty,
+            BigDecimal unitPrice,
             LocalDate requiredDate
     ) {
         return SupplySubPurchaseOrderItem.builder()
                 .parentPurchaseOrderItem(parentPurchaseOrderItem)
                 .item(item)
                 .orderedQty(orderedQty)
+                .unitPrice(unitPrice)
+                .lineAmount(calculateLineAmount(orderedQty, unitPrice))
                 .requiredDate(requiredDate)
                 .lineStatus(SubPurchaseOrderLineStatus.OPEN)
                 .build();
+    }
+
+    private static BigDecimal calculateLineAmount(BigDecimal orderedQty, BigDecimal unitPrice) {
+        return orderedQty.multiply(unitPrice).setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     public void confirm(BigDecimal confirmedQty) {
