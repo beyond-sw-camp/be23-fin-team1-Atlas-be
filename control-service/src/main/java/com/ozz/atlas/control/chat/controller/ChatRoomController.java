@@ -95,6 +95,21 @@ public class ChatRoomController {
     }
 
     /**
+     * 채팅방 이름 변경
+     */
+    @PatchMapping("/{roomPublicId}")
+    @Operation(summary = "채팅방 이름 변경")
+    public ResponseEntity<ChatRoomDto> updateRoomName(
+            @PathVariable String roomPublicId,
+            @RequestBody com.ozz.atlas.control.chat.dto.UpdateRoomNameRequestDto request,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String userPublicId) {
+        
+        return ResponseEntity.ok(
+                chatRoomService.updateRoomName(roomPublicId, request.getRoomName(), userPublicId)
+        );
+    }
+
+    /**
      * 사용자가 속한 채팅방 목록 조회
      */
     @GetMapping

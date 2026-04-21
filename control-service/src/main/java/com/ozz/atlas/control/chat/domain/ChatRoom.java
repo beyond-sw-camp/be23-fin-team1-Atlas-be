@@ -37,4 +37,8 @@ public class ChatRoom extends BaseTimeEntity {
             this.roomStatus = RoomStatus.OPEN;
         }
     }
+
+    public void updateRoomName(String roomName) {
+        this.roomName = roomName;
+    }
 }
