@@ -11,9 +11,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,6 +22,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 @Table(
         name = "outbox_event",
         indexes = {
@@ -37,7 +40,8 @@ public class OutboxEvent extends BaseTimeEntity {
     private Long id;
 
     @Column(nullable = false, unique = true, updatable = false, length = 26)
-    private String eventId;
+    @Builder.Default
+    private String eventId = PublicIdGenerator.next();
 
     @Column(nullable = false, length = 120)
     private String topic;
@@ -74,65 +78,30 @@ public class OutboxEvent extends BaseTimeEntity {
     private String causationId;
 
     @Column(nullable = false)
-    private LocalDateTime occurredAt;
+    @Builder.Default
+    private LocalDateTime occurredAt = LocalDateTime.now();
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String eventJson;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private OutboxEventStatus status;
+    @Builder.Default
+    private OutboxEventStatus status = OutboxEventStatus.PENDING;
 
     @Column(nullable = false)
-    private Integer retryCount;
+    @Builder.Default
+    private Integer retryCount = 0;
 
     @Column(name = "next_attempt_at", nullable = false)
-    private LocalDateTime nextAttemptAt;
+    @Builder.Default
+    private LocalDateTime nextAttemptAt = LocalDateTime.now();
 
     @Column(name = "last_attempted_at")
     private LocalDateTime lastAttemptedAt;
 
     @Column(columnDefinition = "TEXT")
     private String lastError;
-
-    @Builder
-    private OutboxEvent(
-            String eventId,
-            String topic,
-            String eventType,
-            String schemaVersion,
-            String producer,
-            AggregateType aggregateType,
-            String aggregatePublicId,
-            String partitionKey,
-            String organizationPublicId,
-            String actorUserPublicId,
-            String correlationId,
-            String causationId,
-            LocalDateTime occurredAt,
-            String eventJson,
-            OutboxEventStatus status,
-            Integer retryCount,
-            LocalDateTime nextAttemptAt
-    ) {
-        this.eventId = eventId;
-        this.topic = topic;
-        this.eventType = eventType;
-        this.schemaVersion = schemaVersion;
-        this.producer = producer;
-        this.aggregateType = aggregateType;
-        this.aggregatePublicId = aggregatePublicId;
-        this.partitionKey = partitionKey;
-        this.organizationPublicId = organizationPublicId;
-        this.actorUserPublicId = actorUserPublicId;
-        this.correlationId = correlationId;
-        this.causationId = causationId;
-        this.occurredAt = occurredAt;
-        this.eventJson = eventJson;
-        this.status = status;
-        this.retryCount = retryCount;
-        this.nextAttemptAt = nextAttemptAt;
-    }
 
     public static OutboxEvent pending(
             String eventId,
@@ -170,25 +139,6 @@ public class OutboxEvent extends BaseTimeEntity {
                 .retryCount(0)
                 .nextAttemptAt(LocalDateTime.now())
                 .build();
-    }
-
-    @PrePersist
-    void prePersist() {
-        if (this.eventId == null || this.eventId.isBlank()) {
-            this.eventId = PublicIdGenerator.next();
-        }
-        if (this.status == null) {
-            this.status = OutboxEventStatus.PENDING;
-        }
-        if (this.retryCount == null) {
-            this.retryCount = 0;
-        }
-        if (this.nextAttemptAt == null) {
-            this.nextAttemptAt = LocalDateTime.now();
-        }
-        if (this.occurredAt == null) {
-            this.occurredAt = LocalDateTime.now();
-        }
     }
 
     public void markFailed(String lastError, LocalDateTime nextAttemptAt) {
