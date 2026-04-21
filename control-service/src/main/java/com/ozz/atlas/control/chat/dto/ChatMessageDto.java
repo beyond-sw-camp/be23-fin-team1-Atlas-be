@@ -26,4 +26,5 @@ public class ChatMessageDto {
     private LocalDateTime sentAt;
     private LocalDateTime editedAt;
     private boolean isDeleted;
+    private int unreadCount;
 }

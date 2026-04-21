@@ -18,6 +18,7 @@ public class GatewaySecurityConfig {
                 // 프리플라이트 OPTIONS 요청에도 CORS 설정이 적용
                 .cors(Customizer.withDefaults())
                 .authorizeExchange(exchange -> exchange
+                        .pathMatchers("/api/control/ws-chat/**", "/ws-chat/**").permitAll()
                         .anyExchange().permitAll()
                 )
                 .build();

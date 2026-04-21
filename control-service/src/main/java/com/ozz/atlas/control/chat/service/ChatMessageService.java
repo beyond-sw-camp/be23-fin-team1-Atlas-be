@@ -106,6 +106,7 @@ public class ChatMessageService {
         // 4. DTO 업데이트
         messageDto.setPublicId(chatMessage.getPublicId());
         messageDto.setSentAt(chatMessage.getCreatedAt());
+        messageDto.setUnreadCount((int) chatParticipantRepository.countUnreadParticipants(chatRoom, chatMessage.getId()));
 
         // 5. Redis 발행 (방별 동적 토픽: chat:room:{public_id})
         String topic = RedisConstants.getChatRoomTopic(chatRoom.getPublicId());
@@ -227,6 +228,8 @@ public class ChatMessageService {
             attachments = java.util.Collections.emptyList();
         }
 
+        int unreadCount = (int) chatParticipantRepository.countUnreadParticipants(chatMessage.getChatRoom(), chatMessage.getId());
+
         return ChatMessageDto.builder()
                 .publicId(chatMessage.getPublicId())
                 .roomPublicId(chatMessage.getChatRoom().getPublicId())
@@ -241,6 +244,7 @@ public class ChatMessageService {
                 .sentAt(chatMessage.getCreatedAt())
                 .editedAt(chatMessage.getEditedAt())
                 .isDeleted(isDeleted)
+                .unreadCount(unreadCount)
                 .build();
     }
 }

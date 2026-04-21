@@ -122,6 +122,24 @@ public class ChatRoomService {
     }
 
     /**
+     * 채팅방 이름 변경
+     */
+    @Transactional
+    public ChatRoomDto updateRoomName(String roomPublicId, String newRoomName, String userPublicId) {
+        ChatRoom chatRoom = findRoomByPublicId(roomPublicId);
+        
+        chatRoom.updateRoomName(newRoomName);
+        chatRoomSearchService.saveChatRoomDocument(chatRoom);
+        
+        return ChatRoomDto.builder()
+                .publicId(chatRoom.getPublicId())
+                .roomName(chatRoom.getRoomName())
+                .roomStatus(chatRoom.getRoomStatus())
+                .createdAt(chatRoom.getCreatedAt())
+                .build();
+    }
+
+    /**
      * 채팅방 읽음 처리
      */
     @Transactional
