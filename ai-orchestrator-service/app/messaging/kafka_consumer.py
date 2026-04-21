@@ -42,9 +42,16 @@ class KafkaConsumerRunner:
         self._running = False
 
     async def start(self) -> None:
+        logger.info(
+            "Kafka consumer connecting. bootstrap_servers=%s topic=%s group_id=%s",
+            settings.kafka_bootstrap_servers,
+            settings.recommendation_request_topic,
+            settings.kafka_consumer_group_id,
+        )
         await self._consumer.start()
         self._running = True
         self._task = asyncio.create_task(self._consume_loop())
+        logger.info("Kafka consumer connected")
 
     async def stop(self) -> None:
         self._running = False
@@ -55,16 +62,26 @@ class KafkaConsumerRunner:
             except asyncio.CancelledError:
                 pass
         await self._consumer.stop()
+        logger.info("Kafka consumer stopped")
 
     async def _consume_loop(self) -> None:
         async for message in self._consumer:
             if not self._running:
                 break
 
-            envelope = EventEnvelope.model_validate(message.value)
-            request_payload = envelope.request_payload()
+            logger.info(
+                "Kafka message received. topic=%s partition=%s offset=%s",
+                message.topic,
+                message.partition,
+                message.offset,
+            )
+
+            envelope = None
+            request_payload = None
 
             try:
+                envelope = EventEnvelope.model_validate(message.value)
+                request_payload = envelope.request_payload()
                 result = await self._recommendation_service.generate(
                     request_payload.to_recommendation_request()
                 )
@@ -77,7 +94,9 @@ class KafkaConsumerRunner:
                 )
                 await self._consumer.commit()
             except Exception as exc:
-                logger.exception("권고안 생성 이벤트 처리에 실패했습니다.")
+                logger.exception("Kafka 메시지 파싱 또는 권고안 생성 처리에 실패했습니다.")
+                if envelope is None or request_payload is None:
+                    continue
                 # 생성 실패도 failed 이벤트로 남겨 control-service가 후속 처리할 수 있게 한다.
                 failed_event = build_failed_event(envelope, request_payload, str(exc))
                 await self._producer_client.publish(

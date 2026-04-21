@@ -25,7 +25,11 @@ class Settings:
         "atlas.control.recommendation-failed"
     )
 
-    local_llm_base_url: str = os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:8001")
+    local_llm_base_url: str = os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:1234")
+    local_llm_default_model: str = os.getenv(
+        "LOCAL_LLM_DEFAULT_MODEL",
+        "supergemma4-e4b-abliterated-mlx",
+    )
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     openai_base_url: str | None = os.getenv("OPENAI_BASE_URL")
     request_timeout_seconds: int = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "30"))
