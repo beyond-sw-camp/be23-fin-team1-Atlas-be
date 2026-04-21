@@ -192,10 +192,16 @@ public class Recommendation extends BaseTimeEntity {
     }
 
     public void markAccepted() {
+        if (this.recommendationStatus != RecommendationStatus.GENERATED) {
+            throw new IllegalStateException("생성 완료된 권고안만 수락할 수 있습니다. publicId=" + this.publicId);
+        }
         this.recommendationStatus = RecommendationStatus.ACCEPTED;
     }
 
     public void markRejected() {
+        if (this.recommendationStatus != RecommendationStatus.GENERATED) {
+            throw new IllegalStateException("생성 완료된 권고안만 거절할 수 있습니다. publicId=" + this.publicId);
+        }
         this.recommendationStatus = RecommendationStatus.REJECTED;
     }
 }
