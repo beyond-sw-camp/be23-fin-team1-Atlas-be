@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @Schema(description = "조직 수정 요청")
 public class OrganizationUpdateDto {
+
     @Schema(description = "조직명", example = "아틀라스 푸드 서플라이어", nullable = true)
     private String organizationName;
 
@@ -35,8 +36,5 @@ public class OrganizationUpdateDto {
 
     @Schema(description = "담당자 연락처", example = "010-1234-5678", nullable = true)
     private String contactPhone;
-
-    @Schema(description = "공급망 단계", example = "1", nullable = true)
-    private Integer tierLevel;
 
 }

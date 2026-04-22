@@ -68,7 +68,6 @@ public class InitialDataLoad implements CommandLineRunner {
                 "Buyer Manager",
                 UserRole.ORG_ADMIN,
                 OrganizationType.BUYER,
-                null,
                 "Atlas Buyer Org",
                 "111-11-11111",
                 "Buyer",
@@ -86,7 +85,6 @@ public class InitialDataLoad implements CommandLineRunner {
                 "Tier1 Supplier Manager",
                 UserRole.ORG_ADMIN,
                 OrganizationType.SUPPLIER,
-                1,
                 "Atlas Supplier Tier1",
                 "222-22-22222",
                 "Tier1",
@@ -104,7 +102,6 @@ public class InitialDataLoad implements CommandLineRunner {
                 "Tier2 Supplier Manager",
                 UserRole.ORG_ADMIN,
                 OrganizationType.SUPPLIER,
-                2,
                 "Atlas Supplier Tier2",
                 "333-33-33333",
                 "Tier2",
@@ -122,7 +119,6 @@ public class InitialDataLoad implements CommandLineRunner {
                 "Tier3 Supplier Manager",
                 UserRole.ORG_ADMIN,
                 OrganizationType.SUPPLIER,
-                3,
                 "Atlas Supplier Tier3",
                 "444-44-44444",
                 "Tier3",
@@ -143,7 +139,6 @@ public class InitialDataLoad implements CommandLineRunner {
             String jobTitle,
             UserRole userRole,
             OrganizationType organizationType,
-            Integer tierLevel,
             String organizationName,
             String businessNo,
             String contactFirstName,
@@ -165,7 +160,6 @@ public class InitialDataLoad implements CommandLineRunner {
                         .contactEmail(contactEmail)
                         .contactPhone(contactPhone)
                         .status(Status.ACTIVE)
-                        .tierLevel(tierLevel)
                         .build()
         );
 
