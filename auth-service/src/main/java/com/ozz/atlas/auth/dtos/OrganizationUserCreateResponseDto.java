@@ -19,6 +19,9 @@ public class OrganizationUserCreateResponseDto {
     @Schema(description = "소속 조직 공개 ID", example = "01KORGABCDEFG1234567890ABC")
     private String organizationPublicId;
 
+    @Schema(description = "자동 생성된 로그인 ID", example = "user001@hanbit-aerospace")
+    private String loginId;
+
     @Schema(description = "최초 로그인에 사용하는 임시 비밀번호", example = "Atlas!A1B2C3D4")
     private String temporaryPassword;
 

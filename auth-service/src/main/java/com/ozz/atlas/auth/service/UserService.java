@@ -17,6 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Pageable;
 
+import java.text.Normalizer;
+
+
 import java.util.UUID;
 
 
@@ -28,15 +31,18 @@ public class UserService {
     private final OrganizationRepository organizationRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserSearchService userSearchService;
+    // 계정 생성 후 로그인 정보 메일을 보내는 서비스
+    private final CredentialMailService credentialMailService;
 
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, JwtTokenProvider jwtTokenProvider, UserSearchService userSearchService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, JwtTokenProvider jwtTokenProvider, UserSearchService userSearchService, CredentialMailService credentialMailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.organizationRepository = organizationRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userSearchService = userSearchService;
+        this.credentialMailService = credentialMailService;
     }
 
     //    사용자 회원가입
@@ -61,14 +67,11 @@ public class UserService {
             String organizationPublicId,
             InitialOrgAdminCreateDto dto
     ) {
-        // 이미 쓰는 로그인 ID면 생성할 수 없음
-        if (userRepository.existsByLoginId(dto.getLoginId())) {
-            throw new IllegalArgumentException("이미 사용 중인 로그인 ID입니다.");
-        }
-
         // 조직이 없으면 대표자 계정을 만들 수 없음
         Organization organization = organizationRepository.findByPublicId(organizationPublicId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+        // 조직 영문명을 기준으로 최초 ORG_ADMIN 로그인 ID를 자동 생성합니다.
+        String generatedLoginId = generateInitialOrgAdminLoginId(organization);
 
         // 해당 조직에 활성 상태 ORG_ADMIN 이 이미 있으면 최초 관리자 생성을 막음
         boolean orgAdminExists = userRepository.existsByOrganization_PublicIdAndUserRoleAndStatus(
@@ -90,7 +93,7 @@ public class UserService {
         // 최초 대표자 계정을 생성
         User user = User.builder()
                 .organization(organization)
-                .loginId(dto.getLoginId())
+                .loginId(generatedLoginId)
                 .password(encodedPassword)
                 .firstName(dto.getFirstName())
                 .middleName(dto.getMiddleName())
@@ -106,12 +109,23 @@ public class UserService {
         User savedUser = userRepository.save(user);
         userSearchService.saveUserDocument(savedUser);
 
+// 방금 생성한 대표자 계정 정보를 이메일로 보냄
+        credentialMailService.sendTemporaryCredentialMail(
+                savedUser.getEmail(),
+                organization.getOrganizationName(),
+                savedUser.getLoginId(),
+                temporaryPassword
+        );
+
         return InitialOrgAdminCreateResponseDto.builder()
+
                 .userPublicId(savedUser.getPublicId())
                 .organizationPublicId(organization.getPublicId())
+                .loginId(savedUser.getLoginId())
                 .temporaryPassword(temporaryPassword)
                 .passwordChangeRequired(true)
                 .build();
+
     }
 
     // 조직 관리자가 자기 조직의 일반 직원 계정을 생성
@@ -125,14 +139,13 @@ public class UserService {
             throw new IllegalArgumentException("직원 계정 생성 권한이 없습니다.");
         }
 
-        // 이미 쓰는 로그인 ID면 생성할 수 없음
-        if (userRepository.existsByLoginId(dto.getLoginId())) {
-            throw new IllegalArgumentException("이미 사용 중인 로그인 ID입니다.");
-        }
-
         // 현재 로그인한 대표자의 조직을 기준으로 직원을 생성
         Organization organization = organizationRepository.findByPublicId(principal.organizationPublicId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+
+        // 조직 영문명을 기준으로 일반 직원 로그인 ID를 자동 생성합니다..
+        String generatedLoginId = generateOrganizationUserLoginId(organization);
+
 
         // 직원 첫 로그인용 임시 비밀번호를 생성
         String temporaryPassword = createTemporaryPassword();
@@ -143,7 +156,7 @@ public class UserService {
         // 일반 직원(USER) 계정을 생성
         User user = User.builder()
                 .organization(organization)
-                .loginId(dto.getLoginId())
+                .loginId(generatedLoginId)
                 .password(encodedPassword)
                 .firstName(dto.getFirstName())
                 .middleName(dto.getMiddleName())
@@ -159,12 +172,23 @@ public class UserService {
         User savedUser = userRepository.save(user);
         userSearchService.saveUserDocument(savedUser);
 
+// 방금 생성한 직원 계정 정보를 이메일로 보냅니다.
+        credentialMailService.sendTemporaryCredentialMail(
+                savedUser.getEmail(),
+                organization.getOrganizationName(),
+                savedUser.getLoginId(),
+                temporaryPassword
+        );
+
         return OrganizationUserCreateResponseDto.builder()
+
                 .userPublicId(savedUser.getPublicId())
                 .organizationPublicId(organization.getPublicId())
+                .loginId(savedUser.getLoginId())
                 .temporaryPassword(temporaryPassword)
                 .passwordChangeRequired(true)
                 .build();
+
     }
 
 
@@ -331,6 +355,77 @@ public class UserService {
     // 나중에 규칙이 필요하면 별도 유틸로 분리할 수 있음
     private String createTemporaryPassword() {
         return "Atlas!" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+    }
+
+    // 조직 영문명을 로그인 ID에 쓸 수 있는 slug 형태로 정리합니다.
+    // 예: "Hanwha Aerospace" -> "hanwha-aerospace"
+    private String toOrganizationSlug(String organizationEnglishName) {
+        // 값이 없으면 기본값으로 org를 씁니다.
+        if (organizationEnglishName == null || organizationEnglishName.isBlank()) {
+            return "org";
+        }
+
+        // 영문명에 섞인 특수문자를 정리하기 위해 정규화합니다.
+        String normalized = Normalizer.normalize(organizationEnglishName, Normalizer.Form.NFKC);
+
+        // 영문/숫자/공백/하이픈만 남기고 나머지는 제거합니다.
+        String slug = normalized
+                .replaceAll("[^A-Za-z0-9\\s-]", "")
+                .trim()
+                .replaceAll("\\s+", "-")
+                .replaceAll("-{2,}", "-")
+                .toLowerCase();
+
+        // 정리 후 비어 있으면 기본값을 씁니다.
+        return slug.isBlank() ? "org" : slug;
+    }
+
+    // 최초 ORG_ADMIN 로그인 ID를 자동 생성합니다.
+// 1순위는 admin@{orgSlug} 이고, 이미 있으면 admin001@{orgSlug} 로 올립니다.
+    private String generateInitialOrgAdminLoginId(Organization organization) {
+        // 조직 영문명을 slug로 바꿉니다.
+        String orgSlug = toOrganizationSlug(organization.getOrganizationEnglishName());
+
+        // 가장 먼저 시도할 기본 로그인 ID입니다.
+        String baseLoginId = "admin@" + orgSlug;
+
+        // 기본 아이디가 비어 있으면 바로 사용합니다.
+        if (!userRepository.existsByLoginId(baseLoginId)) {
+            return baseLoginId;
+        }
+
+        // 이미 있으면 001부터 하나씩 올려가며 빈 값을 찾습니다.
+        int sequence = 1;
+
+        while (true) {
+            String candidate = String.format("admin%03d@%s", sequence, orgSlug);
+
+            if (!userRepository.existsByLoginId(candidate)) {
+                return candidate;
+            }
+
+            sequence++;
+        }
+    }
+
+    // 일반 직원 로그인 ID를 자동 생성합니다.
+// 지금은 부서 없이 user001@{orgSlug} 형식으로 생성합니다.
+    private String generateOrganizationUserLoginId(Organization organization) {
+        // 조직 영문명을 slug로 바꿉니다.
+        String orgSlug = toOrganizationSlug(organization.getOrganizationEnglishName());
+
+        // 001부터 시작해서 빈 값을 찾을 때까지 반복합니다.
+        int sequence = 1;
+
+        while (true) {
+            String candidate = String.format("user%03d@%s", sequence, orgSlug);
+
+            if (!userRepository.existsByLoginId(candidate)) {
+                return candidate;
+            }
+
+            sequence++;
+        }
     }
 
 
