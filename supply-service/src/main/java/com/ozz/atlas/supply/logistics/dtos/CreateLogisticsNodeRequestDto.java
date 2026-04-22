@@ -9,16 +9,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
 public class CreateLogisticsNodeRequestDto {
-
-    @NotBlank
-    private String nodeCode;
 
     @NotBlank
     private String nodeName;
@@ -27,21 +22,23 @@ public class CreateLogisticsNodeRequestDto {
     private LogisticsNodeType nodeType;
 
     private String address;
-    private BigDecimal latitude;
-    private BigDecimal longitude;
 
-    public LogisticsNode toEntity(String organizationPublicId){
+    // nodeCode와 좌표는 서비스에서 계산한 값을 받아 엔티티에 넣는다.
+    public LogisticsNode toEntity(
+            String organizationPublicId,
+            String nodeCode,
+            java.math.BigDecimal latitude,
+            java.math.BigDecimal longitude
+    ){
         return LogisticsNode.builder()
                 .organizationPublicId(organizationPublicId)
-                .nodeCode(this.nodeCode)
+                .nodeCode(nodeCode)
                 .nodeName(this.nodeName)
                 .nodeType(this.nodeType)
                 .address(this.address)
-                .latitude(this.latitude)
-                .longitude(this.longitude)
+                .latitude(latitude)
+                .longitude(longitude)
                 .active(true)
                 .build();
     }
-
-
 }

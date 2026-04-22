@@ -59,14 +59,12 @@ public class LogisticsNode extends BaseTimeEntity {
     }
 
     public void update(
-            String nodeCode,
             String nodeName,
             LogisticsNodeType nodeType,
             String address,
             BigDecimal latitude,
             BigDecimal longitude
     ){
-        this.nodeCode = nodeCode;
         this.nodeName = nodeName;
         this.nodeType = nodeType;
         this.address = address;

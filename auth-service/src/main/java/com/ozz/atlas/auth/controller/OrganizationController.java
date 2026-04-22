@@ -22,6 +22,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.ozz.atlas.auth.dtos.OrganizationAliasLookupDto;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -123,10 +124,19 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
-    //    조직 살세 조회
+    //    조직 상세 조회
     @GetMapping("/organizations/{organizationId}")
     public ResponseEntity<OrganizationDetailDto> organizationDetail(@PathVariable Long organizationId) {
         OrganizationDetailDto response = organizationService.organizationDetail(organizationId);
+        return ResponseEntity.ok(response);
+    }
+
+    // supply-service에서 물류거점 코드 생성을 위해 organization alias만 조회할 때 사용한다.
+    @GetMapping("/organizations/public/{organizationPublicId}/alias")
+    public ResponseEntity<OrganizationAliasLookupDto> organizationAliasByPublicId(
+            @PathVariable String organizationPublicId
+    ) {
+        OrganizationAliasLookupDto response = organizationService.organizationAliasByPublicId(organizationPublicId);
         return ResponseEntity.ok(response);
     }
 
@@ -169,6 +179,18 @@ public class OrganizationController {
 
         organizationService.organizationDelete(organizationId, principal);
         return ResponseEntity.noContent().build();
+    }
+
+    // 현재 로그인한 사용자의 조직 상세를 조회
+    @GetMapping("/organizations/me")
+    public ResponseEntity<OrganizationDetailDto> myOrganizationDetail(
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        // 로그인한 사용자의 organizationPublicId 로 자기 조직을 조회합니다.
+        OrganizationDetailDto response =
+                organizationService.organizationDetailByPublicId(principal.organizationPublicId());
+
+        return ResponseEntity.ok(response);
     }
 
 }
