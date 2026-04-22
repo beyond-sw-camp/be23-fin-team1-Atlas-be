@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @Schema(description = "조직 생성 요청")
 public class OrganizationCreateDto {
+
     @NotNull(message = "조직 유형은 비어있으면 안 됩니다.")
     @Schema(description = "조직 유형", example = "SUPPLIER")
     private OrganizationType organizationType;
@@ -34,8 +35,10 @@ public class OrganizationCreateDto {
     @NotBlank(message = "담당자 이름은 비어있으면 안 됩니다.")
     @Schema(description = "담당자 이름", example = "Minji")
     private String contactFirstName;
+
     @Schema(description = "담당자 미들네임", example = "J")
     private String contactMiddleName;
+
     @NotBlank(message = "담당자 성은 비어있으면 안 됩니다.")
     @Schema(description = "담당자 성", example = "Kim")
     private String contactLastName;
@@ -48,9 +51,6 @@ public class OrganizationCreateDto {
     @Schema(description = "담당자 연락처", example = "010-1234-5678")
     private String contactPhone;
 
-    @Schema(description = "공급망 단계", example = "1", nullable = true)
-    private Integer tierLevel;
-
     public Organization toEntity() {
         return Organization.builder()
                 .organizationType(this.organizationType)
@@ -62,7 +62,6 @@ public class OrganizationCreateDto {
                 .contactLastName(this.contactLastName)
                 .contactEmail(this.contactEmail)
                 .contactPhone(this.contactPhone)
-                .tierLevel(this.tierLevel)
                 .build();
     }
 }

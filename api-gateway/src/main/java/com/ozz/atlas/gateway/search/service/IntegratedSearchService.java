@@ -268,10 +268,6 @@ public class IntegratedSearchService {
             parts.add(organization.getOrganizationType());
         }
 
-        if (organization.getTierLevel() != null) {
-            parts.add("TIER " + organization.getTierLevel());
-        }
-
         String contactName = buildOrganizationContactName(organization);
         if (hasText(contactName)) {
             parts.add(contactName);
@@ -408,7 +404,6 @@ public class IntegratedSearchService {
         private String contactEmail;
         private String contactPhone;
         private String status;
-        private Integer tierLevel;
     }
 
     // supply-service 통합검색 전체 응답을 받기 위한 내부 DTO

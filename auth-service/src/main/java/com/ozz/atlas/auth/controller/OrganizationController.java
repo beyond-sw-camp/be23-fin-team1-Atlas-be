@@ -58,7 +58,6 @@ public class OrganizationController {
                                               "contactLastName": "Kim",
                                               "contactEmail": "minji.kim@atlasfoods.com",
                                               "contactPhone": "010-1234-5678",
-                                              "tierLevel": 1
                                             }
                                             """
                             )
