@@ -31,6 +31,7 @@ public class CertificateTypeService {
                 .certificateCode(request.getCertificateCode())
                 .certificateName(request.getCertificateName())
                 .scopeType(request.getScopeType())
+                .issuerName(request.getIssuerName())
                 .requiredYn(request.isRequiredYn())
                 .activeYn(request.isActiveYn())
                 .build();
@@ -55,7 +56,7 @@ public class CertificateTypeService {
         CertificateType type = certificateTypeRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.CERTIFICATE_TYPE_NOT_FOUND));
 
-        type.update(request.getCertificateName(), request.getScopeType(), request.getRequiredYn(), request.getActiveYn());
+        type.update(request.getCertificateName(), request.getScopeType(), request.getIssuerName(), request.getRequiredYn(), request.getActiveYn());
         return CertificateTypeResponseDto.from(type);
     }
 
@@ -63,6 +64,6 @@ public class CertificateTypeService {
     public void deleteCertificateType(String publicId) {
         CertificateType type = certificateTypeRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.CERTIFICATE_TYPE_NOT_FOUND));
-        type.update(null, null, null, false); // Soft delete or deactivate
+        type.update(null, null, null, null, false); // Soft delete or deactivate
     }
 }

@@ -13,7 +13,6 @@ import java.time.LocalDate;
 public class CreateSupplierCertificateRequestDto {
     @NotBlank(message = "인증 유형 ID는 필수입니다.")
     private String certificateTypePublicId;
-
     private String certificateNo;
     private LocalDate issuedAt;
     private LocalDate expiredAt;

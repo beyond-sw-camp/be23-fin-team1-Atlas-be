@@ -20,6 +20,8 @@ public class CreateCertificateTypeRequestDto {
     @NotNull(message = "인증 범위는 필수입니다.")
     private CertificateScope scopeType;
 
+    private String issuerName;
+
     private boolean requiredYn;
     private boolean activeYn = true;
 }

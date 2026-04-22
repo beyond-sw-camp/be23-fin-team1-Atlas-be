@@ -29,6 +29,16 @@ public class SupplierController {
                 .body(supplierService.createSupplier(userRole, request));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<?> getMySupplier(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                supplierService.getMySupplier(organizationPublicId, organizationType)
+        );
+    }
+
     @GetMapping("/{supplierPublicId}")
     public ResponseEntity<?> getSupplier(
             @PathVariable String supplierPublicId,

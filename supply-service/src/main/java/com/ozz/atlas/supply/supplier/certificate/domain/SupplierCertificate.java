@@ -24,6 +24,9 @@ public class SupplierCertificate extends BaseTimeEntity {
     @Column(nullable = false, unique = true, updatable = false, length = 26)
     private String publicId;
 
+    @Column(name = "supplier_id", nullable = false)
+    private Long supplierId;
+
     @Column(nullable = false, length = 26)
     private String supplierPublicId;
 
@@ -62,7 +65,8 @@ public class SupplierCertificate extends BaseTimeEntity {
     }
 
     @Builder
-    public SupplierCertificate(String supplierPublicId, CertificateType certificateType, String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName, String attachmentPublicId) {
+    public SupplierCertificate(Long supplierId, String supplierPublicId, CertificateType certificateType, String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName, String attachmentPublicId) {
+        this.supplierId = supplierId;
         this.supplierPublicId = supplierPublicId;
         this.certificateType = certificateType;
         this.certificateNo = certificateNo;

@@ -104,6 +104,12 @@ public class SupplierService {
 
 
     @Transactional(readOnly = true)
+    public SupplierResponse getMySupplier(String organizationPublicId, String organizationType) {
+        SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
+        return SupplierResponse.fromEntity(loginSupplier);
+    }
+
+    @Transactional(readOnly = true)
     public Page<SupplierListResponse> getSupplierList(
             Pageable pageable,
             SupplierSearchDto searchDto,
