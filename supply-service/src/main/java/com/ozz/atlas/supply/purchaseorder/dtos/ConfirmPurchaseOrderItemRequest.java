@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.purchaseorder.dtos;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,6 +17,6 @@ import java.math.BigDecimal;
 public class ConfirmPurchaseOrderItemRequest {
 
     @NotNull
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal confirmedQty;
+    @Positive
+    private Long confirmedQty;
 }

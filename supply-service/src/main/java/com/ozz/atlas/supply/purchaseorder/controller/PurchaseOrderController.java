@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
-import com.ozz.atlas.supply.purchaseorder.domain.PriorityCode;
 import com.ozz.atlas.supply.purchaseorder.search.dtos.PurchaseOrderSearchDto;
 import com.ozz.atlas.supply.purchaseorder.search.service.PurchaseOrderSearchService;
 
@@ -48,7 +47,6 @@ public class PurchaseOrderController {
             @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "poStatus", required = false) PoStatus poStatus,
-            @RequestParam(value = "priorityCode", required = false) PriorityCode priorityCode,
             @PageableDefault(size = 10) Pageable pageable
     ) {
         PurchaseOrderSearchDto searchDto = PurchaseOrderSearchDto.builder()
@@ -57,7 +55,6 @@ public class PurchaseOrderController {
                 .supplierPublicId(supplierPublicId)
                 .keyword(keyword)
                 .poStatus(poStatus)
-                .priorityCode(priorityCode)
                 .build();
 
         if (purchaseOrderSearchService.hasSearchCondition(searchDto)) {
@@ -134,16 +131,6 @@ public class PurchaseOrderController {
     ) {
         purchaseOrderService.deletePurchaseOrderItem(buyerOrganizationPublicId, poPublicId, poItemPublicId);
         return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{poPublicId}/accept")
-    public ResponseEntity<?> acceptPurchaseOrder(
-            @RequestHeader("X-Organization-Public-Id") String supplierOrganizationPublicId,
-            @PathVariable String poPublicId
-    ) {
-        return ResponseEntity.ok(
-                purchaseOrderService.acceptPurchaseOrder(supplierOrganizationPublicId, poPublicId)
-        );
     }
 
     @PostMapping("/{poPublicId}/reject")

@@ -107,11 +107,6 @@ public class SupplierSearchService {
             mustNotQueries.add(termQuery("supplierStatus.keyword", SupplierStatus.TERMINATED.name()));
         }
 
-        // 협력사 단계 조건
-        if (searchDto.getTierLevel() != null) {
-            filters.add(termQuery("tierLevel", searchDto.getTierLevel().name()));
-        }
-
         // 특정 조직 소속 협력사만 조회
         if (searchDto.getOrganizationPublicId() != null && !searchDto.getOrganizationPublicId().isBlank()) {
             filters.add(termQuery("organizationPublicId.keyword", searchDto.getOrganizationPublicId()));
@@ -278,7 +273,6 @@ public class SupplierSearchService {
                 .organizationPublicId(document.getOrganizationPublicId())
                 .supplierCode(document.getSupplierCode())
                 .supplierName(document.getSupplierName())
-                .tierLevel(document.getTierLevel())
                 .supplierStatus(document.getSupplierStatus())
                 .approvalStatus(document.getApprovalStatus())
                 .primaryContactName(document.getPrimaryContactName())

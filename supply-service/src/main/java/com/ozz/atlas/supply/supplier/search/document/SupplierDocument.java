@@ -6,7 +6,6 @@ import com.ozz.atlas.supply.supplier.certificate.domain.CertificateStatus;
 import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificate;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
-import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.esg.domain.EsgGrade;
 import com.ozz.atlas.supply.supplier.esg.domain.SupplyEsgAssessment;
@@ -15,7 +14,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -65,10 +63,6 @@ public class SupplierDocument {
             }
     )
     private String supplierName;
-
-    // 1차, 2차 같은 협력사 단계
-    @Field(type = FieldType.Keyword)
-    private SupplierTierLevel tierLevel;
 
     // 승인 요청 / 승인 완료 / 반려 상태
     private ApprovalStatus approvalStatus;
@@ -126,7 +120,6 @@ public class SupplierDocument {
                 .organizationPublicId(supplier.getOrganizationPublicId())
                 .supplierCode(supplier.getSupplierCode())
                 .supplierName(supplier.getSupplierName())
-                .tierLevel(supplier.getTierLevel())
                 .approvalStatus(supplier.getApprovalStatus())
                 .supplierStatus(supplier.getSupplierStatus())
                 .primaryContactName(supplier.getPrimaryContactName())
@@ -157,9 +150,9 @@ public class SupplierDocument {
         private String itemCode;
         private String itemName;
         private Integer leadTimeDays;
-        private BigDecimal monthlyCapacity;
-        private BigDecimal availableQty;
-        private BigDecimal moq;
+        private Long monthlyCapacity;
+        private Long availableQty;
+        private Long moq;
         private SupplierItemQualityGrade qualityGrade;
         private BigDecimal unitPriceHint;
         private LocalDate validFrom;

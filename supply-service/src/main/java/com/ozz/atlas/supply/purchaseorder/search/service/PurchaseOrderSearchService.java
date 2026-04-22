@@ -45,7 +45,6 @@ public class PurchaseOrderSearchService {
         return searchDto != null && (
                 hasText(searchDto.getKeyword())
                         || searchDto.getPoStatus() != null
-                        || searchDto.getPriorityCode() != null
                         || hasText(searchDto.getSupplierPublicId())
         );
     }
@@ -79,11 +78,6 @@ public class PurchaseOrderSearchService {
         // 상태 필터
         if (searchDto.getPoStatus() != null) {
             filterQueries.add(termQuery("poStatus", searchDto.getPoStatus().name()));
-        }
-
-        // 우선순위 필터
-        if (searchDto.getPriorityCode() != null) {
-            filterQueries.add(termQuery("priorityCode", searchDto.getPriorityCode().name()));
         }
 
         // 키워드가 있으면 발주번호/협력사/메모/품목 기준으로 검색
@@ -182,7 +176,6 @@ public class PurchaseOrderSearchService {
                 .supplierCode(document.getSupplierCode())
                 .supplierName(document.getSupplierName())
                 .poStatus(document.getPoStatus())
-                .priorityCode(document.getPriorityCode())
                 .orderedAt(document.getOrderedAt())
                 .dueDate(document.getDueDate())
                 .totalAmount(document.getTotalAmount())

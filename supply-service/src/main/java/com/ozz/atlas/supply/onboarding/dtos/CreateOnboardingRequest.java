@@ -1,10 +1,8 @@
 package com.ozz.atlas.supply.onboarding.dtos;
 
-import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,10 +25,6 @@ public class CreateOnboardingRequest {
     @Size(max = 100)
     @Schema(description = "협력사명", example = "Fresh Chain Co.")
     private String supplierName;
-
-    @NotNull
-    @Schema(description = "협력사 tier 수준", example = "TIER1")
-    private SupplierTierLevel tierLevel;
 
     @Size(max = 50)
     @Schema(description = "주요 담당자 이름", example = "Park Jisoo")

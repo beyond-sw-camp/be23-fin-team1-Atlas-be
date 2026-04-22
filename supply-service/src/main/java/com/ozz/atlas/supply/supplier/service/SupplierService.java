@@ -3,19 +3,17 @@ package com.ozz.atlas.supply.supplier.service;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
-import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
-import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
 import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
-import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.dtos.SupplierListResponse;
 import com.ozz.atlas.supply.supplier.dtos.SupplierResponse;
 import com.ozz.atlas.supply.supplier.dtos.UpdateSupplierRequest;
 import com.ozz.atlas.supply.supplier.exception.SupplierErrorCode;
 import com.ozz.atlas.supply.supplier.exception.SupplierException;
+import com.ozz.atlas.supply.supplier.relation.service.SupplierRelationService;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import com.ozz.atlas.supply.supplier.search.dtos.SupplierSearchDto;
 import com.ozz.atlas.supply.supplier.search.service.SupplierSearchService;
@@ -29,6 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.EnumSet;
 import java.util.List;
+import com.ozz.atlas.supply.supplier.relation.domain.SupplySupplierRelation;
+import org.springframework.data.domain.PageImpl;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +46,7 @@ public class SupplierService {
     private final SupplyItemRepository supplyItemRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final SubPurchaseOrderRepository subPurchaseOrderRepository;
+    private final SupplierRelationService supplierRelationService;
 
     public SupplierResponse createSupplier(String userRole, CreateSupplierRequest request) {
         validateAdminCreate(userRole);
@@ -63,7 +66,6 @@ public class SupplierService {
                 request.getOrganizationPublicId(),
                 request.getSupplierCode(),
                 request.getSupplierName(),
-                request.getTierLevel(),
                 request.getPrimaryContactName(),
                 request.getPrimaryContactEmail(),
                 request.getPrimaryContactPhone()
@@ -93,9 +95,12 @@ public class SupplierService {
         }
 
         SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
-        SupplierTierLevel nextTierLevel = loginSupplier.getTierLevel().next();
 
-        if (nextTierLevel == null || !targetSupplier.getTierLevel().equals(nextTierLevel)) {
+        if (loginSupplier.getId().equals(targetSupplier.getId())) {
+            return SupplierResponse.fromEntity(targetSupplier);
+        }
+
+        if (!supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId())) {
             throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
         }
 
@@ -135,47 +140,36 @@ public class SupplierService {
         }
 
         SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
-        SupplierTierLevel nextTierLevel = loginSupplier.getTierLevel().next();
-
-        if (nextTierLevel == null) {
-            return Page.empty(pageable);
-        }
 
         if (hasSearchCondition(searchDto)) {
             throw new SupplierException(SupplierErrorCode.SUPPLIER_SEARCH_FORBIDDEN);
         }
 
-        return supplierRepository.findAllByTierLevelAndApprovalStatusAndSupplierStatusNot(
-                        nextTierLevel,
-                        ApprovalStatus.APPROVED,
-                        SupplierStatus.TERMINATED,
-                        pageable
-                )
-                .map(this::toSupplierListResponse);
-    }
+        Map<String, SupplierListResponse> relatedSuppliers = new LinkedHashMap<>();
 
-    @Transactional(readOnly = true)
-    public Page<SupplierResponse> getSuppliersByTierLevel(
-            SupplierTierLevel tierLevel,
-            Pageable pageable,
-            String organizationPublicId,
-            String organizationType,
-            String userRole
-    ) {
-        if (!canViewAllSuppliers(organizationType, userRole)) {
-            throw new SupplierException(SupplierErrorCode.TIER_LIST_FORBIDDEN);
+        for (SupplySupplierRelation relation : supplierRelationService.getVisibleRelations(loginSupplier.getId())) {
+            SupplySupplier relatedSupplier = relation.getParentSupplier().getId().equals(loginSupplier.getId())
+                    ? relation.getChildSupplier()
+                    : relation.getParentSupplier();
+
+            if (!relatedSupplier.getId().equals(loginSupplier.getId())) {
+                relatedSuppliers.putIfAbsent(
+                        relatedSupplier.getPublicId(),
+                        SupplierListResponse.of(
+                                relatedSupplier,
+                                null,
+                                null,
+                                null,
+                                0L,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                relation.getRelationStatus().name()
+                        )
+                );
+            }
         }
-
-        return supplierRepository.findAllByTierLevelAndApprovalStatusAndSupplierStatusNot(
-                        tierLevel,
-                        ApprovalStatus.APPROVED,
-                        SupplierStatus.TERMINATED,
-                        pageable
-                )
-                .map(SupplierResponse::fromEntity);
+        return toPage(List.copyOf(relatedSuppliers.values()), pageable);
     }
-
-
 
     public SupplierResponse updateSupplier(String supplierPublicId, String organizationPublicId, UpdateSupplierRequest request) {
         validateOrganizationHeader(organizationPublicId);
@@ -194,7 +188,6 @@ public class SupplierService {
         supplier.update(
                 request.getSupplierCode(),
                 request.getSupplierName(),
-                request.getTierLevel(),
                 request.getPrimaryContactName(),
                 request.getPrimaryContactEmail(),
                 request.getPrimaryContactPhone()
@@ -233,9 +226,6 @@ public class SupplierService {
                 && (
                 // 기본 키워드 검색 여부
                 (searchDto.getKeyword() != null && !searchDto.getKeyword().isBlank())
-
-                        // 협력사 단계 조건 여부
-                        || searchDto.getTierLevel() != null
 
                         // 승인 상태 조건 여부
                         || searchDto.getApprovalStatus() != null
@@ -337,27 +327,6 @@ public class SupplierService {
         }
     }
 
-    private BigDecimal calculateCumulativeAmount(SupplySupplier supplier) {
-        return switch (supplier.getTierLevel()) {
-            case TIER1 -> safeAmount(
-                    purchaseOrderRepository.sumReceivedAmountBySupplierId(
-                            supplier.getId(),
-                            EnumSet.of(PoStatus.REJECTED, PoStatus.CANCELLED, PoStatus.DELETED)
-                    )
-            );
-            case TIER2, TIER3 -> safeAmount(
-                    subPurchaseOrderRepository.sumReceivedAmountBySupplierId(
-                            supplier.getId(),
-                            EnumSet.of(SubPoStatus.REJECTED, SubPoStatus.CANCELLED, SubPoStatus.DELETED)
-                    )
-            );
-        };
-    }
-
-    private BigDecimal safeAmount(BigDecimal value) {
-        return value == null ? BigDecimal.ZERO : value;
-    }
-
     private SupplierListResponse toSupplierListResponse(SupplySupplier supplier) {
         return SupplierListResponse.of(
                 supplier,
@@ -366,7 +335,7 @@ public class SupplierService {
                 null,
                 0L,
                 BigDecimal.ZERO,
-                calculateCumulativeAmount(supplier),
+                BigDecimal.ZERO,
                 resolveListStatus(supplier)
         );
     }
@@ -381,6 +350,17 @@ public class SupplierService {
         }
 
         return supplier.getSupplierStatus().name();
+    }
+
+    private <T> Page<T> toPage(List<T> items, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+
+        if (start >= items.size()) {
+            return new PageImpl<>(List.of(), pageable, items.size());
+        }
+
+        int end = Math.min(start + pageable.getPageSize(), items.size());
+        return new PageImpl<>(items.subList(start, end), pageable, items.size());
     }
 
 

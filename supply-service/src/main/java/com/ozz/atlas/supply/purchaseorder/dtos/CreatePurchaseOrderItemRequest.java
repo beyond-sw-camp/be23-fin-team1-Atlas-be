@@ -1,9 +1,6 @@
 package com.ozz.atlas.supply.purchaseorder.dtos;
 
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,8 +20,8 @@ public class CreatePurchaseOrderItemRequest {
     private String itemPublicId;
 
     @NotNull
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal orderedQty;
+    @Positive
+    private Long orderedQty;
 
     @NotNull
     @DecimalMin(value = "0.0", inclusive = false)

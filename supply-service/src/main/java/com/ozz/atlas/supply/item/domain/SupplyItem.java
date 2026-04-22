@@ -10,6 +10,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -43,6 +45,9 @@ public class SupplyItem extends BaseTimeEntity {
     @Column(nullable = false)
     private ItemUnit unit;
 
+    @Column(name = "unit_price", nullable = false, precision = 18, scale = 2)
+    private BigDecimal unitPrice;
+
     @Column(nullable = false, length = 100)
     private String spec;
 
@@ -60,6 +65,7 @@ public class SupplyItem extends BaseTimeEntity {
             String itemCode,
             String itemName,
             ItemUnit unit,
+            BigDecimal unitPrice,
             String spec,
             Integer shelfLifeDays
     ) {
@@ -69,24 +75,26 @@ public class SupplyItem extends BaseTimeEntity {
                 .itemCode(itemCode)
                 .itemName(itemName)
                 .unit(unit)
+                .unitPrice(unitPrice)
                 .spec(spec)
                 .shelfLifeDays(shelfLifeDays)
                 .status(Status.ACTIVE)
                 .build();
     }
 
+
     public void update(
             SupplyItemCategory itemCategory,
-            String itemCode,
             String itemName,
             ItemUnit unit,
+            BigDecimal unitPrice,
             String spec,
             Integer shelfLifeDays
     ) {
         this.itemCategory = itemCategory;
-        this.itemCode = itemCode;
         this.itemName = itemName;
         this.unit = unit;
+        this.unitPrice = unitPrice;
         this.spec = spec;
         this.shelfLifeDays = shelfLifeDays;
         this.status = Status.ACTIVE;

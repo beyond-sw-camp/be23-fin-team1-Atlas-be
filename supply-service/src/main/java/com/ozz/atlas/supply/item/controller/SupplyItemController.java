@@ -66,8 +66,11 @@ public class SupplyItemController {
         return ResponseEntity.ok(supplyItemService.getItem(itemPublicId));
     }
 
+
     @GetMapping
     public ResponseEntity<?> getItemList(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
             @RequestParam(value = "supplierOrganizationPublicId", required = false) String supplierOrganizationPublicId,
@@ -75,6 +78,13 @@ public class SupplyItemController {
             @RequestParam(value = "status", required = false) Status status,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
     ) {
+        supplyItemService.validateItemListAccess(
+                organizationPublicId,
+                organizationType,
+                supplierPublicId,
+                supplierOrganizationPublicId
+        );
+
         ItemSearchDto searchDto = ItemSearchDto.builder()
                 .keyword(keyword)
                 .supplierPublicId(supplierPublicId)

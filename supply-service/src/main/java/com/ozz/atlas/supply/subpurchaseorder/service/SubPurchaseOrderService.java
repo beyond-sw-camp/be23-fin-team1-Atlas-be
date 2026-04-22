@@ -24,6 +24,8 @@ import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilit
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.relation.domain.SupplierRelationStatus;
+import com.ozz.atlas.supply.supplier.relation.service.SupplierRelationService;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -59,6 +61,8 @@ public class SubPurchaseOrderService {
     private final SupplierRepository supplierRepository;
     private final SupplierItemCapabilityRepository capabilityRepository;
     private final SupplyItemRepository supplyItemRepository;
+    private final SupplierRelationService supplierRelationService;
+
 
     public SubPurchaseOrderResponse createSubPurchaseOrder(
             String issuerOrganizationPublicId,
@@ -102,8 +106,6 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_SAME_SUPPLIER_NOT_ALLOWED);
         }
 
-        validateTargetSupplierTier(issuerSupplier, targetSupplier);
-
         Map<String, SupplyPurchaseOrderItem> parentItems = parentPurchaseOrder.getActiveItems().stream()
                 .collect(Collectors.toMap(SupplyPurchaseOrderItem::getPublicId, Function.identity()));
 
@@ -125,7 +127,9 @@ public class SubPurchaseOrderService {
                 items
         );
 
-        return SubPurchaseOrderResponse.fromEntity(subPurchaseOrderRepository.save(subPurchaseOrder), true);
+        SupplySubPurchaseOrder savedSubPurchaseOrder = subPurchaseOrderRepository.save(subPurchaseOrder);
+        syncRelationStatus(savedSubPurchaseOrder);
+        return SubPurchaseOrderResponse.fromEntity(savedSubPurchaseOrder, true);
     }
 
     @Transactional(readOnly = true)
@@ -218,20 +222,6 @@ public class SubPurchaseOrderService {
         return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
     }
 
-    public SubPurchaseOrderResponse acceptSubPurchaseOrder(
-            String receiverOrganizationPublicId,
-            String organizationType,
-            String subPoPublicId
-    ) {
-        validateSupplierActor(receiverOrganizationPublicId, organizationType);
-
-        SupplySubPurchaseOrder subPurchaseOrder = getReceiverOwnedSubPurchaseOrder(receiverOrganizationPublicId, subPoPublicId);
-        validateReceiverActionable(subPurchaseOrder);
-
-        subPurchaseOrder.accept();
-        return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
-    }
-
     public SubPurchaseOrderResponse rejectSubPurchaseOrder(
             String receiverOrganizationPublicId,
             String organizationType,
@@ -243,6 +233,7 @@ public class SubPurchaseOrderService {
         validateReceiverActionable(subPurchaseOrder);
 
         subPurchaseOrder.reject();
+        syncRelationStatus(subPurchaseOrder);
         return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
     }
 
@@ -270,6 +261,7 @@ public class SubPurchaseOrderService {
 
         item.confirm(request.getConfirmedQty());
         subPurchaseOrder.refreshConfirmationStatus();
+        syncRelationStatus(subPurchaseOrder);
 
         return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
     }
@@ -303,7 +295,7 @@ public class SubPurchaseOrderService {
         SupplyItem subItem = getActiveItem(request.getItemPublicId());
         validateItemBelongsToSupplier(subItem, targetSupplier);
 
-        BigDecimal requestedQty = request.getOrderedQty();
+        Long requestedQty = request.getOrderedQty();
 
         LocalDate requiredDate = request.getRequiredDate() != null
                 ? request.getRequiredDate()
@@ -328,7 +320,7 @@ public class SubPurchaseOrderService {
     private void validateSupplierCapability(
             Long targetSupplierId,
             SupplyItem subItem,
-            BigDecimal requestedQty,
+            Long requestedQty,
             LocalDate requiredDate
     ) {
         Long itemId = subItem.getId();
@@ -341,24 +333,30 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_CAPABILITY_NOT_ACTIVE);
         }
 
-        if (requestedQty.compareTo(capability.getMoq()) < 0) {
+        long requestedQtyValue = requestedQty;
+        long moq = capability.getMoq();
+        long availableQty = capability.getAvailableQty();
+        long monthlyCapacity = capability.getMonthlyCapacity();
+
+        if (requestedQtyValue < moq) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_MOQ_NOT_MET);
         }
 
-        BigDecimal allocatedOpenQty = subPurchaseOrderItemRepository.sumOrderedQtyBySupplierIdAndItemIdAndLineStatusIn(
-                targetSupplierId,
-                itemId,
-                ACTIVE_LINE_STATUSES
-        );
+        long allocatedOpenQty = subPurchaseOrderItemRepository
+                .sumOrderedQtyBySupplierIdAndItemIdAndLineStatusIn(
+                        targetSupplierId,
+                        itemId,
+                        ACTIVE_LINE_STATUSES
+                );
 
-        if (allocatedOpenQty.add(requestedQty).compareTo(capability.getAvailableQty()) > 0) {
+        if (allocatedOpenQty + requestedQtyValue > availableQty) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_AVAILABLE_QTY_EXCEEDED);
         }
 
         LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
         LocalDateTime nextMonthStart = monthStart.plusMonths(1);
 
-        BigDecimal allocatedMonthQty = subPurchaseOrderItemRepository
+        long allocatedMonthQty = subPurchaseOrderItemRepository
                 .sumMonthlyOrderedQtyBySupplierIdAndItemIdAndOrderedAtBetweenAndLineStatusIn(
                         targetSupplierId,
                         itemId,
@@ -367,7 +365,7 @@ public class SubPurchaseOrderService {
                         ACTIVE_LINE_STATUSES
                 );
 
-        if (allocatedMonthQty.add(requestedQty).compareTo(capability.getMonthlyCapacity()) > 0) {
+        if (allocatedMonthQty + requestedQtyValue > monthlyCapacity) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_MONTHLY_CAPACITY_EXCEEDED);
         }
 
@@ -377,6 +375,7 @@ public class SubPurchaseOrderService {
         }
     }
 
+
     private SupplyItem getActiveItem(String itemPublicId) {
         return supplyItemRepository.findByPublicIdAndStatusIn(itemPublicId, List.of(Status.ACTIVE))
                 .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ITEM_NOT_FOUND));
@@ -385,12 +384,6 @@ public class SubPurchaseOrderService {
     private void validateItemBelongsToSupplier(SupplyItem item, SupplySupplier supplier) {
         if (!item.getSupplier().getId().equals(supplier.getId())) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH);
-        }
-    }
-
-    private void validateTargetSupplierTier(SupplySupplier issuerSupplier, SupplySupplier targetSupplier) {
-        if (targetSupplier.getTierLevel().getOrder() <= issuerSupplier.getTierLevel().getOrder()) {
-            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.TARGET_SUPPLIER_TIER_NOT_ALLOWED);
         }
     }
 
@@ -414,7 +407,7 @@ public class SubPurchaseOrderService {
     }
 
     private void validateReceiverConfirmable(SupplySubPurchaseOrder subPurchaseOrder) {
-        if (!(subPurchaseOrder.getSubPoStatus() == SubPoStatus.ACCEPTED
+        if (!(subPurchaseOrder.getSubPoStatus() == SubPoStatus.CREATED
                 || subPurchaseOrder.getSubPoStatus() == SubPoStatus.PARTIALLY_CONFIRMED
                 || subPurchaseOrder.getSubPoStatus() == SubPoStatus.CONFIRMED)) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_STATUS_NOT_ALLOWED);
@@ -437,5 +430,20 @@ public class SubPurchaseOrderService {
 
     private boolean isAdmin(String userRole) {
         return ADMIN_ROLE.equals(userRole);
+    }
+
+    private void syncRelationStatus(SupplySubPurchaseOrder subPurchaseOrder) {
+        SupplierRelationStatus relationStatus = switch (subPurchaseOrder.getSubPoStatus()) {
+            case CREATED -> SupplierRelationStatus.REQUESTED;
+            case PARTIALLY_CONFIRMED, CONFIRMED -> SupplierRelationStatus.ACTIVE;
+            case REJECTED, CANCELLED -> SupplierRelationStatus.PAUSED;
+            case COMPLETED, DELETED -> SupplierRelationStatus.ENDED;
+        };
+
+        supplierRelationService.syncRelationStatus(
+                subPurchaseOrder.getParentPurchaseOrder().getSupplier(),
+                subPurchaseOrder.getSupplier(),
+                relationStatus
+        );
     }
 }

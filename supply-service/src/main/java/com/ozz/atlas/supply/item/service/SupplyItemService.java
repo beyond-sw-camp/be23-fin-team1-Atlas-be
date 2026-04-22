@@ -13,6 +13,7 @@ import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.relation.service.SupplierRelationService;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import com.ozz.atlas.supply.item.search.service.ItemSearchService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Year;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -34,6 +37,8 @@ public class SupplyItemService {
     private final SupplyItemCategoryRepository supplyItemCategoryRepository;
     private final SupplierRepository supplierRepository;
     private final ItemSearchService itemSearchService;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private final SupplierRelationService supplierRelationService;
 
     public ItemResponse createItem(
             String organizationPublicId,
@@ -41,10 +46,6 @@ public class SupplyItemService {
             CreateItemRequest request
     ) {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
-
-        if (supplyItemRepository.existsByItemCode(request.getItemCode())) {
-            throw new ItemException(ItemErrorCode.ITEM_CODE_ALREADY_EXISTS);
-        }
 
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(
                         request.getItemCategoryPublicId(),
@@ -55,9 +56,10 @@ public class SupplyItemService {
         SupplyItem item = SupplyItem.create(
                 supplier,
                 category,
-                request.getItemCode(),
+                generateNextItemCode(),
                 request.getItemName(),
                 request.getUnit(),
+                request.getUnitPrice(),
                 request.getSpec(),
                 request.getShelfLifeDays()
         );
@@ -89,18 +91,16 @@ public class SupplyItemService {
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_CATEGORY_NOT_FOUND));
 
-        if (supplyItemRepository.existsByItemCodeAndIdNot(request.getItemCode(), item.getId())) {
-            throw new ItemException(ItemErrorCode.ITEM_CODE_ALREADY_EXISTS);
-        }
 
         item.update(
                 category,
-                request.getItemCode(),
                 request.getItemName(),
                 request.getUnit(),
+                request.getUnitPrice(),
                 request.getSpec(),
                 request.getShelfLifeDays()
         );
+
         itemSearchService.saveItemDocument(item);
         return ItemResponse.fromEntity(item);
     }
@@ -175,4 +175,72 @@ public class SupplyItemService {
             throw new ItemException(ItemErrorCode.INVALID_ACTOR_HEADER);
         }
     }
+
+    @Transactional(readOnly = true)
+    public void validateItemListAccess(
+            String organizationPublicId,
+            String organizationType,
+            String supplierPublicId,
+            String supplierOrganizationPublicId
+    ) {
+        if (!SUPPLIER_ORGANIZATION_TYPE.equals(organizationType)) {
+            return;
+        }
+
+        if ((supplierPublicId == null || supplierPublicId.isBlank())
+                && (supplierOrganizationPublicId == null || supplierOrganizationPublicId.isBlank())) {
+            return;
+        }
+
+        SupplySupplier loginSupplier = getWritableSupplier(organizationPublicId, organizationType);
+        SupplySupplier targetSupplier = resolveTargetSupplier(supplierPublicId, supplierOrganizationPublicId);
+
+        if (loginSupplier.getId().equals(targetSupplier.getId())) {
+            throw new ItemException(ItemErrorCode.SELF_SUPPLIER_ORDER_NOT_ALLOWED);
+        }
+
+        if (!supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId())) {
+            throw new ItemException(ItemErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    private SupplySupplier resolveTargetSupplier(
+            String supplierPublicId,
+            String supplierOrganizationPublicId
+    ) {
+        if (supplierPublicId != null && !supplierPublicId.isBlank()) {
+            return supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+                            supplierPublicId,
+                            ApprovalStatus.APPROVED,
+                            SupplierStatus.TERMINATED
+                    )
+                    .orElseThrow(() -> new ItemException(ItemErrorCode.SUPPLIER_NOT_FOUND));
+        }
+
+        return supplierRepository.findByOrganizationPublicId(supplierOrganizationPublicId)
+                .filter(supplier -> supplier.getApprovalStatus() == ApprovalStatus.APPROVED)
+                .filter(supplier -> supplier.getSupplierStatus() != SupplierStatus.TERMINATED)
+                .orElseThrow(() -> new ItemException(ItemErrorCode.SUPPLIER_NOT_FOUND));
+    }
+
+    private String generateNextItemCode() {
+        String prefix = "ITM-" + Year.now(KST).getValue() + "-";
+
+        int nextSequence = supplyItemRepository
+                .findTopByItemCodeStartingWithOrderByItemCodeDesc(prefix)
+                .map(SupplyItem::getItemCode)
+                .map(this::extractSequence)
+                .orElse(0) + 1;
+
+        return prefix + String.format("%07d", nextSequence);
+    }
+
+    private int extractSequence(String itemCode) {
+        try {
+            return Integer.parseInt(itemCode.substring(itemCode.lastIndexOf('-') + 1));
+        } catch (RuntimeException e) {
+            return 0;
+        }
+    }
+
 }

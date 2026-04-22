@@ -6,6 +6,9 @@ spring:
         - batch
   application:
     name: supply-service
+  jackson:
+    deserialization:
+      accept-float-as-int: false
 
 management:
   endpoints:

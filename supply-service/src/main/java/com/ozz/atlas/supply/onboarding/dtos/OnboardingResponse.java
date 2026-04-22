@@ -5,7 +5,6 @@ import com.ozz.atlas.supply.onboarding.domain.OnboardingRequestStatus;
 import com.ozz.atlas.supply.onboarding.domain.OnboardingRequestType;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
-import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,8 +45,6 @@ public class OnboardingResponse {
     private String supplierCode;
     @Schema(description = "협력사명", example = "Fresh Chain Co.")
     private String supplierName;
-    @Schema(description = "협력사 tier 수준", example = "TIER1")
-    private SupplierTierLevel tierLevel;
     @Schema(description = "협력사 운영 상태", example = "ACTIVE")
     private SupplierStatus supplierStatus;
     @Schema(description = "협력사 승인 상태", example = "PENDING")
@@ -73,7 +70,6 @@ public class OnboardingResponse {
                 .organizationPublicId(request.getSupplier().getOrganizationPublicId())
                 .supplierCode(request.getSupplier().getSupplierCode())
                 .supplierName(request.getSupplier().getSupplierName())
-                .tierLevel(request.getSupplier().getTierLevel())
                 .supplierStatus(request.getSupplier().getSupplierStatus())
                 .approvalStatus(request.getSupplier().getApprovalStatus())
                 .primaryContactName(request.getSupplier().getPrimaryContactName())

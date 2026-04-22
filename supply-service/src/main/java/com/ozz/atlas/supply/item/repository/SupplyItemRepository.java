@@ -33,5 +33,7 @@ public interface SupplyItemRepository extends JpaRepository<SupplyItem, Long> {
 
     List<SupplyItem> findAllBySupplier_IdAndStatusIn(Long supplierId, Collection<Status> statuses);
 
+    Optional<SupplyItem> findTopByItemCodeStartingWithOrderByItemCodeDesc(String prefix);
+
 
 }

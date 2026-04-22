@@ -29,10 +29,6 @@ public class SupplySupplier extends BaseTimeEntity {
     private String supplierName;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
-    private SupplierTierLevel tierLevel;
-
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private SupplierStatus supplierStatus = SupplierStatus.INACTIVE;
@@ -55,7 +51,6 @@ public class SupplySupplier extends BaseTimeEntity {
             String organizationPublicId,
             String supplierCode,
             String supplierName,
-            SupplierTierLevel tierLevel,
             String primaryContactName,
             String primaryContactEmail,
             String primaryContactPhone
@@ -64,7 +59,6 @@ public class SupplySupplier extends BaseTimeEntity {
                 .organizationPublicId(organizationPublicId)
                 .supplierCode(supplierCode)
                 .supplierName(supplierName)
-                .tierLevel(tierLevel)
                 .supplierStatus(SupplierStatus.INACTIVE)
                 .approvalStatus(ApprovalStatus.REQUESTED)
                 .primaryContactName(primaryContactName)
@@ -76,14 +70,12 @@ public class SupplySupplier extends BaseTimeEntity {
     public void update(
             String supplierCode,
             String supplierName,
-            SupplierTierLevel tierLevel,
             String primaryContactName,
             String primaryContactEmail,
             String primaryContactPhone
     ) {
         this.supplierCode = supplierCode;
         this.supplierName = supplierName;
-        this.tierLevel = tierLevel;
         this.primaryContactName = primaryContactName;
         this.primaryContactEmail = primaryContactEmail;
         this.primaryContactPhone = primaryContactPhone;

@@ -40,7 +40,6 @@ public class OnboardingController {
                                             {
                                               "supplierCode": "SUP-FOOD-001",
                                               "supplierName": "Fresh Chain Co.",
-                                              "tierLevel": "TIER1",
                                               "primaryContactName": "Park Jisoo",
                                               "primaryContactEmail": "partner@freshchain.com",
                                               "primaryContactPhone": "02-3456-7890"
@@ -69,7 +68,6 @@ public class OnboardingController {
                                               "organizationPublicId": "org_01HZX9X5D4P2Q7F8R9S1T2U3V4",
                                               "supplierCode": "SUP-FOOD-001",
                                               "supplierName": "Fresh Chain Co.",
-                                              "tierLevel": "TIER1",
                                               "supplierStatus": "ACTIVE",
                                               "approvalStatus": "PENDING",
                                               "primaryContactName": "Park Jisoo",

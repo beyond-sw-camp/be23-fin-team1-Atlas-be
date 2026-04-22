@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.supplier.capability.dtos;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplierItemQualityGrade;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,15 +20,14 @@ public class UpdateSupplierItemCapabilityRequest {
 
     @Min(0)
     private Integer leadTimeDays;
+    @Positive
+    private Long monthlyCapacity;
 
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal monthlyCapacity;
+    @Positive
+    private Long availableQty;
 
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal availableQty;
-
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal moq;
+    @Positive
+    private Long moq;
 
     private SupplierItemQualityGrade qualityGrade;
     private BigDecimal unitPriceHint;

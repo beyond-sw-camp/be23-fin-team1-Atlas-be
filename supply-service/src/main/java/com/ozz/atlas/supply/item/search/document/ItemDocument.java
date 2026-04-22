@@ -15,6 +15,7 @@ import org.springframework.data.elasticsearch.annotations.InnerField;
 import org.springframework.data.elasticsearch.annotations.MultiField;
 import org.springframework.data.elasticsearch.annotations.Setting;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -138,6 +139,9 @@ public class ItemDocument {
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime updatedAt;
 
+    @Field(type = FieldType.Double)
+    private BigDecimal unitPrice;
+
     public static ItemDocument fromEntity(SupplyItem item) {
         return ItemDocument.builder()
                 .id(item.getId())
@@ -155,6 +159,7 @@ public class ItemDocument {
                 .status(item.getStatus())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
+                .unitPrice(item.getUnitPrice())
                 .build();
     }
 }

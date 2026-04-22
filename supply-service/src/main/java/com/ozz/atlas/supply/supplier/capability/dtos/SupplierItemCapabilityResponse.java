@@ -24,9 +24,9 @@ public class SupplierItemCapabilityResponse {
     private String itemCode;
     private String itemName;
     private Integer leadTimeDays;
-    private BigDecimal monthlyCapacity;
-    private BigDecimal availableQty;
-    private BigDecimal moq;
+    private Long monthlyCapacity;
+    private Long availableQty;
+    private Long moq;
     private SupplierItemQualityGrade qualityGrade;
     private BigDecimal unitPriceHint;
     private LocalDate validFrom;

@@ -2,7 +2,6 @@ package com.ozz.atlas.supply.purchaseorder.search.document;
 
 import com.ozz.atlas.supply.purchaseorder.domain.CurrencyCode;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
-import com.ozz.atlas.supply.purchaseorder.domain.PriorityCode;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import lombok.AllArgsConstructor;
@@ -98,10 +97,6 @@ public class PurchaseOrderDocument {
     @Field(type = FieldType.Keyword)
     private PoStatus poStatus;
 
-    // 우선순위 필터용
-    @Field(type = FieldType.Keyword)
-    private PriorityCode priorityCode;
-
     // 발주 일시
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime orderedAt;
@@ -163,7 +158,6 @@ public class PurchaseOrderDocument {
                 .supplierCode(purchaseOrder.getSupplier().getSupplierCode())
                 .supplierName(purchaseOrder.getSupplier().getSupplierName())
                 .poStatus(purchaseOrder.getPoStatus())
-                .priorityCode(purchaseOrder.getPriorityCode())
                 .orderedAt(purchaseOrder.getOrderedAt())
                 .dueDate(purchaseOrder.getDueDate())
                 .totalAmount(purchaseOrder.getTotalAmount())

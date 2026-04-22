@@ -35,13 +35,13 @@ public class SupplySupplierItemCapability {
     private Integer leadTimeDays;
 
     @Column(nullable = false, precision = 18, scale = 2)
-    private BigDecimal monthlyCapacity;
+    private Long monthlyCapacity;
 
     @Column(nullable = false, precision = 18, scale = 2)
-    private BigDecimal availableQty;
+    private Long availableQty;
 
     @Column(nullable = false, precision = 18, scale = 2)
-    private BigDecimal moq;
+    private Long moq;
 
     @Convert(converter = SupplierItemQualityGradeConverter.class)
     @Column(nullable = false, length = 10)
@@ -61,9 +61,9 @@ public class SupplySupplierItemCapability {
             SupplySupplier supplier,
             SupplyItem item,
             Integer leadTimeDays,
-            BigDecimal monthlyCapacity,
-            BigDecimal availableQty,
-            BigDecimal moq,
+            Long monthlyCapacity,
+            Long availableQty,
+            Long moq,
             SupplierItemQualityGrade qualityGrade,
             BigDecimal unitPriceHint,
             LocalDate validFrom
@@ -83,9 +83,9 @@ public class SupplySupplierItemCapability {
 
     public void update(
             Integer leadTimeDays,
-            BigDecimal monthlyCapacity,
-            BigDecimal availableQty,
-            BigDecimal moq,
+            Long monthlyCapacity,
+            Long availableQty,
+            Long moq,
             SupplierItemQualityGrade qualityGrade,
             BigDecimal unitPriceHint,
             LocalDate validFrom

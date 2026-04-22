@@ -1,5 +1,7 @@
 package com.ozz.atlas.supply.purchaseorder.dtos;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +17,9 @@ import java.time.LocalDate;
 public class UpdatePurchaseOrderItemRequest {
 
     private String itemPublicId;
-    private BigDecimal orderedQty;
+    @Positive
+    private Long orderedQty;
+    @DecimalMin(value = "0.0", inclusive = false)
     private BigDecimal unitPrice;
     private LocalDate requiredDate;
 }
