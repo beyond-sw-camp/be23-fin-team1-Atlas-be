@@ -28,6 +28,9 @@ public class OrganizationListDto {
     @Schema(description = "조직 영문명", example = "Atlas Foods Supplier")
     private String organizationEnglishName;
 
+    @Schema(description = "조직 코드", example = "ATLAS")
+    private String organizationAlias;
+
     @Schema(description = "담당자 이름", example = "Minji")
     private String contactFirstName;
 
@@ -53,6 +56,7 @@ public class OrganizationListDto {
                 .organizationType(organization.getOrganizationType())
                 .organizationName(organization.getOrganizationName())
                 .organizationEnglishName(organization.getOrganizationEnglishName())
+                .organizationAlias(organization.getOrganizationAlias())
                 .contactFirstName(organization.getContactFirstName())
                 .contactMiddleName(organization.getContactMiddleName())
                 .contactLastName(organization.getContactLastName())
