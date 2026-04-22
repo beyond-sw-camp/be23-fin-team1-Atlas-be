@@ -31,6 +31,9 @@ public class Organization extends BaseTimeEntity {
     @Column(nullable = false, length = 100)
     private String organizationEnglishName;
 
+    @Column(nullable = false, unique = true, length = 10)
+    private String organizationAlias;
+
     @Column(length = 30)
     private String businessNo;
 
@@ -59,6 +62,9 @@ public class Organization extends BaseTimeEntity {
         }
         if (dto.getOrganizationEnglishName() != null && !dto.getOrganizationEnglishName().isBlank()) {
             this.organizationEnglishName = dto.getOrganizationEnglishName();
+        }
+        if (dto.getOrganizationAlias() != null && !dto.getOrganizationAlias().isBlank()) {
+            this.organizationAlias = dto.getOrganizationAlias().trim().toUpperCase();
         }
         if (dto.getBusinessNo() != null && !dto.getBusinessNo().isBlank()) {
             this.businessNo = dto.getBusinessNo();

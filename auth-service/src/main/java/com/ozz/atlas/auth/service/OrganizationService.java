@@ -2,7 +2,6 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.Organization;
-import com.ozz.atlas.auth.domain.OrganizationType;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
@@ -13,12 +12,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.regex.Pattern;
 
 @Service
 @Transactional
 public class OrganizationService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationSearchService organizationSearchService;
+    private static final Pattern ORGANIZATION_ALIAS_PATTERN = Pattern.compile("^[A-Z0-9]{2,10}$");
 
     @Autowired
     public OrganizationService(OrganizationRepository organizationRepository,
@@ -28,11 +29,22 @@ public class OrganizationService {
     }
 
     // 조직 생성
+    // organizationAlias는 물류거점/후속 코드 생성의 기준값이므로 저장 전에 대문자 정규화와 중복 검증을 수행한다.
     public String createOrganization(OrganizationCreateDto dto) {
+        String normalizedAlias = normalizeOrganizationAlias(dto.getOrganizationAlias());
+        validateOrganizationAlias(normalizedAlias);
+
+        if (organizationRepository.existsByOrganizationAlias(normalizedAlias)) {
+            throw new IllegalArgumentException("이미 사용 중인 조직 코드입니다.");
+        }
+
+        dto.setOrganizationAlias(normalizedAlias);
+
         Organization organization = organizationRepository.save(dto.toEntity());
         organizationSearchService.saveOrganizationDocument(organization);
         return organization.getPublicId();
     }
+
 
     // 조직 목록 조회
     public Page<OrganizationListDto> organizationList(Pageable pageable, OrganizationSearchDto searchDto) {
@@ -77,6 +89,18 @@ public class OrganizationService {
             throw new IllegalArgumentException("수정 권한이 없습니다.");
         }
 
+        // 수정 시에도 동일한 alias 규칙을 적용하고, 현재 조직을 제외한 중복만 차단한다.
+        if (hasText(dto.getOrganizationAlias())) {
+            String normalizedAlias = normalizeOrganizationAlias(dto.getOrganizationAlias());
+            validateOrganizationAlias(normalizedAlias);
+
+            if (organizationRepository.existsByOrganizationAliasAndOrganizationIdNot(normalizedAlias, organizationId)) {
+                throw new IllegalArgumentException("이미 사용 중인 조직 코드입니다.");
+            }
+
+            dto.setOrganizationAlias(normalizedAlias);
+        }
+
         organization.updateOrganization(dto);
         organizationSearchService.saveOrganizationDocument(organization);
 
@@ -114,8 +138,28 @@ public class OrganizationService {
         return searchDto.getOrganizationType() != null
                 || hasText(searchDto.getOrganizationName())
                 || hasText(searchDto.getOrganizationEnglishName())
+                || hasText(searchDto.getOrganizationAlias())
                 || searchDto.getStatus() != null
                 || hasText(searchDto.getKeyword());
+    }
+
+//    사용자가 소문자나 공백을 포함해 입력해도 저장 기준은 대문자 코드로 통일한다.
+    private String normalizeOrganizationAlias(String organizationAlias) {
+        if (organizationAlias == null) {
+            return null;
+        }
+        return organizationAlias.trim().toUpperCase();
+    }
+
+//    alias는 사람이 읽을 수 있는 짧은 조직 코드로 사용되므로 대문자/숫자 2~10자리만 허용한다.
+    private void validateOrganizationAlias(String organizationAlias) {
+        if (!hasText(organizationAlias)) {
+            throw new IllegalArgumentException("조직 코드는 비어있으면 안 됩니다.");
+        }
+
+        if (!ORGANIZATION_ALIAS_PATTERN.matcher(organizationAlias).matches()) {
+            throw new IllegalArgumentException("조직 코드는 대문자와 숫자만 사용하여 2자 이상 10자 이하로 입력해야 합니다.");
+        }
     }
 
     // 문자열 값이 null 이거나 공백인지 확인하는 공통 메서드

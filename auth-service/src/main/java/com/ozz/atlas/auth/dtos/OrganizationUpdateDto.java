@@ -19,6 +19,9 @@ public class OrganizationUpdateDto {
     @Schema(description = "조직 영문명", example = "Atlas Foods Supplier", nullable = true)
     private String organizationEnglishName;
 
+    @Schema(description = "조직 코드", example = "ATLAS", nullable = true)
+    private String organizationAlias;
+
     @Schema(description = "사업자 등록번호", example = "123-45-67890", nullable = true)
     private String businessNo;
 

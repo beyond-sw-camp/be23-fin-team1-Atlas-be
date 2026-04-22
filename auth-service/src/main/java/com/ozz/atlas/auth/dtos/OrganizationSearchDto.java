@@ -20,6 +20,8 @@ public class OrganizationSearchDto {
     private String organizationName;
     @Schema(description = "조직 영문명", example = "Atlas Foods", nullable = true)
     private String organizationEnglishName;
+    @Schema(description = "조직 코드", example = "ATLAS", nullable = true)
+    private String organizationAlias;
     @Schema(description = "조직 상태", example = "ACTIVE", nullable = true)
     private Status status;
     @Schema(description = "통합 검색어", example = "atlas", nullable = true)

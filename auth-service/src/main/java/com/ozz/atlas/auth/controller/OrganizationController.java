@@ -52,6 +52,7 @@ public class OrganizationController {
                                               "organizationType": "SUPPLIER",
                                               "organizationName": "아틀라스 푸드 서플라이어",
                                               "organizationEnglishName": "Atlas Foods Supplier",
+                                              "organizationAlias": "AFS",
                                               "businessNo": "123-45-67890",
                                               "contactFirstName": "Minji",
                                               "contactMiddleName": "J",

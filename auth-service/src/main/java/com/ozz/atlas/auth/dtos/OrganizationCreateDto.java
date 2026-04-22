@@ -29,6 +29,10 @@ public class OrganizationCreateDto {
     @Schema(description = "조직 영문명", example = "Atlas Foods Supplier")
     private String organizationEnglishName;
 
+    @NotBlank(message = "조직 코드는 비어있으면 안 됩니다.")
+    @Schema(description = "조직 alias", example = "ATLAS")
+    private String organizationAlias;
+
     @Schema(description = "사업자 등록번호", example = "123-45-67890")
     private String businessNo;
 
@@ -56,6 +60,7 @@ public class OrganizationCreateDto {
                 .organizationType(this.organizationType)
                 .organizationName(this.organizationName)
                 .organizationEnglishName(this.organizationEnglishName)
+                .organizationAlias(this.organizationAlias.trim().toUpperCase())
                 .businessNo(this.businessNo)
                 .contactFirstName(this.contactFirstName)
                 .contactMiddleName(this.contactMiddleName)
