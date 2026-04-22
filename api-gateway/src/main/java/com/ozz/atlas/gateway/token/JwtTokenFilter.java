@@ -5,6 +5,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -18,7 +19,10 @@ import reactor.core.publisher.Mono;
 import javax.crypto.SecretKey;
 
 @Component
+@RequiredArgsConstructor
 public class JwtTokenFilter implements GlobalFilter {
+
+    private final RoleRouteGuard roleRouteGuard;
 
     @Value("${jwt.access-token-secret}")
     private String secretKey;
@@ -62,6 +66,9 @@ public class JwtTokenFilter implements GlobalFilter {
             String organizationType = claims.get("organizationType", String.class);
             String role = claims.get("role", String.class);
 
+            // 역할별로 접근이 제한된 서비스 경로는 gateway에서 먼저 차단한다.
+            roleRouteGuard.validate(role, method, urlPath);
+
             ServerWebExchange serverWebExchange = exchange.mutate()
                     .request(r -> r.headers(headers -> {
                         headers.remove("X-User-Id");
@@ -82,6 +89,9 @@ public class JwtTokenFilter implements GlobalFilter {
 
             return chain.filter(serverWebExchange);
 
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            exchange.getResponse().setStatusCode(e.getStatusCode());
+            return exchange.getResponse().setComplete();
         } catch (JwtException | IllegalArgumentException e) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
