@@ -14,10 +14,6 @@ import lombok.NoArgsConstructor;
 @Schema(description = "조직 최초 ORG_ADMIN 생성 요청")
 public class InitialOrgAdminCreateDto {
 
-    @NotBlank(message = "로그인 ID는 비어 있을 수 없습니다.")
-    @Schema(description = "최초 대표자 로그인 ID", example = "hanbit_admin")
-    private String loginId;
-
     @NotBlank(message = "이름은 비어 있을 수 없습니다.")
     @Schema(description = "이름", example = "준호")
     private String firstName;
