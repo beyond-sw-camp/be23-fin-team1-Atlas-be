@@ -117,6 +117,7 @@ public class OrganizationService {
 
         return searchDto.getOrganizationType() != null
                 || hasText(searchDto.getOrganizationName())
+                || hasText(searchDto.getOrganizationEnglishName())
                 || searchDto.getStatus() != null
                 || hasText(searchDto.getKeyword());
     }

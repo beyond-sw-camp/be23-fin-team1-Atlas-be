@@ -28,6 +28,9 @@ public class Organization extends BaseTimeEntity {
     @Column(nullable = false, length = 100)
     private String organizationName;
 
+    @Column(nullable = false, length = 100)
+    private String organizationEnglishName;
+
     @Column(length = 30)
     private String businessNo;
 
@@ -56,6 +59,9 @@ public class Organization extends BaseTimeEntity {
     public void updateOrganization(OrganizationUpdateDto dto) {
         if (dto.getOrganizationName() != null && !dto.getOrganizationName().isBlank()) {
             this.organizationName = dto.getOrganizationName();
+        }
+        if (dto.getOrganizationEnglishName() != null && !dto.getOrganizationEnglishName().isBlank()) {
+            this.organizationEnglishName = dto.getOrganizationEnglishName();
         }
         if (dto.getBusinessNo() != null && !dto.getBusinessNo().isBlank()) {
             this.businessNo = dto.getBusinessNo();
