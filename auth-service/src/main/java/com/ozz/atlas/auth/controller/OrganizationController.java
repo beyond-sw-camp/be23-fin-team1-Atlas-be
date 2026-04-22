@@ -50,7 +50,8 @@ public class OrganizationController {
                                     value = """
                                             {
                                               "organizationType": "SUPPLIER",
-                                              "organizationName": "Atlas Foods Supplier",
+                                              "organizationName": "아틀라스 푸드 서플라이어",
+                                              "organizationEnglishName": "Atlas Foods Supplier",
                                               "businessNo": "123-45-67890",
                                               "contactFirstName": "Minji",
                                               "contactMiddleName": "J",

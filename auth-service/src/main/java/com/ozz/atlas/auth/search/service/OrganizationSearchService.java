@@ -79,6 +79,8 @@ public class OrganizationSearchService {
                     .fields(List.of(
                             "organizationName^3.0",
                             "organizationName.ngram^2.0",
+                            "organizationEnglishName^3.0",
+                            "organizationEnglishName.ngram^2.0",
                             "businessNo^2.0",
                             "businessNo.ngram^2.0",
                             "contactFirstName^2.0",
@@ -97,6 +99,7 @@ public class OrganizationSearchService {
 
         // organizationName 상세검색도 부분검색이 되도록 ngram 필드를 사용
         addPartialMatchIfPresent(mustQueries, "organizationName.ngram", searchDto.getOrganizationName());
+        addPartialMatchIfPresent(mustQueries, "organizationEnglishName.ngram", searchDto.getOrganizationEnglishName());
 
         // 최종 bool 쿼리를 조립
         Query finalQuery = Query.of(q -> q.bool(b -> {
@@ -126,6 +129,7 @@ public class OrganizationSearchService {
                         .organizationPublicId(document.getPublicId())
                         .organizationType(document.getOrganizationType())
                         .organizationName(document.getOrganizationName())
+                        .organizationEnglishName(document.getOrganizationEnglishName())
                         .contactFirstName(document.getContactFirstName())
                         .contactMiddleName(document.getContactMiddleName())
                         .contactLastName(document.getContactLastName())

@@ -47,6 +47,20 @@ public class OrganizationDocument {
     )
     private String organizationName;
 
+    @MultiField(
+            mainField = @Field(type = FieldType.Text),
+            otherFields = {
+                    @InnerField(suffix = "keyword", type = FieldType.Keyword),
+                    @InnerField(
+                            suffix = "ngram",
+                            type = FieldType.Text,
+                            analyzer = "organization_ngram_analyzer",
+                            searchAnalyzer = "organization_search_analyzer"
+                    )
+            }
+    )
+    private String organizationEnglishName;
+
     // 사업자번호도 일부 숫자만으로 찾을 수 있게 부분검색 필드
     @MultiField(
             mainField = @Field(type = FieldType.Text),
@@ -147,6 +161,7 @@ public class OrganizationDocument {
                 .publicId(organization.getPublicId())
                 .organizationType(organization.getOrganizationType())
                 .organizationName(organization.getOrganizationName())
+                .organizationEnglishName(organization.getOrganizationEnglishName())
                 .businessNo(organization.getBusinessNo())
                 .contactFirstName(organization.getContactFirstName())
                 .contactMiddleName(organization.getContactMiddleName())
