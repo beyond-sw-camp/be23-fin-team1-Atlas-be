@@ -28,7 +28,8 @@ public class RoleRouteGuard {
             "/api/supply/certificate-types",
             "/api/supply/suppliers",
             "/api/supply/items",
-            "/api/supply/item-category",
+            // ADMIN 카테고리 생성을 위한 주석
+            // "/api/supply/item-category",
             "/esg"
     );
 
