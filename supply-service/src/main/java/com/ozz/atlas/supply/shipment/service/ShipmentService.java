@@ -1,7 +1,7 @@
 package com.ozz.atlas.supply.shipment.service;
 
-import com.ozz.atlas.supply.event.outbox.OutboxEventAppender;
-import com.ozz.atlas.supply.event.shipment.ShipmentEventFactory;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
+import com.ozz.atlas.supply.kafka.shipment.ShipmentFactory;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
 import com.ozz.atlas.supply.shipment.domain.*;
@@ -37,7 +37,7 @@ public class ShipmentService {
     private final ShipmentSearchService shipmentSearchService;
     private final EtaProjectionRepository etaProjectionRepository;
     private final OutboxEventAppender outboxEventAppender;
-    private final ShipmentEventFactory shipmentEventFactory;
+    private final ShipmentFactory shipmentFactory;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -47,7 +47,7 @@ public class ShipmentService {
             ShipmentSearchService shipmentSearchService,
             EtaProjectionRepository etaProjectionRepository,
             OutboxEventAppender outboxEventAppender,
-            ShipmentEventFactory shipmentEventFactory
+            ShipmentFactory shipmentFactory
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
@@ -56,7 +56,7 @@ public class ShipmentService {
         this.shipmentSearchService = shipmentSearchService;
         this.etaProjectionRepository = etaProjectionRepository;
         this.outboxEventAppender = outboxEventAppender;
-        this.shipmentEventFactory = shipmentEventFactory;
+        this.shipmentFactory = shipmentFactory;
     }
 
 //    출하 생성
@@ -108,7 +108,7 @@ public class ShipmentService {
         // 출하가 생성되면 검색 문서도 함께 저장
         shipmentSearchService.saveShipmentDocument(savedShipment);
         outboxEventAppender.append(
-                shipmentEventFactory.createShipmentCreatedEvent(
+                shipmentFactory.createShipmentCreatedEvent(
                         savedShipment,
                         originNode.getPublicId(),
                         destinationNode.getPublicId(),

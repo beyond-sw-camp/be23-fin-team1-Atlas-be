@@ -1,7 +1,7 @@
 package com.ozz.atlas.supply.shipment.service;
 
-import com.ozz.atlas.supply.event.outbox.OutboxEventAppender;
-import com.ozz.atlas.supply.event.shipment.ShipmentEventFactory;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
+import com.ozz.atlas.supply.kafka.shipment.ShipmentFactory;
 import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
 import com.ozz.atlas.supply.shipment.domain.DeliveryException;
 import com.ozz.atlas.supply.shipment.domain.DeliveryExceptionType;
@@ -28,7 +28,7 @@ public class DeliveryExceptionService {
     private final ShipmentSearchService shipmentSearchService;
     private final LogisticsNodeService logisticsNodeService;
     private final OutboxEventAppender outboxEventAppender;
-    private final ShipmentEventFactory shipmentEventFactory;
+    private final ShipmentFactory shipmentFactory;
 
     public DeliveryExceptionService(
             DeliveryExceptionRepository deliveryExceptionRepository,
@@ -36,14 +36,14 @@ public class DeliveryExceptionService {
             ShipmentSearchService shipmentSearchService,
             LogisticsNodeService logisticsNodeService,
             OutboxEventAppender outboxEventAppender,
-            ShipmentEventFactory shipmentEventFactory
+            ShipmentFactory shipmentFactory
     ) {
         this.deliveryExceptionRepository = deliveryExceptionRepository;
         this.shipmentRepository = shipmentRepository;
         this.shipmentSearchService = shipmentSearchService;
         this.logisticsNodeService = logisticsNodeService;
         this.outboxEventAppender = outboxEventAppender;
-        this.shipmentEventFactory = shipmentEventFactory;
+        this.shipmentFactory = shipmentFactory;
     }
 
     public DeliveryExceptionResponseDto createDeliveryException(
@@ -69,7 +69,7 @@ public class DeliveryExceptionService {
         if (dto.getExceptionType() == DeliveryExceptionType.DELAY) {
             shipment.markDelayed();
             outboxEventAppender.append(
-                    shipmentEventFactory.createShipmentDelayDetectedEvent(
+                    shipmentFactory.createShipmentDelayDetectedEvent(
                             shipment,
                             calculateDelayMinutes(shipment, dto.getDetectedAt()),
                             dto.getDetectedAt(),
