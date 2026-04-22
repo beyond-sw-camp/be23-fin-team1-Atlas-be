@@ -1,12 +1,12 @@
 package com.ozz.atlas.control.recommendation.service;
 
-import com.ozz.atlas.common.event.EventEnvelope;
-import com.ozz.atlas.control.event.outbox.OutboxEventAppender;
-import com.ozz.atlas.control.event.recommendation.RecommendationDecisionPayload;
-import com.ozz.atlas.control.event.recommendation.RecommendationEventFactory;
-import com.ozz.atlas.control.event.recommendation.RecommendationFailedPayload;
-import com.ozz.atlas.control.event.recommendation.RecommendationGeneratedPayload;
-import com.ozz.atlas.control.event.recommendation.RecommendationItemPayload;
+import com.ozz.atlas.common.kafka.EventEnvelope;
+import com.ozz.atlas.control.kafka.outbox.OutboxEventAppender;
+import com.ozz.atlas.control.kafka.recommendation.RecommendationDecisionPayload;
+import com.ozz.atlas.control.kafka.recommendation.RecommendationFactory;
+import com.ozz.atlas.control.kafka.recommendation.RecommendationFailedPayload;
+import com.ozz.atlas.control.kafka.recommendation.RecommendationGeneratedPayload;
+import com.ozz.atlas.control.kafka.recommendation.RecommendationItemPayload;
 import com.ozz.atlas.control.recommendation.domain.Recommendation;
 import com.ozz.atlas.control.recommendation.domain.RecommendationItem;
 import com.ozz.atlas.control.recommendation.dtos.RecommendationItemResponseDto;
@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
-    private final RecommendationEventFactory recommendationEventFactory;
+    private final RecommendationFactory recommendationFactory;
     private final OutboxEventAppender outboxEventAppender;
 
     @Transactional
@@ -124,7 +124,7 @@ public class RecommendationService {
 
         // 상태 변경과 decision 이벤트 적재를 같은 트랜잭션으로 묶어 control 관점 판단 이력을 남긴다.
         EventEnvelope<RecommendationDecisionPayload> eventEnvelope =
-                recommendationEventFactory.accepted(recommendation, actorUserPublicId, organizationPublicId);
+                recommendationFactory.accepted(recommendation, actorUserPublicId, organizationPublicId);
         outboxEventAppender.append(eventEnvelope);
 
         return toResponseDto(recommendation);
@@ -138,7 +138,7 @@ public class RecommendationService {
         recommendation.markRejected();
 
         EventEnvelope<RecommendationDecisionPayload> eventEnvelope =
-                recommendationEventFactory.rejected(recommendation, actorUserPublicId, organizationPublicId);
+                recommendationFactory.rejected(recommendation, actorUserPublicId, organizationPublicId);
         outboxEventAppender.append(eventEnvelope);
 
         return toResponseDto(recommendation);
