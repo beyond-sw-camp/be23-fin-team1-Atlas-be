@@ -1,7 +1,6 @@
 package com.ozz.atlas.supply.supplier.relation.dtos;
 
-import com.ozz.atlas.common.jpa.Status;
-import com.ozz.atlas.supply.supplier.relation.domain.SupplierRelationType;
+import com.ozz.atlas.supply.supplier.relation.domain.SupplierRelationStatus;
 import com.ozz.atlas.supply.supplier.relation.domain.SupplySupplierRelation;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,9 +21,8 @@ public class SupplierRelationResponse {
     private String parentSupplierName;
     private String childSupplierPublicId;
     private String childSupplierName;
-    private SupplierRelationType relationType;
     private Integer priorityRank;
-    private Status status;
+    private SupplierRelationStatus relationStatus;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
     private LocalDateTime createdAt;
@@ -37,9 +35,8 @@ public class SupplierRelationResponse {
                 .parentSupplierName(relation.getParentSupplier().getSupplierName())
                 .childSupplierPublicId(relation.getChildSupplier().getPublicId())
                 .childSupplierName(relation.getChildSupplier().getSupplierName())
-                .relationType(relation.getRelationType())
                 .priorityRank(relation.getPriorityRank())
-                .status(relation.getStatus())
+                .relationStatus(relation.getRelationStatus())
                 .effectiveFrom(relation.getEffectiveFrom())
                 .effectiveTo(relation.getEffectiveTo())
                 .createdAt(relation.getCreatedAt())

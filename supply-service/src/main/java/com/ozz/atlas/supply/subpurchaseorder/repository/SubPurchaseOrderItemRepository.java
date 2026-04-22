@@ -41,7 +41,7 @@ public interface SubPurchaseOrderItemRepository extends JpaRepository<SupplySubP
             where item.parentPurchaseOrderItem.poItemId = :poItemId
               and item.lineStatus in :activeStatuses
             """)
-    BigDecimal sumOrderedQtyByParentPurchaseOrderItemIdAndLineStatusIn(
+    Long sumOrderedQtyByParentPurchaseOrderItemIdAndLineStatusIn(
             @Param("poItemId") Long poItemId,
             @Param("activeStatuses") Collection<SubPurchaseOrderLineStatus> activeStatuses
     );
@@ -54,7 +54,7 @@ public interface SubPurchaseOrderItemRepository extends JpaRepository<SupplySubP
               and item.item.id = :itemId
               and item.lineStatus in :activeStatuses
             """)
-    BigDecimal sumOrderedQtyBySupplierIdAndItemIdAndLineStatusIn(
+    Long sumOrderedQtyBySupplierIdAndItemIdAndLineStatusIn(
             @Param("supplierId") Long supplierId,
             @Param("itemId") Long itemId,
             @Param("activeStatuses") Collection<SubPurchaseOrderLineStatus> activeStatuses
@@ -69,7 +69,7 @@ public interface SubPurchaseOrderItemRepository extends JpaRepository<SupplySubP
               and item.subPurchaseOrder.orderedAt < :nextMonthStart
               and item.lineStatus in :activeStatuses
             """)
-    BigDecimal sumMonthlyOrderedQtyBySupplierIdAndItemIdAndOrderedAtBetweenAndLineStatusIn(
+    Long sumMonthlyOrderedQtyBySupplierIdAndItemIdAndOrderedAtBetweenAndLineStatusIn(
             @Param("supplierId") Long supplierId,
             @Param("itemId") Long itemId,
             @Param("monthStart") LocalDateTime monthStart,

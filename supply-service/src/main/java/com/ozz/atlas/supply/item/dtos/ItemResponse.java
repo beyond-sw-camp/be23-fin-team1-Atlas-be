@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -24,6 +25,7 @@ public class ItemResponse {
     private String itemCode;
     private String itemName;
     private String unit;
+    private BigDecimal unitPrice;
     private String spec;
     private Integer shelfLifeDays;
     private Status status;
@@ -41,6 +43,7 @@ public class ItemResponse {
                 .itemCode(item.getItemCode())
                 .itemName(item.getItemName())
                 .unit(item.getUnit().name())
+                .unitPrice(item.getUnitPrice())
                 .spec(item.getSpec())
                 .shelfLifeDays(item.getShelfLifeDays())
                 .status(item.getStatus())

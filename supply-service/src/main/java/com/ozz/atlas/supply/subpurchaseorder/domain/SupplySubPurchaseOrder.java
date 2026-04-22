@@ -97,10 +97,6 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
         recalculateTotalAmount();
     }
 
-    public void accept() {
-        this.subPoStatus = SubPoStatus.ACCEPTED;
-    }
-
     public void reject() {
         this.subPoStatus = SubPoStatus.REJECTED;
         for (SupplySubPurchaseOrderItem item : getActiveItems()) {
@@ -146,7 +142,7 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
             return;
         }
 
-        this.subPoStatus = SubPoStatus.ACCEPTED;
+        this.subPoStatus = SubPoStatus.CREATED;
     }
 
     private void recalculateTotalAmount() {

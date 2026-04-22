@@ -4,7 +4,6 @@ import com.ozz.atlas.supply.supplier.capability.domain.SupplierItemQualityGrade;
 import com.ozz.atlas.supply.supplier.certificate.domain.CertificateStatus;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
-import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import com.ozz.atlas.supply.supplier.esg.domain.EsgGrade;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,9 +21,6 @@ public class SupplierSearchDto {
     // 협력사명, 코드, 담당자명, 이메일, 전화번호 같은 기본 키워드
     private String keyword;
 
-    // 1차, 2차 같은 협력사 단계
-    private SupplierTierLevel tierLevel;
-
     // 승인 요청, 승인 완료, 반려 같은 승인 상태
     private ApprovalStatus approvalStatus;
 
@@ -38,13 +34,13 @@ public class SupplierSearchDto {
     private String itemPublicId;
 
     // 월 생산 가능 수량이 이 값 이상인 협력사
-    private BigDecimal minMonthlyCapacity;
+    private Long minMonthlyCapacity;
 
     // 현재 공급 가능한 수량이 이 값 이상인 협력사
-    private BigDecimal minAvailableQty;
+    private Long minAvailableQty;
 
     // 최소 주문 수량(MOQ)이 이 값 이하인 협력사
-    private BigDecimal maxMoq;
+    private Long maxMoq;
 
     // 리드타임이 이 값 이하인 협력사
     private Integer maxLeadTimeDays;

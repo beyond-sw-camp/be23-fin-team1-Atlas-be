@@ -1,7 +1,6 @@
 package com.ozz.atlas.supply.purchaseorder.dtos;
 
 import com.ozz.atlas.supply.purchaseorder.domain.CurrencyCode;
-import com.ozz.atlas.supply.purchaseorder.domain.PriorityCode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
@@ -29,8 +28,6 @@ public class CreatePurchaseOrderRequest {
     @NotBlank
     @Size(max = 26)
     private String supplierPublicId;
-
-    private PriorityCode priorityCode; // 긴급도
 
     @NotNull
     @FutureOrPresent

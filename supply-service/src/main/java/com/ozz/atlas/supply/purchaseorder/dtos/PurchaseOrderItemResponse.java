@@ -22,8 +22,8 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
     private String itemCode;
     private String itemName;
     private String unit;
-    private BigDecimal orderedQty;
-    private BigDecimal confirmedQty;
+    private Long orderedQty;
+    private Long confirmedQty;
     private BigDecimal unitPrice;
     private BigDecimal lineAmount;
     private LocalDate requiredDate;

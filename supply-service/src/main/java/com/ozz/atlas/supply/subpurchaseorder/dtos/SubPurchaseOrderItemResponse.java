@@ -24,8 +24,8 @@ public class SubPurchaseOrderItemResponse {
     private String unit;
     private BigDecimal unitPrice;
     private BigDecimal lineAmount;
-    private BigDecimal orderedQty;
-    private BigDecimal confirmedQty;
+    private Long orderedQty;
+    private Long confirmedQty;
     private LocalDate requiredDate;
     private SubPurchaseOrderLineStatus lineStatus;
     private LocalDateTime createdAt;

@@ -1,6 +1,5 @@
 package com.ozz.atlas.supply.supplier.dtos;
 
-import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,9 +19,6 @@ public class UpdateSupplierRequest {
     @NotBlank
     @Size(max = 100)
     private String supplierName;
-
-    @NotNull
-    private SupplierTierLevel tierLevel;
 
     @Size(max = 50)
     private String primaryContactName;

@@ -10,6 +10,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Getter
 @Builder
 @NoArgsConstructor
@@ -21,10 +23,6 @@ public class UpdateItemRequest {
     private String itemCategoryPublicId;
 
     @NotBlank
-    @Size(max = 50)
-    private String itemCode;
-
-    @NotBlank
     @Size(max = 100)
     private String itemName;
 
@@ -34,6 +32,8 @@ public class UpdateItemRequest {
     @NotBlank
     @Size(max = 100)
     private String spec;
+
+    private BigDecimal unitPrice;
 
     @NotNull
     @Min(0)

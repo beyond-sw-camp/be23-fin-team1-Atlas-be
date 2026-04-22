@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.subpurchaseorder.dtos;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,8 +25,8 @@ public class CreateSubPurchaseOrderItemRequest {
     private String itemPublicId;
 
     @NotNull
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal orderedQty;
+    @Positive
+    private Long orderedQty;
 
     private LocalDate requiredDate;
 

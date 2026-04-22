@@ -2,7 +2,6 @@ package com.ozz.atlas.supply.purchaseorder.dtos;
 
 import com.ozz.atlas.supply.purchaseorder.domain.CurrencyCode;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
-import com.ozz.atlas.supply.purchaseorder.domain.PriorityCode;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,7 +25,6 @@ public class PurchaseOrderSummaryResponse { // 발주 목록 조회용
     private String supplierCode;
     private String supplierName;
     private PoStatus poStatus;
-    private PriorityCode priorityCode;
     private LocalDateTime orderedAt;
     private LocalDate dueDate;
     private BigDecimal totalAmount;
@@ -43,7 +41,6 @@ public class PurchaseOrderSummaryResponse { // 발주 목록 조회용
                 .supplierCode(purchaseOrder.getSupplier().getSupplierCode())
                 .supplierName(purchaseOrder.getSupplier().getSupplierName())
                 .poStatus(purchaseOrder.getPoStatus())
-                .priorityCode(purchaseOrder.getPriorityCode())
                 .orderedAt(purchaseOrder.getOrderedAt())
                 .dueDate(purchaseOrder.getDueDate())
                 .totalAmount(purchaseOrder.getTotalAmount())

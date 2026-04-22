@@ -178,6 +178,7 @@ public class ItemSearchService {
                 .status(document.getStatus())
                 .createdAt(document.getCreatedAt())
                 .updatedAt(document.getUpdatedAt())
+                .unitPrice(document.getUnitPrice())
                 .build();
     }
 

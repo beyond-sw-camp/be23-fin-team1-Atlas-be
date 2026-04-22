@@ -1,9 +1,7 @@
 package com.ozz.atlas.supply.supplier.dtos;
 
-import com.ozz.atlas.supply.supplier.domain.SupplierTierLevel;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,9 +25,6 @@ public class CreateSupplierRequest {
     @NotBlank
     @Size(max = 100)
     private String supplierName;
-
-    @NotNull
-    private SupplierTierLevel tierLevel;
 
     @Size(max = 50)
     private String primaryContactName;

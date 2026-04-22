@@ -39,10 +39,10 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
     private SupplyItem item;
 
     @Column(nullable = false, precision = 18, scale = 2)
-    private BigDecimal orderedQty;
+    private Long orderedQty;
 
     @Column(precision = 18, scale = 2)
-    private BigDecimal confirmedQty;
+    private Long confirmedQty;
 
     @Column(nullable = false, precision = 18, scale = 2)
     private BigDecimal unitPrice;
@@ -60,7 +60,7 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
 
     public static SupplyPurchaseOrderItem create(
             SupplyItem item,
-            BigDecimal orderedQty,
+            Long orderedQty,
             BigDecimal unitPrice,
             LocalDate requiredDate
     ) {
@@ -74,7 +74,7 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
                 .build();
     }
 
-    public BigDecimal getSubOrderBaseQty() {
+    public Long getSubOrderBaseQty() {
         return this.confirmedQty != null ? this.confirmedQty : this.orderedQty;
     }
 
@@ -86,7 +86,7 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
 
     public void update(
             SupplyItem item,
-            BigDecimal orderedQty,
+            Long orderedQty,
             BigDecimal unitPrice,
             LocalDate requiredDate
     ) {
@@ -99,7 +99,7 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
         this.itemStatus = PurchaseOrderItemStatus.OPEN;
     }
 
-    public void confirm(BigDecimal confirmedQty) {
+    public void confirm(Long confirmedQty) {
         this.confirmedQty = confirmedQty;
 
         if (confirmedQty.compareTo(this.orderedQty) < 0) {
@@ -130,7 +130,10 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
         this.purchaseOrder = purchaseOrder;
     }
 
-    private static BigDecimal calculateLineAmount(BigDecimal orderedQty, BigDecimal unitPrice) {
-        return orderedQty.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+    private static BigDecimal calculateLineAmount(Long orderedQty, BigDecimal unitPrice) {
+        return BigDecimal.valueOf(orderedQty)
+                .multiply(unitPrice)
+                .setScale(2, RoundingMode.HALF_UP);
     }
+
 }

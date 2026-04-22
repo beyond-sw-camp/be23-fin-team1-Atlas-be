@@ -2,7 +2,6 @@ package com.ozz.atlas.supply.supplier.relation.domain;
 
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
-import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,10 +33,6 @@ public class SupplySupplierRelation extends BaseTimeEntity {
     @JoinColumn(name = "child_supplier_id", foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT), nullable = false)
     private SupplySupplier childSupplier;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "relation_type", nullable = false)
-    private SupplierRelationType relationType;
-
     @Column(name = "priority_rank", nullable = false)
     @Builder.Default
     private Integer priorityRank = 1;
@@ -48,14 +43,13 @@ public class SupplySupplierRelation extends BaseTimeEntity {
     private LocalDate effectiveTo;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
-    private Status status = Status.ACTIVE;
+    private SupplierRelationStatus relationStatus = SupplierRelationStatus.REQUESTED;
 
     public static SupplySupplierRelation create(
             SupplySupplier parentSupplier,
             SupplySupplier childSupplier,
-            SupplierRelationType relationType,
             Integer priorityRank,
             LocalDate effectiveFrom,
             LocalDate effectiveTo
@@ -63,30 +57,46 @@ public class SupplySupplierRelation extends BaseTimeEntity {
         return SupplySupplierRelation.builder()
                 .parentSupplier(parentSupplier)
                 .childSupplier(childSupplier)
-                .relationType(relationType)
                 .priorityRank(priorityRank != null ? priorityRank : 1)
-                .status(Status.ACTIVE)
+                .relationStatus(SupplierRelationStatus.REQUESTED)
                 .effectiveFrom(effectiveFrom)
                 .effectiveTo(effectiveTo)
                 .build();
     }
 
     public void update(
-            SupplierRelationType relationType,
             Integer priorityRank,
             LocalDate effectiveFrom,
             LocalDate effectiveTo
     ) {
-        if (relationType != null) this.relationType = relationType;
         if (priorityRank != null) this.priorityRank = priorityRank;
         if (effectiveFrom != null) this.effectiveFrom = effectiveFrom;
         if (effectiveTo != null) this.effectiveTo = effectiveTo;
     }
 
-    public void deactivate(LocalDate endedAt) {
-        this.status = Status.DELETE;
-        if (this.effectiveTo == null) {
-            this.effectiveTo = endedAt;
+    public void markRequested() {
+        this.relationStatus = SupplierRelationStatus.REQUESTED;
+        if (this.effectiveFrom == null) {
+            this.effectiveFrom = LocalDate.now();
         }
+        this.effectiveTo = null;
     }
+
+    public void markActive() {
+        this.relationStatus = SupplierRelationStatus.ACTIVE;
+        if (this.effectiveFrom == null) {
+            this.effectiveFrom = LocalDate.now();
+        }
+        this.effectiveTo = null;
+    }
+
+    public void markPaused() {
+        this.relationStatus = SupplierRelationStatus.PAUSED;
+    }
+
+    public void markEnded(LocalDate endedAt) {
+        this.relationStatus = SupplierRelationStatus.ENDED;
+        this.effectiveTo = endedAt != null ? endedAt : LocalDate.now();
+    }
+
 }

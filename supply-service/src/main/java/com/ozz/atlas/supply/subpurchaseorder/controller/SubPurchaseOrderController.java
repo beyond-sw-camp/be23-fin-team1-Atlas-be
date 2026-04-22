@@ -87,21 +87,6 @@ public class SubPurchaseOrderController {
         );
     }
 
-    @PostMapping("/{subPoPublicId}/accept")
-    public ResponseEntity<?> acceptSubPurchaseOrder(
-            @RequestHeader("X-Organization-Public-Id") String receiverOrganizationPublicId,
-            @RequestHeader("X-Organization-Type") String organizationType,
-            @PathVariable String subPoPublicId
-    ) {
-        return ResponseEntity.ok(
-                subPurchaseOrderService.acceptSubPurchaseOrder(
-                        receiverOrganizationPublicId,
-                        organizationType,
-                        subPoPublicId
-                )
-        );
-    }
-
     @PostMapping("/{subPoPublicId}/reject")
     public ResponseEntity<?> rejectSubPurchaseOrder(
             @RequestHeader("X-Organization-Public-Id") String receiverOrganizationPublicId,

@@ -1,14 +1,13 @@
 package com.ozz.atlas.supply.item.dtos;
 
 import com.ozz.atlas.supply.item.domain.ItemUnit;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 
 @Getter
 @Builder
@@ -21,12 +20,12 @@ public class CreateItemRequest {
     private String itemCategoryPublicId;
 
     @NotBlank
-    @Size(max = 50)
-    private String itemCode;
-
-    @NotBlank
     @Size(max = 100)
     private String itemName;
+
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
+    private BigDecimal unitPrice;
 
     @NotNull
     private ItemUnit unit;

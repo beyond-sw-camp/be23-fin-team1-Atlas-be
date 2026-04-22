@@ -91,7 +91,12 @@ public class ReturnService {
                             .findFirst()
                             .orElseThrow(() -> new IllegalStateException("발주에 해당 품목이 존재하지 않습니다: " + itemDto.getItemPublicId()));
 
-                    BigDecimal maxQty = poItem.getConfirmedQty() != null ? poItem.getConfirmedQty() : poItem.getOrderedQty();
+                    Long maxQtyValue = poItem.getConfirmedQty() != null
+                            ? poItem.getConfirmedQty()
+                            : poItem.getOrderedQty();
+
+                    BigDecimal maxQty = BigDecimal.valueOf(maxQtyValue);
+
                     if (itemDto.getReturnQty().compareTo(maxQty) > 0) {
                         throw new ReturnException(ReturnErrorCode.INVALID_RETURN_QUANTITY);
                     }

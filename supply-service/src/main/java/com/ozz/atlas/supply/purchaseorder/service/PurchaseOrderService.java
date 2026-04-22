@@ -57,16 +57,16 @@ public class PurchaseOrderService {
 
 
     public PurchaseOrderDetailResponse createPurchaseOrder(
-            String buyerOrganizationPublicId,
-            String createdByUserPublicId,
-            CreatePurchaseOrderRequest request
-    ) {
-        validateCreateRequest(request);
+                        String buyerOrganizationPublicId,
+                        String createdByUserPublicId,
+                        CreatePurchaseOrderRequest request
+                ) {
+            validateCreateRequest(request);
 
-        if (purchaseOrderRepository.existsByPoNumberAndBuyerOrganizationPublicIdAndPoStatusNot(
-                request.getPoNumber(),
-                buyerOrganizationPublicId,
-                PoStatus.DELETED
+            if (purchaseOrderRepository.existsByPoNumberAndBuyerOrganizationPublicIdAndPoStatusNot(
+                    request.getPoNumber(),
+                    buyerOrganizationPublicId,
+                    PoStatus.DELETED
         )) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NUMBER_ALREADY_EXISTS);
         }
@@ -77,6 +77,10 @@ public class PurchaseOrderService {
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_SUPPLIER_NOT_FOUND));
+
+        if (buyerOrganizationPublicId.equals(supplier.getOrganizationPublicId())) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_SELF_SUPPLIER_NOT_ALLOWED);
+        }
 
         Map<String, SupplyItem> itemMap = resolveItems(
                 request.getItems().stream()
@@ -110,7 +114,6 @@ public class PurchaseOrderService {
                 request.getPoNumber(),
                 buyerOrganizationPublicId,
                 supplier,
-                request.getPriorityCode(),
                 request.getDueDate(),
                 request.getCurrencyCode(),
                 request.getMemo(),
@@ -224,23 +227,9 @@ public class PurchaseOrderService {
 
         purchaseOrder.updateHeader(
                 request.getPoNumber(),
-                request.getPriorityCode(),
                 request.getDueDate(),
                 request.getMemo()
         );
-        purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
-        return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
-    }
-
-    // 부모 발주를 받은 협력사가 상위 발주를 수락한다.
-    public PurchaseOrderDetailResponse acceptPurchaseOrder(
-            String supplierOrganizationPublicId,
-            String poPublicId
-    ) {
-        SupplyPurchaseOrder purchaseOrder = getSupplierOwnedPurchaseOrder(supplierOrganizationPublicId, poPublicId);
-        validateSupplierActionable(purchaseOrder);
-
-        purchaseOrder.accept();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
@@ -489,7 +478,7 @@ public class PurchaseOrderService {
     }
 
     private void validateSupplierConfirmable(SupplyPurchaseOrder purchaseOrder) {
-        if (!(purchaseOrder.getPoStatus() == PoStatus.ACCEPTED
+        if (!(purchaseOrder.getPoStatus() == PoStatus.CREATED
                 || purchaseOrder.getPoStatus() == PoStatus.PARTIALLY_CONFIRMED
                 || purchaseOrder.getPoStatus() == PoStatus.CONFIRMED)) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_SUPPLIER_ACTION_NOT_ALLOWED);
@@ -498,7 +487,6 @@ public class PurchaseOrderService {
 
     private boolean isEmptyHeaderPatch(UpdatePurchaseOrderRequest request) {
         return (request.getPoNumber() == null || request.getPoNumber().isBlank())
-                && request.getPriorityCode() == null
                 && request.getDueDate() == null
                 && request.getMemo() == null;
     }

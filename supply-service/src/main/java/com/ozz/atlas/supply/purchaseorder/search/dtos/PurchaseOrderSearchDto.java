@@ -1,7 +1,6 @@
 package com.ozz.atlas.supply.purchaseorder.search.dtos;
 
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
-import com.ozz.atlas.supply.purchaseorder.domain.PriorityCode;
 import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderViewType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,7 +27,4 @@ public class PurchaseOrderSearchDto {
 
     // 발주 상태 필터
     private PoStatus poStatus;
-
-    // 우선순위 필터
-    private PriorityCode priorityCode;
 }

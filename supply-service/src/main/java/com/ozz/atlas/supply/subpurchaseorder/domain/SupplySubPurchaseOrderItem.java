@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 
 @Getter
@@ -39,7 +40,7 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
     private SupplyItem item;
 
     @Column(name = "ordered_qty", nullable = false, precision = 18, scale = 2)
-    private BigDecimal orderedQty;
+    private Long orderedQty;
 
     @Column(name = "unit_price", nullable = false, precision = 18, scale = 2)
     private BigDecimal unitPrice;
@@ -49,7 +50,7 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
 
 
     @Column(name = "confirmed_qty", precision = 18, scale = 2)
-    private BigDecimal confirmedQty;
+    private Long confirmedQty;
 
     @Column(name = "required_date", nullable = false)
     private LocalDate requiredDate;
@@ -62,7 +63,7 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
     public static SupplySubPurchaseOrderItem create(
             SupplyPurchaseOrderItem parentPurchaseOrderItem,
             SupplyItem item,
-            BigDecimal orderedQty,
+            Long orderedQty,
             BigDecimal unitPrice,
             LocalDate requiredDate
     ) {
@@ -77,11 +78,13 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
                 .build();
     }
 
-    private static BigDecimal calculateLineAmount(BigDecimal orderedQty, BigDecimal unitPrice) {
-        return orderedQty.multiply(unitPrice).setScale(2, java.math.RoundingMode.HALF_UP);
+    private static BigDecimal calculateLineAmount(Long orderedQty, BigDecimal unitPrice) {
+        return BigDecimal.valueOf(orderedQty)
+                .multiply(unitPrice)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
-    public void confirm(BigDecimal confirmedQty) {
+    public void confirm(Long confirmedQty) {
         this.confirmedQty = confirmedQty;
 
         if (confirmedQty.compareTo(this.orderedQty) < 0) {

@@ -54,7 +54,6 @@ public class OnboardingService {
                 organizationPublicId,
                 request.getSupplierCode(),
                 request.getSupplierName(),
-                request.getTierLevel(),
                 request.getPrimaryContactName(),
                 request.getPrimaryContactEmail(),
                 request.getPrimaryContactPhone()

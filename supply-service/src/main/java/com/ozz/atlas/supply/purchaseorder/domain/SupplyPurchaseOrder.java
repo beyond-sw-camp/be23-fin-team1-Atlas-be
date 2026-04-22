@@ -47,11 +47,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
     @Builder.Default
     private PoStatus poStatus = PoStatus.CREATED;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private PriorityCode priorityCode = PriorityCode.NORMAL;
-
     @Column(nullable = false)
     private LocalDateTime orderedAt;
 
@@ -80,7 +75,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
             String poNumber,
             String buyerOrganizationPublicId,
             SupplySupplier supplier,
-            PriorityCode priorityCode,
             LocalDate dueDate,
             CurrencyCode currencyCode,
             String memo,
@@ -91,7 +85,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
                 .poNumber(poNumber)
                 .buyerOrganizationPublicId(buyerOrganizationPublicId)
                 .supplier(supplier)
-                .priorityCode(priorityCode != null ? priorityCode : PriorityCode.NORMAL)
                 .orderedAt(LocalDateTime.now())
                 .dueDate(dueDate)
                 .currencyCode(currencyCode != null ? currencyCode : CurrencyCode.KRW)
@@ -110,22 +103,17 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
     }
 
     public boolean isSubOrderCreatable() {
-        return this.poStatus == PoStatus.ACCEPTED
-                || this.poStatus == PoStatus.PARTIALLY_CONFIRMED
+        return this.poStatus == PoStatus.PARTIALLY_CONFIRMED
                 || this.poStatus == PoStatus.CONFIRMED;
     }
 
     public void updateHeader(
             String poNumber,
-            PriorityCode priorityCode,
             LocalDate dueDate,
             String memo
     ) {
         if (poNumber != null && !poNumber.isBlank()) {
             this.poNumber = poNumber;
-        }
-        if (priorityCode != null) {
-            this.priorityCode = priorityCode;
         }
         if (dueDate != null) {
             this.dueDate = dueDate;
@@ -139,10 +127,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
         purchaseOrderItem.assignPurchaseOrder(this);
         this.purchaseOrderItems.add(purchaseOrderItem);
         recalculateTotalAmount();
-    }
-
-    public void accept() {
-        this.poStatus = PoStatus.ACCEPTED;
     }
 
     public void reject() {
@@ -196,7 +180,7 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
             return;
         }
 
-        this.poStatus = PoStatus.ACCEPTED;
+        this.poStatus = PoStatus.CREATED;
     }
 
     public List<SupplyPurchaseOrderItem> getActiveItems() {
