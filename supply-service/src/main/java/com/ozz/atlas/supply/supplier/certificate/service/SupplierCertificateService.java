@@ -41,7 +41,11 @@ public class SupplierCertificateService {
         CertificateType type = certificateTypeRepository.findByPublicId(request.getCertificateTypePublicId())
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.CERTIFICATE_TYPE_NOT_FOUND));
 
+        SupplySupplier supplier = supplierRepository.findByPublicId(supplierPublicId)
+                .orElseThrow(() -> new com.ozz.atlas.supply.supplier.exception.SupplierException(com.ozz.atlas.supply.supplier.exception.SupplierErrorCode.SUPPLIER_NOT_FOUND));
+
         SupplierCertificate cert = SupplierCertificate.builder()
+                .supplierId(supplier.getId())
                 .supplierPublicId(supplierPublicId)
                 .certificateType(type)
                 .certificateNo(request.getCertificateNo())

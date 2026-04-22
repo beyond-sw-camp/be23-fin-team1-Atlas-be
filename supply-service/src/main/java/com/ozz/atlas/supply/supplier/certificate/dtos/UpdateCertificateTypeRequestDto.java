@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 public class UpdateCertificateTypeRequestDto {
     private String certificateName;
     private CertificateScope scopeType;
+    private String issuerName;
     private Boolean requiredYn;
     private Boolean activeYn;
 }

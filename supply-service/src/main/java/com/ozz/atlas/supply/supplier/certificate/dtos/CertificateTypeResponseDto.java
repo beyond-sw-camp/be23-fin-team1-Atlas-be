@@ -12,6 +12,7 @@ public class CertificateTypeResponseDto {
     private String certificateCode;
     private String certificateName;
     private CertificateScope scopeType;
+    private String issuerName;
     private boolean requiredYn;
     private boolean activeYn;
 
@@ -21,6 +22,7 @@ public class CertificateTypeResponseDto {
                 .certificateCode(entity.getCertificateCode())
                 .certificateName(entity.getCertificateName())
                 .scopeType(entity.getScopeType())
+                .issuerName(entity.getIssuerName())
                 .requiredYn(entity.isRequiredYn())
                 .activeYn(entity.isActiveYn())
                 .build();

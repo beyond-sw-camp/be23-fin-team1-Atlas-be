@@ -32,6 +32,9 @@ public class CertificateType extends BaseTimeEntity {
     @Column(nullable = false, length = 30)
     private CertificateScope scopeType;
 
+    @Column(length = 100)
+    private String issuerName;
+
     @Column(nullable = false)
     private boolean requiredYn;
 
@@ -46,17 +49,19 @@ public class CertificateType extends BaseTimeEntity {
     }
 
     @Builder
-    public CertificateType(String certificateCode, String certificateName, CertificateScope scopeType, boolean requiredYn, boolean activeYn) {
+    public CertificateType(String certificateCode, String certificateName, CertificateScope scopeType, String issuerName, boolean requiredYn, boolean activeYn) {
         this.certificateCode = certificateCode;
         this.certificateName = certificateName;
         this.scopeType = scopeType;
+        this.issuerName = issuerName;
         this.requiredYn = requiredYn;
         this.activeYn = activeYn;
     }
 
-    public void update(String certificateName, CertificateScope scopeType, Boolean requiredYn, Boolean activeYn) {
+    public void update(String certificateName, CertificateScope scopeType, String issuerName, Boolean requiredYn, Boolean activeYn) {
         if (certificateName != null) this.certificateName = certificateName;
         if (scopeType != null) this.scopeType = scopeType;
+        if (issuerName != null) this.issuerName = issuerName;
         if (requiredYn != null) this.requiredYn = requiredYn;
         if (activeYn != null) this.activeYn = activeYn;
     }
