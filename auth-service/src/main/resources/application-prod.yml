@@ -21,5 +21,5 @@ server:
 jwt:
   access-token-secret: ${JWT_ACCESS_TOKEN_SECRET}
   refresh-token-secret: ${JWT_REFRESH_TOKEN_SECRET}
-  access-token-expiration-ms: 1800000
+  access-token-expiration-ms: 3600000
   refresh-token-expiration-ms: 1209600000
