@@ -8,16 +8,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
 public class UpdateLogisticsNodeRequestDto {
-
-    @NotBlank
-    private String nodeCode;
 
     @NotBlank
     private String nodeName;
@@ -26,6 +21,4 @@ public class UpdateLogisticsNodeRequestDto {
     private LogisticsNodeType nodeType;
 
     private String address;
-    private BigDecimal latitude;
-    private BigDecimal longitude;
 }

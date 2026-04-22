@@ -44,6 +44,7 @@ public class SecutityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/users/public/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/organizations/public/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/swagger-ui.html",
                                 "/api/auth/swagger-ui/**",

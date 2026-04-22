@@ -34,36 +34,49 @@ public class LogisticsNodeController {
         return ResponseEntity.created(URI.create("/api/supply/logistics-nodes/" + createNode.getPublicId())).body(createNode);
     }
 
-
     //    창고 목록 조회
     @GetMapping
     public Page<LogisticsNodeResponseDto> getLogisticsNodes(
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC)Pageable pageable){
-        return logisticsNodeService.getLogisticsNodes(pageable);
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ){
+        return logisticsNodeService.getLogisticsNodes(organizationPublicId, pageable);
     }
 
-//    창고 상세 조회
+    //    창고 상세 조회
     @GetMapping("/{publicId}")
-    public ResponseEntity<LogisticsNodeResponseDto> getLogisticsNode(@PathVariable String publicId){
-        return ResponseEntity.ok(logisticsNodeService.getLogisticsNode(publicId));
+    public ResponseEntity<LogisticsNodeResponseDto> getLogisticsNode(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @PathVariable String publicId
+    ){
+        return ResponseEntity.ok(logisticsNodeService.getLogisticsNode(organizationPublicId, publicId));
     }
 
-//    창고 수정
+    //    창고 수정
     @PatchMapping("/{publicId}")
     public ResponseEntity<LogisticsNodeResponseDto> updateLogisticsNode(
-            @PathVariable String publicId, @Valid @RequestBody UpdateLogisticsNodeRequestDto dto){
-        return ResponseEntity.ok(logisticsNodeService.updateLogisticsNode(publicId, dto));
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @PathVariable String publicId,
+            @Valid @RequestBody UpdateLogisticsNodeRequestDto dto
+    ){
+        return ResponseEntity.ok(logisticsNodeService.updateLogisticsNode(organizationPublicId, publicId, dto));
     }
 
-//    창고 활성화
+    //    창고 활성화
     @PatchMapping("/{publicId}/activate")
-    public ResponseEntity<LogisticsNodeResponseDto> activateLogisticsNode(@PathVariable String publicId){
-        return ResponseEntity.ok(logisticsNodeService.activateLogisticsNode(publicId));
+    public ResponseEntity<LogisticsNodeResponseDto> activateLogisticsNode(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @PathVariable String publicId
+    ){
+        return ResponseEntity.ok(logisticsNodeService.activateLogisticsNode(organizationPublicId, publicId));
     }
 
-//    창고 비활성화
+    //    창고 비활성화
     @PatchMapping("/{publicId}/deactivate")
-    public ResponseEntity<LogisticsNodeResponseDto> deactivateLogisticsNode(@PathVariable String publicId){
-        return ResponseEntity.ok(logisticsNodeService.deactivateLogisticsNode(publicId));
+    public ResponseEntity<LogisticsNodeResponseDto> deactivateLogisticsNode(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @PathVariable String publicId
+    ){
+        return ResponseEntity.ok(logisticsNodeService.deactivateLogisticsNode(organizationPublicId, publicId));
     }
 }

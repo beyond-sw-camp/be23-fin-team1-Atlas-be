@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.logistics.service;
 
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.dtos.CreateLogisticsNodeRequestDto;
+import com.ozz.atlas.supply.logistics.dtos.GeocodingPointDto;
 import com.ozz.atlas.supply.logistics.dtos.LogisticsNodeResponseDto;
 import com.ozz.atlas.supply.logistics.dtos.UpdateLogisticsNodeRequestDto;
 import com.ozz.atlas.supply.logistics.exception.LogisticsNodeErrorCode;
@@ -22,9 +23,13 @@ import java.util.stream.Collectors;
 public class LogisticsNodeService {
 
     private final LogisticsNodeRepository logisticsNodeRepository;
+    private final OrganizationAliasClient organizationAliasClient;
+    private final AddressGeocodingClient addressGeocodingClient;
 
-    public LogisticsNodeService(LogisticsNodeRepository logisticsNodeRepository) {
+    public LogisticsNodeService(LogisticsNodeRepository logisticsNodeRepository, OrganizationAliasClient organizationAliasClient, AddressGeocodingClient addressGeocodingClient) {
         this.logisticsNodeRepository = logisticsNodeRepository;
+        this.organizationAliasClient = organizationAliasClient;
+        this.addressGeocodingClient = addressGeocodingClient;
     }
 
 //    창고 생성
@@ -33,31 +38,42 @@ public class LogisticsNodeService {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
         }
 
-        if (logisticsNodeRepository.existsByNodeCode(dto.getNodeCode())) {
-            throw new LogisticsNodeException(LogisticsNodeErrorCode.NODE_CODE_ALREADY_EXISTS);
-        }
+        String organizationAlias = organizationAliasClient.getOrganizationAlias(organizationPublicId);
+        String generatedNodeCode = generateNodeCode(organizationPublicId, organizationAlias);
+        GeocodingPointDto point = geocodeRequiredAddress(dto.getAddress());
 
-        LogisticsNode savedNode = logisticsNodeRepository.save(dto.toEntity(organizationPublicId));
+        LogisticsNode savedNode = logisticsNodeRepository.save(
+                dto.toEntity(
+                        organizationPublicId,
+                        generatedNodeCode,
+                        point.getLatitude(),
+                        point.getLongitude()
+                )
+        );
+
         return LogisticsNodeResponseDto.from(savedNode);
     }
 
-
     //    창고 목록 조회
     @Transactional(readOnly = true)
-    public Page<LogisticsNodeResponseDto> getLogisticsNodes(Pageable pageable){
-        return logisticsNodeRepository.findAll(pageable).map(LogisticsNodeResponseDto::from);
+    public Page<LogisticsNodeResponseDto> getLogisticsNodes(String organizationPublicId, Pageable pageable){
+        validateOrganizationHeader(organizationPublicId);
+        return logisticsNodeRepository
+                .findByOrganizationPublicId(organizationPublicId, pageable)
+                .map(LogisticsNodeResponseDto::from);
     }
 
-//    창고 상세 조회
+    //    창고 상세 조회
     @Transactional(readOnly = true)
-    public LogisticsNodeResponseDto getLogisticsNode(String publicId){
-        LogisticsNode node = logisticsNodeRepository.findByPublicId(publicId)
-                .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+    public LogisticsNodeResponseDto getLogisticsNode(String organizationPublicId, String publicId){
+        validateOrganizationHeader(organizationPublicId);
+        LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
 
         return LogisticsNodeResponseDto.from(node);
     }
 
-//    출하에서 창고 조회용(요청 입력 처리)
+
+    //    출하에서 창고 조회용(요청 입력 처리)
 //    요청 body에서 받은 node publicId -> 내부 entity로 변환
     @Transactional(readOnly = true)
     public LogisticsNode getLogisticsNodeEntityByPublicId(String publicId){
@@ -85,41 +101,80 @@ public class LogisticsNodeService {
     }
 
 //    창고 수정
-    public LogisticsNodeResponseDto updateLogisticsNode(String publicId, UpdateLogisticsNodeRequestDto dto){
-        LogisticsNode node = logisticsNodeRepository.findByPublicId(publicId)
-                .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+    public LogisticsNodeResponseDto updateLogisticsNode(
+            String organizationPublicId,
+            String publicId,
+            UpdateLogisticsNodeRequestDto dto
+    ){
+        validateOrganizationHeader(organizationPublicId);
+        LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
 
-        if (logisticsNodeRepository.existsByNodeCodeAndPublicIdNot(dto.getNodeCode(), publicId)){
-            throw new LogisticsNodeException(LogisticsNodeErrorCode.NODE_CODE_ALREADY_EXISTS);
-        }
+        GeocodingPointDto point = geocodeRequiredAddress(dto.getAddress());
 
         node.update(
-                dto.getNodeCode(),
                 dto.getNodeName(),
                 dto.getNodeType(),
                 dto.getAddress(),
-                dto.getLatitude(),
-                dto.getLongitude()
+                point.getLatitude(),
+                point.getLongitude()
         );
 
         return LogisticsNodeResponseDto.from(node);
     }
 
-//    창고 활성화
-    public LogisticsNodeResponseDto activateLogisticsNode(String publicId){
-        LogisticsNode node = logisticsNodeRepository.findByPublicId(publicId)
-                .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+    //    창고 활성화
+    public LogisticsNodeResponseDto activateLogisticsNode(String organizationPublicId, String publicId){
+        validateOrganizationHeader(organizationPublicId);
+        LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
 
         node.activate();
         return LogisticsNodeResponseDto.from(node);
     }
 
-//    창고 비활성화
-    public LogisticsNodeResponseDto deactivateLogisticsNode(String publicId){
-        LogisticsNode node = logisticsNodeRepository.findByPublicId(publicId)
-                .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+    //    창고 비활성화
+    public LogisticsNodeResponseDto deactivateLogisticsNode(String organizationPublicId, String publicId){
+        validateOrganizationHeader(organizationPublicId);
+        LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
 
         node.deactivate();
         return LogisticsNodeResponseDto.from(node);
     }
+
+    // 물류거점 코드는 WH-{organizationAlias}-{일련번호} 규칙으로 자동 생성한다.
+    private String generateNodeCode(String organizationPublicId, String organizationAlias) {
+        long nextSequence = logisticsNodeRepository.countByOrganizationPublicId(organizationPublicId) + 1L;
+
+        String candidate = buildNodeCode(organizationAlias, nextSequence);
+
+        while (logisticsNodeRepository.existsByNodeCode(candidate)) {
+            nextSequence++;
+            candidate = buildNodeCode(organizationAlias, nextSequence);
+        }
+
+        return candidate;
+    }
+
+    private String buildNodeCode(String organizationAlias, long sequence) {
+        return "WH-" + organizationAlias + "-" + String.format("%03d", sequence);
+    }
+    // 물류거점은 로그인한 조직 자신의 데이터만 조회/수정할 수 있다.
+    private LogisticsNode getOwnedLogisticsNode(String publicId, String organizationPublicId) {
+        return logisticsNodeRepository.findByPublicIdAndOrganizationPublicId(publicId, organizationPublicId)
+                .orElseThrow(() -> new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+    }
+
+    private void validateOrganizationHeader(String organizationPublicId) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
+        }
+    }
+    // 주소는 필수로 받고, 저장 직전에 외부 지오코딩으로 좌표를 계산한다.
+    private GeocodingPointDto geocodeRequiredAddress(String address) {
+        if (address == null || address.isBlank()) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        return addressGeocodingClient.geocode(address);
+    }
+
 }

@@ -15,3 +15,12 @@ spring:
 
 server:
   port: 8080
+
+atlas:
+  auth-service:
+    base-url: ${ATLAS_AUTH_SERVICE_BASE_URL}
+  geocoding:
+    kakao:
+      base-url: ${ATLAS_KAKAO_GEOCODING_BASE_URL:https://dapi.kakao.com}
+      rest-api-key: ${KAKAO_REST_API_KEY}
+

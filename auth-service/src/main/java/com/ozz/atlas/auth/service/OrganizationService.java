@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.regex.Pattern;
+import com.ozz.atlas.auth.dtos.OrganizationAliasLookupDto;
 
 @Service
 @Transactional
@@ -68,6 +69,18 @@ public class OrganizationService {
         }
 
         return OrganizationDetailDto.fromEntity(organization);
+    }
+
+    // supply-service에서 물류거점 코드 생성을 위해 organizationPublicId 기준 alias만 조회할 때 사용한다.
+    public OrganizationAliasLookupDto organizationAliasByPublicId(String organizationPublicId) {
+        Organization organization = organizationRepository.findByPublicId(organizationPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+
+        if (organization.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("존재하지 않는 조직입니다.");
+        }
+
+        return OrganizationAliasLookupDto.fromEntity(organization);
     }
 
     // 조직 정보 수정
@@ -167,4 +180,16 @@ public class OrganizationService {
         return value != null && !value.isBlank();
     }
 
+    // 조직 공개 ID 기준으로 조직 상세를 조회
+    @Transactional(readOnly = true)
+    public OrganizationDetailDto organizationDetailByPublicId(String organizationPublicId) {
+        Organization organization = organizationRepository.findByPublicId(organizationPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+
+        if (organization.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("존재하지 않는 조직입니다.");
+        }
+
+        return OrganizationDetailDto.fromEntity(organization);
+    }
 }
