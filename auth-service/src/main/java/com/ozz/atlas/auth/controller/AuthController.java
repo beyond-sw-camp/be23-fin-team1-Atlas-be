@@ -32,7 +32,6 @@ import com.ozz.atlas.auth.domain.LoginVerification;
 import com.ozz.atlas.auth.service.LoginVerificationService;
 
 
-
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Auth")
@@ -63,11 +62,11 @@ public class AuthController {
                             schema = @Schema(implementation = LoginDto.class),
                             examples = @ExampleObject(
                                     value = """
-                                    {
-                                      "loginId": "atlas_admin",
-                                      "password": "Atlas!234"
-                                    }
-                                    """
+                                            {
+                                              "loginId": "atlas_admin",
+                                              "password": "Atlas!234"
+                                            }
+                                            """
                             )
                     )
             ),
@@ -209,14 +208,19 @@ public class AuthController {
 
             User user = verification.getUser();
 
-            // 인증이 성공했으면 로그인 성공 이력을 남김
+// 토큰을 먼저 만듬
+// 여기서 예외가 나면 인증 요청을 아직 지우지 않아서 원인 파악이 쉬워짐
+            TokenDto tokenResponse = buildTokenResponse(user);
+
+// 인증이 성공했으면 로그인 성공 이력을 남김
             loginHistoryService.saveSuccess(user, verification.getIpAddress(), verification.getUserAgent());
 
-            // 사용한 인증 요청은 삭제
+// 사용한 인증 요청은 마지막에 삭제
             loginVerificationService.consume(verification);
 
-            // 토큰을 발급
-            return ResponseEntity.ok(buildTokenResponse(user));
+// 토큰을 반환
+            return ResponseEntity.ok(tokenResponse);
+
         } catch (LoginFailedException e) {
             // 인증 실패도 로그인 실패 이력에 남김
             if (e.getUser() != null) {
