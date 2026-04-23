@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import java.nio.charset.StandardCharsets;
+import java.net.URI;
 
 import java.math.BigDecimal;
 
@@ -49,19 +51,21 @@ public class AddressGeocodingClient {
 
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-            String url = UriComponentsBuilder
+            URI uri = UriComponentsBuilder
                     .fromHttpUrl(kakaoBaseUrl)
                     .path("/v2/local/search/address.json")
                     .queryParam("query", address)
-                    .build(true)
-                    .toUriString();
+                    .build()
+                    .encode(StandardCharsets.UTF_8)
+                    .toUri();
 
             ResponseEntity<JsonNode> response = restTemplate.exchange(
-                    url,
+                    uri,
                     HttpMethod.GET,
                     entity,
                     JsonNode.class
             );
+
 
             JsonNode body = response.getBody();
             JsonNode documents = body == null ? null : body.path("documents");

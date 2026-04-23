@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.logistics.dtos;
 
+import com.ozz.atlas.supply.logistics.domain.LogisticsNodeCapacityStatus;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeType;
 import lombok.AllArgsConstructor;
@@ -24,6 +25,7 @@ public class LogisticsNodeResponseDto {
     private String address;
     private BigDecimal latitude;
     private BigDecimal longitude;
+    private LogisticsNodeCapacityStatus capacityStatus;
     private boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -38,6 +40,7 @@ public class LogisticsNodeResponseDto {
                 .address(node.getAddress())
                 .latitude(node.getLatitude())
                 .longitude(node.getLongitude())
+                .capacityStatus(node.getCapacityStatus())
                 .active(node.isActive())
                 .createdAt(node.getCreatedAt())
                 .updatedAt(node.getUpdatedAt())

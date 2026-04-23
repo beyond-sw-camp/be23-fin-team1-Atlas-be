@@ -23,4 +23,3 @@ atlas:
     kakao:
       base-url: ${ATLAS_KAKAO_GEOCODING_BASE_URL:https://dapi.kakao.com}
       rest-api-key: ${KAKAO_REST_API_KEY}
-
