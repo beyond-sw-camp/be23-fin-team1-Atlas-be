@@ -16,6 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Pageable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 import java.text.Normalizer;
 
@@ -31,17 +34,20 @@ public class UserService {
     private final OrganizationRepository organizationRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserSearchService userSearchService;
+    private final SecurityHistoryService securityHistoryService;
     // 계정 생성 후 로그인 정보 메일을 보내는 서비스
     private final CredentialMailService credentialMailService;
 
 
+
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, JwtTokenProvider jwtTokenProvider, UserSearchService userSearchService, CredentialMailService credentialMailService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, JwtTokenProvider jwtTokenProvider, UserSearchService userSearchService, SecurityHistoryService securityHistoryService, CredentialMailService credentialMailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.organizationRepository = organizationRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userSearchService = userSearchService;
+        this.securityHistoryService = securityHistoryService;
         this.credentialMailService = credentialMailService;
     }
 
@@ -427,6 +433,50 @@ public class UserService {
             sequence++;
         }
     }
+
+    // 사용자 엔티티를 그대로 조회합니다.
+// 보안 이력 저장 시 재사용합니다.
+    @Transactional(readOnly = true)
+    public User getUserEntity(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+    }
+
+    // 사용자 수정 시 어떤 항목이 바뀌었는지 한 줄 요약을 만듭니다.
+    public String buildProfileUpdateSummary(User user, UserUpdateDto dto) {
+        List<String> changedFields = new ArrayList<>();
+
+        // 이름 변경 여부를 확인합니다.
+        if (!Objects.equals(user.getFirstName(), dto.getFirstName())
+                || !Objects.equals(user.getMiddleName(), dto.getMiddleName())
+                || !Objects.equals(user.getLastName(), dto.getLastName())) {
+            changedFields.add("이름");
+        }
+
+        // 이메일 변경 여부를 확인합니다.
+        if (!Objects.equals(user.getEmail(), dto.getEmail())) {
+            changedFields.add("이메일");
+        }
+
+        // 연락처 변경 여부를 확인합니다.
+        if (!Objects.equals(user.getPhone(), dto.getPhone())) {
+            changedFields.add("연락처");
+        }
+
+        // 직책 변경 여부를 확인합니다.
+        if (!Objects.equals(user.getJobTitle(), dto.getJobTitle())) {
+            changedFields.add("직책");
+        }
+
+        // 바뀐 값이 없으면 일반 문구를 반환합니다.
+        if (changedFields.isEmpty()) {
+            return "프로필 정보 수정";
+        }
+
+        // 변경된 항목들을 이어 붙여서 반환합니다.
+        return String.join(", ", changedFields) + " 변경";
+    }
+
 
 
 }

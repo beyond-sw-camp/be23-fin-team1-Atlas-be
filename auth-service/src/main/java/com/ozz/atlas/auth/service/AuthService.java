@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ozz.atlas.auth.common.exception.LoginFailedException;
+
 
 
 @Service
@@ -30,18 +32,37 @@ public class AuthService {
 
     //    사용자 로그인
     public User login(String loginId, String password) {
-        User user = userRepository.findByLoginId(loginId).
-                orElseThrow(() -> new IllegalArgumentException("아이디 틀림"));
+        User user = userRepository.findByLoginId(loginId)
+                // 없는 아이디는 사용자 식별이 안 되므로 이력 저장 대상에서 제외
+                .orElseThrow(() -> new LoginFailedException(
+                        "아이디 또는 비밀번호가 올바르지 않습니다.",
+                        "INVALID_LOGIN_ID",
+                        null
+                ));
+
+        // 비밀번호가 틀리면 사용자 정보가 있으므로 실패 이력을 남김
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("아이디 또는 비밀번호가 틀림");
+            throw new LoginFailedException(
+                    "아이디 또는 비밀번호가 올바르지 않습니다.",
+                    "INVALID_PASSWORD",
+                    user
+            );
         }
+
+        // 비활성화 계정도 사용자 정보가 있으므로 실패 이력을 남김
         if (user.getStatus() != Status.ACTIVE) {
-            throw new IllegalArgumentException("비활성화 또는 삭제된 사용자입니다.");
+            throw new LoginFailedException(
+                    "비활성화 또는 삭제된 사용자입니다.",
+                    "INACTIVE_USER",
+                    user
+            );
         }
 
         user.getOrganization().getPublicId();
+
         return user;
     }
+
 
     //    사용자 로그아웃
     public void logout(AuthPrincipal principal) {

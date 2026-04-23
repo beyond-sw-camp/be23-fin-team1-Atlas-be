@@ -8,10 +8,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class CredentialMailService {
 
-    // 스프링이 제공하는 메일 발송 객체입니다.
+    // 스프링이 제공하는 메일 발송 객체
     private final JavaMailSender mailSender;
 
-    // 설정 파일에 적어둔 발신자 주소입니다.
+    // 설정 파일에 적어둔 발신자 주소
     private final String fromAddress;
 
     public CredentialMailService(
@@ -22,17 +22,17 @@ public class CredentialMailService {
         this.fromAddress = fromAddress;
     }
 
-    // 계정 생성 후 로그인 정보와 임시 비밀번호를 메일로 보냅니다.
+    // 계정 생성 후 로그인 정보와 임시 비밀번호를 메일로 보냄
     public void sendTemporaryCredentialMail(
             String toEmail,
             String organizationName,
             String loginId,
             String temporaryPassword
     ) {
-        // 메일 제목입니다.
+        // 메일 제목
         String subject = "[Atlas] 계정이 생성되었습니다.";
 
-        // 메일 본문입니다.
+        // 메일 본문
         String text = """
                 안녕하세요.
 
@@ -49,14 +49,53 @@ public class CredentialMailService {
                 temporaryPassword
         );
 
-        // 단순 텍스트 메일 객체를 만듭니다.
+        // 단순 텍스트 메일 객체를 만듬
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(toEmail);
         message.setSubject(subject);
         message.setText(text);
 
-        // 실제 메일을 발송합니다.
+        // 실제 메일을 발송
         mailSender.send(message);
     }
+
+    // 새 IP 로그인 시 이메일 인증 코드를 보냄
+    public void sendLoginVerificationMail(
+            String toEmail,
+            String loginId,
+            String verificationCode,
+            int expireMinutes
+    ) {
+        // 메일 제목입니다.
+        String subject = "[Atlas] 새 로그인 IP 인증 코드 안내";
+
+        // 메일 본문입니다.
+        String text = """
+                안녕하세요.
+
+                새로운 IP 에서 로그인 시도가 감지되었습니다.
+
+                로그인 ID: %s
+                인증 코드: %s
+
+                이 코드는 %d분 동안만 유효합니다.
+                본인이 요청한 것이 아니라면 이 메일을 무시해 주세요.
+                """.formatted(
+                loginId,
+                verificationCode,
+                expireMinutes
+        );
+
+        // 단순 텍스트 메일을 생성합니다.
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(toEmail);
+        message.setSubject(subject);
+        message.setText(text);
+
+        // 메일을 실제로 발송합니다.
+        mailSender.send(message);
+    }
+
 }

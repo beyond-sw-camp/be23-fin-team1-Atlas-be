@@ -7,7 +7,8 @@ import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.service.AuthService;
 import com.ozz.atlas.auth.service.LoginHistoryService;
-import com.ozz.atlas.auth.service.UserService;
+import com.ozz.atlas.auth.common.exception.LoginFailedException;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -27,6 +28,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.ozz.atlas.auth.domain.LoginVerification;
+import com.ozz.atlas.auth.service.LoginVerificationService;
+
 
 
 @RestController
@@ -37,12 +41,14 @@ public class AuthController {
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginHistoryService loginHistoryService;
+    private final LoginVerificationService loginVerificationService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtTokenProvider jwtTokenProvider, LoginHistoryService loginHistoryService) {
+    public AuthController(AuthService authService, JwtTokenProvider jwtTokenProvider, LoginHistoryService loginHistoryService, LoginVerificationService loginVerificationService) {
         this.authService = authService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.loginHistoryService = loginHistoryService;
+        this.loginVerificationService = loginVerificationService;
     }
 
     //    로그인
@@ -50,65 +56,64 @@ public class AuthController {
     @SecurityRequirements
     @Operation(
             summary = "로그인",
-            description = "로그인 ID와 비밀번호로 Access Token과 Refresh Token을 발급한다.",
+            description = "로그인 ID와 비밀번호로 로그인합니다. 새 IP 이면 이메일 인증 단계로 전환합니다.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
                     content = @Content(
                             schema = @Schema(implementation = LoginDto.class),
                             examples = @ExampleObject(
                                     value = """
-                                            {
-                                              "loginId": "atlas_admin",
-                                              "password": "Atlas!234"
-                                            }
-                                            """
+                                    {
+                                      "loginId": "atlas_admin",
+                                      "password": "Atlas!234"
+                                    }
+                                    """
                             )
                     )
             ),
             responses = @ApiResponse(
                     responseCode = "200",
-                    description = "로그인 성공",
-                    content = @Content(
-                            schema = @Schema(implementation = TokenDto.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "accessToken": "eyJhbGciOiJIUzI1NiJ9.access-token",
-                                              "refreshToken": "eyJhbGciOiJIUzI1NiJ9.refresh-token"
-                                            }
-                                            """
-                            )
-                    )
+                    description = "로그인 성공 또는 새 IP 인증 필요",
+                    content = @Content(schema = @Schema(implementation = TokenDto.class))
             )
     )
-    public ResponseEntity<TokenDto> login(@RequestBody @Valid LoginDto dto,
-                                          HttpServletRequest request) {
-        User user = authService.login(dto.getLoginId(), dto.getPassword());
+    public ResponseEntity<TokenDto> login(@RequestBody @Valid LoginDto dto, HttpServletRequest request) {
+        // 로그인 성공/실패에서 같이 쓸 요청 정보
+        String clientIp = extractClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
 
-        loginHistoryService.saveSuccess(
-                user,
-                extractClientIp(request),
-                request.getHeader("User-Agent")
-        );
+        try {
+            // 아이디/비밀번호 검증을 먼저 수행
+            User user = authService.login(dto.getLoginId(), dto.getPassword());
 
-        String accessToken = jwtTokenProvider.createAccessToken(
-                user.getUserId(),
-                user.getPublicId(),
-                user.getOrganization().getPublicId(),
-                user.getOrganization().getOrganizationType().name(),
-                user.getUserRole().name()
-        );
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
+            // 최근 성공 로그인 IP 와 현재 IP 가 다르면 이메일 인증 단계로 넘김
+            if (loginHistoryService.requiresIpVerification(user, clientIp)) {
+                LoginVerification verification =
+                        loginVerificationService.createVerification(user, clientIp, userAgent);
 
-        TokenDto tokenDto = TokenDto.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .passwordChangeRequired(user.isPasswordChangeRequired())
-                .build();
+                return ResponseEntity.ok(
+                        TokenDto.builder()
+                                .passwordChangeRequired(false)
+                                .ipVerificationRequired(true)
+                                .verificationRequestId(verification.getVerificationRequestId())
+                                .verificationExpiresAt(verification.getExpiresAt())
+                                .build()
+                );
+            }
 
-        return ResponseEntity.ok(tokenDto);
+            // 같은 IP 이거나 첫 로그인 성공이면 바로 로그인 성공 처리
+            loginHistoryService.saveSuccess(user, clientIp, userAgent);
+
+            return ResponseEntity.ok(buildTokenResponse(user));
+        } catch (LoginFailedException e) {
+            // 사용자 식별이 되는 실패만 로그인 실패 이력에 남김
+            if (e.getUser() != null) {
+                loginHistoryService.saveFailure(e.getUser(), clientIp, userAgent, e.getFailureReason());
+            }
+
+            throw e;
+        }
     }
-
 
     //    사용자 로그아웃
     @PostMapping("/logout")
@@ -181,7 +186,65 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/login/verify-ip")
+    @SecurityRequirements
+    @Operation(
+            summary = "새 IP 로그인 이메일 인증",
+            description = "새 IP 로그인 시 이메일로 받은 인증 코드를 검증하고 토큰을 발급합니다."
+    )
+    public ResponseEntity<TokenDto> verifyLoginIp(
+            @RequestBody @Valid LoginIpVerifyDto dto,
+            HttpServletRequest request
+    ) {
+        // 인증 실패 이력에도 현재 요청의 IP/브라우저를 남김
+        String clientIp = extractClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
 
+        try {
+            // 인증 요청과 인증 코드를 검증
+            LoginVerification verification = loginVerificationService.verify(
+                    dto.getVerificationRequestId(),
+                    dto.getVerificationCode()
+            );
 
+            User user = verification.getUser();
+
+            // 인증이 성공했으면 로그인 성공 이력을 남김
+            loginHistoryService.saveSuccess(user, verification.getIpAddress(), verification.getUserAgent());
+
+            // 사용한 인증 요청은 삭제
+            loginVerificationService.consume(verification);
+
+            // 토큰을 발급
+            return ResponseEntity.ok(buildTokenResponse(user));
+        } catch (LoginFailedException e) {
+            // 인증 실패도 로그인 실패 이력에 남김
+            if (e.getUser() != null) {
+                loginHistoryService.saveFailure(e.getUser(), clientIp, userAgent, e.getFailureReason());
+            }
+
+            throw e;
+        }
+
+    }
+
+    // 로그인 성공 시 공통 토큰 응답을 만듬
+    private TokenDto buildTokenResponse(User user) {
+        String accessToken = jwtTokenProvider.createAccessToken(
+                user.getUserId(),
+                user.getPublicId(),
+                user.getOrganization().getPublicId(),
+                user.getOrganization().getOrganizationType().name(),
+                user.getUserRole().name()
+        );
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
+
+        return TokenDto.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .passwordChangeRequired(user.isPasswordChangeRequired())
+                .ipVerificationRequired(false)
+                .build();
+    }
 
 }
