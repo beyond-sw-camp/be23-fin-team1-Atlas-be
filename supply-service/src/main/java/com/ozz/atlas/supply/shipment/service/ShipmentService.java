@@ -3,9 +3,23 @@ package com.ozz.atlas.supply.shipment.service;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.kafka.shipment.ShipmentFactory;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
-import com.ozz.atlas.supply.shipment.domain.*;
-import com.ozz.atlas.supply.shipment.dtos.*;
+import com.ozz.atlas.supply.shipment.domain.CheckpointStatus;
+import com.ozz.atlas.supply.shipment.domain.CheckpointType;
+import com.ozz.atlas.supply.shipment.domain.EtaBasis;
+import com.ozz.atlas.supply.shipment.domain.EtaProjection;
+import com.ozz.atlas.supply.shipment.domain.Shipment;
+import com.ozz.atlas.supply.shipment.domain.ShipmentCheckpoint;
+import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
+import com.ozz.atlas.supply.shipment.domain.ShipmentStatusHistory;
+import com.ozz.atlas.supply.shipment.dtos.CreateShipmentRequestDto;
+import com.ozz.atlas.supply.shipment.dtos.EtaProjectionResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentEtaResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentStatusHistoryResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.TrackShipmentRequestDto;
 import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
 import com.ozz.atlas.supply.shipment.repository.EtaProjectionRepository;
@@ -22,17 +36,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Transactional
 public class ShipmentService {
+
+    private static final String ADMIN_ORGANIZATION_TYPE = "ADMIN";
+    private static final String ADMIN_ROLE = "ADMIN";
+
     private final ShipmentRepository shipmentRepository;
     private final ShipmentCheckpointRepository shipmentCheckpointRepository;
     private final ShipmentStatusHistoryRepository shipmentStatusHistoryRepository;
+    private final LogisticsNodeRepository logisticsNodeRepository;
     private final LogisticsNodeService logisticsNodeService;
     private final ShipmentSearchService shipmentSearchService;
     private final EtaProjectionRepository etaProjectionRepository;
@@ -43,6 +61,7 @@ public class ShipmentService {
             ShipmentRepository shipmentRepository,
             ShipmentCheckpointRepository shipmentCheckpointRepository,
             ShipmentStatusHistoryRepository shipmentStatusHistoryRepository,
+            LogisticsNodeRepository logisticsNodeRepository,
             LogisticsNodeService logisticsNodeService,
             ShipmentSearchService shipmentSearchService,
             EtaProjectionRepository etaProjectionRepository,
@@ -52,6 +71,7 @@ public class ShipmentService {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
         this.shipmentStatusHistoryRepository = shipmentStatusHistoryRepository;
+        this.logisticsNodeRepository = logisticsNodeRepository;
         this.logisticsNodeService = logisticsNodeService;
         this.shipmentSearchService = shipmentSearchService;
         this.etaProjectionRepository = etaProjectionRepository;
@@ -59,22 +79,27 @@ public class ShipmentService {
         this.shipmentFactory = shipmentFactory;
     }
 
-//    출하 생성
-//    출발지/도착지 물류거점 존재 여부 검증(publicId) 뒤 출하 저장
-//    생성 직후 내부 id를 shipment에 저장 후 READY상태 이력 + 출발지 위치 정보 기록
-    @Transactional
+    // 출하 생성
     public ShipmentResponseDto createShipment(
             CreateShipmentRequestDto dto,
             String actorUserPublicId,
-            String organizationPublicId
-    ){
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         if (!dto.getDepartureEta().isBefore(dto.getArrivalEta())) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
         }
 
-        LogisticsNode originNode = logisticsNodeService.getLogisticsNodeEntityByPublicId(dto.getOriginNodePublicId());
-        LogisticsNode destinationNode = logisticsNodeService.getLogisticsNodeEntityByPublicId(dto.getDestinationNodePublicId());
+        LogisticsNode originNode = getActiveNode(dto.getOriginNodePublicId());
+        LogisticsNode destinationNode = getActiveNode(dto.getDestinationNodePublicId());
+
+        if (!originNode.getOrganizationPublicId().equals(organizationPublicId)
+                && !destinationNode.getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        }
 
         Shipment shipment = Shipment.builder()
                 .shipmentNumber(dto.getShipmentNumber())
@@ -103,10 +128,11 @@ public class ShipmentService {
                 originNode.getNodeName(),
                 originNode.getLatitude(),
                 originNode.getLongitude(),
-                "SYSTEM"
+                actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
         );
-        // 출하가 생성되면 검색 문서도 함께 저장
+
         shipmentSearchService.saveShipmentDocument(savedShipment);
+
         outboxEventAppender.append(
                 shipmentFactory.createShipmentCreatedEvent(
                         savedShipment,
@@ -120,47 +146,68 @@ public class ShipmentService {
         return toShipmentResponseDto(savedShipment);
     }
 
-//    출하 목록 조회
-//    1. shipment page를 가져온다.
-//    2. page안의 모든 node id를 모은다.
-//    3. logistics에서 한번에 조회
-//    4. map을 사용해 dto 생성
+    // 출하 목록 조회
     @Transactional(readOnly = true)
-    public Page<ShipmentListResponseDto> getShipments(Pageable pageable) {
-        Page<Shipment> shipmentPage = shipmentRepository.findAll(pageable);
+    public Page<ShipmentListResponseDto> getShipments(
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            Pageable pageable
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
 
-        Set<Long> nodeIds = shipmentPage.getContent().stream()
-                .flatMap(shipment -> java.util.stream.Stream.of(
-                        shipment.getDestinationNodeId(),
-                        shipment.getCurrentNodeId()
-                ))
-                .filter(java.util.Objects::nonNull)
-                .collect(Collectors.toSet());
+        Set<Long> myNodeIds = getOrganizationNodeIds(organizationPublicId);
 
-        Map<Long, String> nodePublicIdMap = logisticsNodeService.getNodePublicIdMap(nodeIds);
+        if (myNodeIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
 
-        return shipmentPage.map(shipment -> toShipmentListResponseDto(shipment, nodePublicIdMap));
+        Page<Shipment> shipmentPage = shipmentRepository.findByOriginNodeIdInOrDestinationNodeIdIn(
+                myNodeIds,
+                myNodeIds,
+                pageable
+        );
+
+        Map<Long, LogisticsNode> nodeMap = getShipmentNodeMap(shipmentPage.getContent());
+
+        return shipmentPage.map(shipment -> toShipmentListResponseDto(shipment, nodeMap));
     }
 
-//    출하 상세 조회
+    // 출하 상세 조회
     @Transactional(readOnly = true)
-    public ShipmentResponseDto getShipmentByPublicId(String publicId){
-        Shipment shipment = shipmentRepository.findByPublicId(publicId)
-                .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
+    public ShipmentResponseDto getShipmentByPublicId(
+            String publicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
         return toShipmentResponseDto(shipment);
     }
 
-//    track 생성
-//    shipment publicId와 node publicId로 입력 받고
-//    내부에서 shipment id와 node id를 사용해 checkpoint+statusHistory 기록
-    public ShipmentResponseDto trackShipment(String publicId, TrackShipmentRequestDto dto){
-        Shipment shipment = shipmentRepository.findByPublicId(publicId)
-                .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
+    // 출하 위치/상태 추적
+    public ShipmentResponseDto trackShipment(
+            String publicId,
+            TrackShipmentRequestDto dto,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
         validateTrackRequest(dto);
 
-        LogisticsNode node = logisticsNodeService.getLogisticsNodeEntityByPublicId(dto.getNodePublicId());
+        LogisticsNode node = getActiveNode(dto.getNodePublicId());
+
+        if (!isShipmentRelatedNode(shipment, node)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        }
 
         List<ShipmentCheckpoint> previousCheckpoints =
                 shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(shipment.getId());
@@ -170,14 +217,10 @@ public class ShipmentService {
         ShipmentCheckpoint checkpoint = dto.toEntity(shipment.getId(), node.getId());
         shipmentCheckpointRepository.save(checkpoint);
 
-//        PASSED 체크포인트만 shipment 현재상태에 반영
-//        출발-IN_TRANSIT / 도착,입고-ARRIVED, 그외는 현재 노드만 갱신
         applyCheckpointToShipment(shipment, dto, node.getId());
 
         Shipment savedShipment = shipmentRepository.save(shipment);
-        // 현재 위치나 상태가 바뀌었으므로 검색 문서도 다시 저장
         shipmentSearchService.saveShipmentDocument(savedShipment);
-
 
         if (dto.getCheckpointStatus() == CheckpointStatus.PASSED) {
             saveShipmentStatusHistory(
@@ -187,7 +230,7 @@ public class ShipmentService {
                     node.getNodeName(),
                     node.getLatitude(),
                     node.getLongitude(),
-                    "SYSTEM"
+                    actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
             );
 
             List<ShipmentCheckpoint> updatedCheckpoints =
@@ -195,47 +238,21 @@ public class ShipmentService {
 
             saveEtaProjectionIfChanged(savedShipment, previousEtaResult, updatedCheckpoints);
         }
+
         return toShipmentResponseDto(savedShipment);
     }
 
-//    service 내부 검증
-//    PASSED 체크포인트는 실제 처리 시각(actualAt)이 필요
-    private void validateTrackRequest(TrackShipmentRequestDto dto){
-        if (dto.getCheckpointStatus() == CheckpointStatus.PASSED && dto.getActualAt() == null){
-            throw new ShipmentException(ShipmentErrorCode.INVALID_TRACK_REQUEST);
-        }
-    }
-
-//    service 내부 상태 반영
-//    PASSED 체크포인트만 shipment 현재 상태에 반영
-//    DEPARTURE : IN_TRANSIT / ARRIVAL, WAREHOUSE_IN : ARRIVED / 그외 : 현재 노드만 갱신
-    private void applyCheckpointToShipment(Shipment shipment, TrackShipmentRequestDto dto, Long nodeId) {
-        if (dto.getCheckpointStatus() != CheckpointStatus.PASSED) {
-            return;
-        }
-
-        try {
-            if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
-                shipment.markInTransit(nodeId, dto.getActualAt());
-                return;
-            }
-            if (dto.getCheckpointType() == CheckpointType.ARRIVAL || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
-                shipment.markArrived(nodeId, dto.getActualAt());
-                return;
-            }
-            shipment.updateCurrentNode(nodeId);
-        } catch (IllegalStateException e) {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
-        }
-    }
-
-
-    //    ETA
-//    shipment상태 + checkpoint 기준 ETA계산
+    // ETA 조회
     @Transactional(readOnly = true)
-    public ShipmentEtaResponseDto getShipmentEta(String publicId){
-        Shipment shipment = shipmentRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
+    public ShipmentEtaResponseDto getShipmentEta(
+            String publicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
         List<ShipmentCheckpoint> checkpoints =
                 shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(shipment.getId());
@@ -273,14 +290,19 @@ public class ShipmentService {
                 .build();
     }
 
-
-    //    ETA projection 이력 조회
+    // ETA projection 이력 조회
     @Transactional(readOnly = true)
-    public List<EtaProjectionResponseDto> getEtaProjections(String publicId) {
-        Shipment shipment = shipmentRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
+    public java.util.List<EtaProjectionResponseDto> getEtaProjections(
+            String publicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
 
-        List<EtaProjection> etaProjections =
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
+
+        java.util.List<EtaProjection> etaProjections =
                 etaProjectionRepository.findByShipmentIdOrderByCalculatedAtDesc(shipment.getId());
 
         return etaProjections.stream()
@@ -288,8 +310,133 @@ public class ShipmentService {
                 .toList();
     }
 
-//    출하 / 트랙 상태 이력 저장
-//    shipment 상태 이력은 내부 shipment id로 저장, 위치 정보는 Logistics node의 이름과 좌표 사용
+    // 출하 상태 이력 조회
+    @Transactional(readOnly = true)
+    public java.util.List<ShipmentStatusHistoryResponseDto> getShipmentStatusHistories(
+            String publicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
+
+        java.util.List<ShipmentStatusHistory> histories =
+                shipmentStatusHistoryRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
+
+        return histories.stream()
+                .map(history -> ShipmentStatusHistoryResponseDto.from(history, shipment.getPublicId()))
+                .toList();
+    }
+
+    private void validateTrackRequest(TrackShipmentRequestDto dto) {
+        if (dto.getCheckpointStatus() == CheckpointStatus.PASSED && dto.getActualAt() == null) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_TRACK_REQUEST);
+        }
+    }
+
+    private void applyCheckpointToShipment(Shipment shipment, TrackShipmentRequestDto dto, Long nodeId) {
+        if (dto.getCheckpointStatus() != CheckpointStatus.PASSED) {
+            return;
+        }
+
+        try {
+            if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
+                shipment.markInTransit(nodeId, dto.getActualAt());
+                return;
+            }
+
+            if (dto.getCheckpointType() == CheckpointType.ARRIVAL
+                    || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
+                shipment.markArrived(nodeId, dto.getActualAt());
+                return;
+            }
+
+            shipment.updateCurrentNode(nodeId);
+        } catch (IllegalStateException e) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
+        }
+    }
+
+    private Shipment getReadableShipment(String publicId, String organizationPublicId) {
+        Shipment shipment = shipmentRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
+
+        if (!canReadShipment(shipment, organizationPublicId)) {
+            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND);
+        }
+
+        return shipment;
+    }
+
+    private boolean canReadShipment(Shipment shipment, String organizationPublicId) {
+        LogisticsNode originNode = getNode(shipment.getOriginNodeId());
+        LogisticsNode destinationNode = getNode(shipment.getDestinationNodeId());
+
+        return originNode.getOrganizationPublicId().equals(organizationPublicId)
+                || destinationNode.getOrganizationPublicId().equals(organizationPublicId);
+    }
+
+    private LogisticsNode getActiveNode(String publicId) {
+        LogisticsNode node = logisticsNodeRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+
+        if (!node.isActive()) {
+            throw new ShipmentException(ShipmentErrorCode.INACTIVE_LOGISTICS_NODE);
+        }
+
+        return node;
+    }
+
+    private LogisticsNode getNode(Long nodeId) {
+        return logisticsNodeRepository.findById(nodeId)
+                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+    }
+
+    private boolean isShipmentRelatedNode(Shipment shipment, LogisticsNode node) {
+        return Objects.equals(shipment.getOriginNodeId(), node.getId())
+                || Objects.equals(shipment.getDestinationNodeId(), node.getId())
+                || Objects.equals(shipment.getCurrentNodeId(), node.getId());
+    }
+
+    private Set<Long> getOrganizationNodeIds(String organizationPublicId) {
+        return logisticsNodeRepository.findByOrganizationPublicId(organizationPublicId).stream()
+                .map(LogisticsNode::getId)
+                .collect(Collectors.toSet());
+    }
+
+    private Map<Long, LogisticsNode> getShipmentNodeMap(Collection<Shipment> shipments) {
+        if (shipments == null || shipments.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Set<Long> nodeIds = shipments.stream()
+                .flatMap(shipment -> Stream.of(
+                        shipment.getOriginNodeId(),
+                        shipment.getDestinationNodeId(),
+                        shipment.getCurrentNodeId()
+                ))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (nodeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return logisticsNodeRepository.findByIdIn(nodeIds).stream()
+                .collect(Collectors.toMap(LogisticsNode::getId, node -> node));
+    }
+
+    private String getNodePublicId(Long nodeId) {
+        if (nodeId == null) {
+            return null;
+        }
+
+        LogisticsNode node = logisticsNodeService.getLogisticsNodeEntity(nodeId);
+        return node.getPublicId();
+    }
+
     private void saveShipmentStatusHistory(
             Shipment shipment,
             LocalDateTime recordedAt,
@@ -313,7 +460,6 @@ public class ShipmentService {
         shipmentStatusHistoryRepository.save(history);
     }
 
-//    출하 / 트랙 상태 메시지 생성
     private String buildStatusMessage(TrackShipmentRequestDto dto) {
         if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
             return "출발 완료";
@@ -334,31 +480,13 @@ public class ShipmentService {
         return "출하 상태 변경";
     }
 
-//    statusHistory 저장
-    @Transactional(readOnly = true)
-    public List<ShipmentStatusHistoryResponseDto> getShipmentStatusHistories(String publicId){
-        Shipment shipment = shipmentRepository.findByPublicId(publicId)
-                .orElseThrow(()->new ShipmentException(ShipmentErrorCode.SHIPMENT_NOT_FOUND));
-
-        List<ShipmentStatusHistory> histories =
-                shipmentStatusHistoryRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
-
-        return histories.stream().map(history -> ShipmentStatusHistoryResponseDto.from(history, shipment.getPublicId())).toList();
-    }
-
-//    (shipment내부)nodeId -> (응답용)publicId 변환
-//    상세 조회 / ETA 조회에 사용
-    private String getNodePublicId(Long nodeId){
-        if (nodeId == null){
-            return null;
-        }
-
-        LogisticsNode node = logisticsNodeService.getLogisticsNodeEntity(nodeId);
-        return node.getPublicId();
-    }
-
-//    상세 조회용 dto
     private ShipmentResponseDto toShipmentResponseDto(Shipment shipment) {
+        Map<Long, LogisticsNode> nodeMap = getShipmentNodeMap(List.of(shipment));
+
+        LogisticsNode originNode = nodeMap.get(shipment.getOriginNodeId());
+        LogisticsNode destinationNode = nodeMap.get(shipment.getDestinationNodeId());
+        LogisticsNode currentNode = nodeMap.get(shipment.getCurrentNodeId());
+
         return ShipmentResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
@@ -369,9 +497,18 @@ public class ShipmentService {
                 .carrierName(shipment.getCarrierName())
                 .vehicleNo(shipment.getVehicleNo())
                 .trackingNo(shipment.getTrackingNo())
-                .originNodePublicId(getNodePublicId(shipment.getOriginNodeId()))
-                .destinationNodePublicId(getNodePublicId(shipment.getDestinationNodeId()))
-                .currentNodePublicId(getNodePublicId(shipment.getCurrentNodeId()))
+                .originNodePublicId(originNode != null ? originNode.getPublicId() : null)
+                .originNodeName(originNode != null ? originNode.getNodeName() : null)
+                .originLatitude(originNode != null ? originNode.getLatitude() : null)
+                .originLongitude(originNode != null ? originNode.getLongitude() : null)
+                .destinationNodePublicId(destinationNode != null ? destinationNode.getPublicId() : null)
+                .destinationNodeName(destinationNode != null ? destinationNode.getNodeName() : null)
+                .destinationLatitude(destinationNode != null ? destinationNode.getLatitude() : null)
+                .destinationLongitude(destinationNode != null ? destinationNode.getLongitude() : null)
+                .currentNodePublicId(currentNode != null ? currentNode.getPublicId() : null)
+                .currentNodeName(currentNode != null ? currentNode.getNodeName() : null)
+                .currentLatitude(currentNode != null ? currentNode.getLatitude() : null)
+                .currentLongitude(currentNode != null ? currentNode.getLongitude() : null)
                 .departureEta(shipment.getDepartureEta())
                 .arrivalEta(shipment.getArrivalEta())
                 .actualDepartedAt(shipment.getActualDepartedAt())
@@ -381,26 +518,49 @@ public class ShipmentService {
                 .build();
     }
 
-//    목록 조회용 dto
     private ShipmentListResponseDto toShipmentListResponseDto(
-            Shipment shipment, Map<Long, String> nodePublicIdMap) {
+            Shipment shipment,
+            Map<Long, LogisticsNode> nodeMap
+    ) {
+        LogisticsNode originNode = nodeMap.get(shipment.getOriginNodeId());
+        LogisticsNode destinationNode = nodeMap.get(shipment.getDestinationNodeId());
+        LogisticsNode currentNode = nodeMap.get(shipment.getCurrentNodeId());
+
         return ShipmentListResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
                 .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
                 .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
                 .carrierName(shipment.getCarrierName())
-                .destinationNodePublicId(nodePublicIdMap.get(shipment.getDestinationNodeId()))
-                .currentNodePublicId(nodePublicIdMap.get(shipment.getCurrentNodeId()))
+                .originNodePublicId(originNode != null ? originNode.getPublicId() : null)
+                .originNodeName(originNode != null ? originNode.getNodeName() : null)
+                .destinationNodePublicId(destinationNode != null ? destinationNode.getPublicId() : null)
+                .destinationNodeName(destinationNode != null ? destinationNode.getNodeName() : null)
+                .currentNodePublicId(currentNode != null ? currentNode.getPublicId() : null)
+                .currentNodeName(currentNode != null ? currentNode.getNodeName() : null)
                 .arrivalEta(shipment.getArrivalEta())
                 .status(shipment.getStatus())
                 .build();
     }
 
-//    ETA 계산 공통화
+    private void validateShipmentActor(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()
+                || organizationType == null || organizationType.isBlank()) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        if (ADMIN_ORGANIZATION_TYPE.equals(organizationType) || ADMIN_ROLE.equals(userRole)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        }
+    }
+
     @Getter
     @AllArgsConstructor
-    private static class EtaCalculationResult{
+    private static class EtaCalculationResult {
         private LocalDateTime estimatedArrivalAt;
         private Long delayMinutes;
         private boolean delayed;
@@ -408,8 +568,7 @@ public class ShipmentService {
         private ShipmentCheckpoint latestPassedCheckpoint;
     }
 
-//    ETA 계산 공통화 메서드
-    private EtaCalculationResult calculateEta(Shipment shipment, List<ShipmentCheckpoint> checkpoints) {
+    private EtaCalculationResult calculateEta(Shipment shipment, java.util.List<ShipmentCheckpoint> checkpoints) {
         ShipmentCheckpoint latestPassedCheckpoint = checkpoints.stream()
                 .filter(checkpoint -> checkpoint.getCheckpointStatus() == CheckpointStatus.PASSED)
                 .filter(checkpoint -> checkpoint.getActualAt() != null)
@@ -462,11 +621,10 @@ public class ShipmentService {
         );
     }
 
-//    Projection 저장
     private void saveEtaProjectionIfChanged(
             Shipment shipment,
             EtaCalculationResult previousEtaResult,
-            List<ShipmentCheckpoint> updatedCheckpoints
+            java.util.List<ShipmentCheckpoint> updatedCheckpoints
     ) {
         EtaCalculationResult currentEtaResult = calculateEta(shipment, updatedCheckpoints);
 
@@ -490,5 +648,4 @@ public class ShipmentService {
 
         etaProjectionRepository.save(etaProjection);
     }
-
 }

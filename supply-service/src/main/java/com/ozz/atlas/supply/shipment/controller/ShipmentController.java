@@ -1,16 +1,15 @@
 package com.ozz.atlas.supply.shipment.controller;
 
-import com.ozz.atlas.supply.shipment.dtos.*;
+import com.ozz.atlas.supply.shipment.dtos.CreateShipmentRequestDto;
+import com.ozz.atlas.supply.shipment.dtos.EtaProjectionResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentEtaResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentStatusHistoryResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.TrackShipmentRequestDto;
 import com.ozz.atlas.supply.shipment.search.dtos.ShipmentSearchDto;
 import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
 import com.ozz.atlas.supply.shipment.service.ShipmentService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,135 +23,159 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/supply/shipments")
-@Tag(name = "Shipment")
 public class ShipmentController {
 
     private final ShipmentService shipmentService;
     private final ShipmentSearchService shipmentSearchService;
 
-    public ShipmentController(ShipmentService shipmentService, ShipmentSearchService shipmentSearchService) {
+    public ShipmentController(
+            ShipmentService shipmentService,
+            ShipmentSearchService shipmentSearchService
+    ) {
         this.shipmentService = shipmentService;
         this.shipmentSearchService = shipmentSearchService;
     }
 
-//    출하 생성
+    // 출하 생성
     @PostMapping
-    @Operation(
-            summary = "출하 생성",
-            description = "발주 기준으로 출하 정보를 생성한다.",
-            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    required = true,
-                    content = @Content(
-                            schema = @Schema(implementation = CreateShipmentRequestDto.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "shipmentNumber": "SHIP-2026-0001",
-                                              "poId": 101,
-                                              "purchaseOrderPublicId": "po_01HZY1PO123456789",
-                                              "subPoId": 202,
-                                              "subPurchaseOrderPublicId": "subpo_01HZY1SUBPO123456789",
-                                              "carrierName": "CJ Logistics",
-                                              "vehicleNo": "12가3456",
-                                              "trackingNo": "TRK-ATLAS-20260417",
-                                              "originNodePublicId": "node_origin_01HZY1AAA",
-                                              "destinationNodePublicId": "node_dest_01HZY1BBB",
-                                              "departureEta": "2026-04-18T08:00:00",
-                                              "arrivalEta": "2026-04-18T14:00:00",
-                                              "temperatureRequired": true
-                                            }
-                                            """
-                            )
-                    )
-            ),
-            responses = @ApiResponse(
-                    responseCode = "201",
-                    description = "출하 생성 성공",
-                    content = @Content(
-                            schema = @Schema(implementation = ShipmentResponseDto.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "publicId": "ship_01HZY1SHIPMENT123456789",
-                                              "shipmentNumber": "SHIP-2026-0001",
-                                              "poId": 101,
-                                              "purchaseOrderPublicId": "po_01HZY1PO123456789",
-                                              "subPoId": 202,
-                                              "subPurchaseOrderPublicId": "subpo_01HZY1SUBPO123456789",
-                                              "carrierName": "CJ Logistics",
-                                              "vehicleNo": "12가3456",
-                                              "trackingNo": "TRK-ATLAS-20260417",
-                                              "originNodePublicId": "node_origin_01HZY1AAA",
-                                              "destinationNodePublicId": "node_dest_01HZY1BBB",
-                                              "currentNodePublicId": "node_origin_01HZY1AAA",
-                                              "departureEta": "2026-04-18T08:00:00",
-                                              "arrivalEta": "2026-04-18T14:00:00",
-                                              "actualDepartedAt": null,
-                                              "actualArrivedAt": null,
-                                              "status": "READY",
-                                              "temperatureRequired": true
-                                            }
-                                            """
-                            )
-                    )
-            )
-    )
     public ResponseEntity<ShipmentResponseDto> createShipment(
-            @Parameter(description = "요청 사용자 공개 식별자", example = "usr_01HZXA1B2C3D4E5F6G7H8J9K0")
             @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
-            @Parameter(description = "요청 조직 공개 식별자", example = "org_01HZX9X5D4P2Q7F8R9S1T2U3V4")
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @Valid @RequestBody CreateShipmentRequestDto dto
-    ){
-        ShipmentResponseDto createdShipment = shipmentService.createShipment(dto, actorUserPublicId, organizationPublicId);
+    ) {
+        ShipmentResponseDto createdShipment = shipmentService.createShipment(
+                dto,
+                actorUserPublicId,
+                organizationPublicId,
+                organizationType,
+                userRole
+        );
 
         return ResponseEntity
                 .created(URI.create("/api/supply/shipments/" + createdShipment.getPublicId()))
                 .body(createdShipment);
     }
 
-//    출하 목록 조회
-// 검색 조건이 있으면 ES 검색을 사용하고, 없으면 기존 JPA 목록 조회를 유지
+    // 출하 목록 조회
     @GetMapping
-    public Page<ShipmentListResponseDto> getShipments(@ModelAttribute ShipmentSearchDto searchDto,
-                                                      @PageableDefault(size = 10, sort = "id",
-                                                      direction = Sort.Direction.ASC) Pageable pageable){
-        if (shipmentSearchService.hasSearchCondition(searchDto)){
-            return shipmentSearchService.search(pageable,searchDto);
+    public Page<ShipmentListResponseDto> getShipments(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @ModelAttribute ShipmentSearchDto searchDto,
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        if (shipmentSearchService.hasSearchCondition(searchDto)) {
+            return shipmentSearchService.search(
+                    pageable,
+                    searchDto,
+                    organizationPublicId,
+                    organizationType,
+                    userRole
+            );
         }
-        return shipmentService.getShipments(pageable);
+
+        return shipmentService.getShipments(
+                organizationPublicId,
+                organizationType,
+                userRole,
+                pageable
+        );
     }
 
-//    출하 상세 조회
+    // 출하 상세 조회
     @GetMapping("/{publicId}")
-    public ResponseEntity<ShipmentResponseDto> getShipment(@PathVariable String publicId) {
-        return ResponseEntity.ok(shipmentService.getShipmentByPublicId(publicId));
+    public ResponseEntity<ShipmentResponseDto> getShipment(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.getShipmentByPublicId(
+                        publicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
-//    track 조회
+    // 출하 위치/상태 추적
     @PostMapping("/{publicId}/track")
     public ResponseEntity<ShipmentResponseDto> trackShipment(
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @PathVariable String publicId,
             @Valid @RequestBody TrackShipmentRequestDto dto
     ) {
-        return ResponseEntity.ok(shipmentService.trackShipment(publicId, dto));
+        return ResponseEntity.ok(
+                shipmentService.trackShipment(
+                        publicId,
+                        dto,
+                        actorUserPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
-//    ETA 조회
+    // ETA 조회
     @GetMapping("/{publicId}/eta")
-    public ResponseEntity<ShipmentEtaResponseDto> getShipmentEta(@PathVariable String publicId){
-        return ResponseEntity.ok(shipmentService.getShipmentEta(publicId));
+    public ResponseEntity<ShipmentEtaResponseDto> getShipmentEta(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.getShipmentEta(
+                        publicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
-//    ETA projection 조회
+    // ETA projection 조회
     @GetMapping("/{publicId}/eta-projections")
-    public ResponseEntity<List<EtaProjectionResponseDto>> getEtaProjections(@PathVariable String publicId) {
-        return ResponseEntity.ok(shipmentService.getEtaProjections(publicId));
+    public ResponseEntity<List<EtaProjectionResponseDto>> getEtaProjections(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.getEtaProjections(
+                        publicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
-    //    statusHistory 조회
+    // 출하 상태 이력 조회
     @GetMapping("/{publicId}/status-history")
-    public ResponseEntity<List<ShipmentStatusHistoryResponseDto>> getShipmentStatusHistories(@PathVariable String publicId){
-        return ResponseEntity.ok(shipmentService.getShipmentStatusHistories(publicId));
+    public ResponseEntity<List<ShipmentStatusHistoryResponseDto>> getShipmentStatusHistories(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.getShipmentStatusHistories(
+                        publicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 }

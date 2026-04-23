@@ -59,7 +59,8 @@ public class IntegratedSearchService {
     public IntegratedSearchResponseDto search(
             IntegratedSearchRequestDto request,
             String organizationPublicId,
-            String organizationType
+            String organizationType,
+            String userRole
     ) {
         String keyword = request != null ? request.getKeyword() : null;
 
@@ -89,7 +90,7 @@ public class IntegratedSearchService {
         addPurchaseOrderSection(sections, pageable, keyword, organizationPublicId, organizationType, size);
 
         // 출하 섹션을 추가
-        addShipmentSection(sections, pageable, keyword, size);
+        addShipmentSection(sections, pageable, keyword, organizationPublicId, organizationType, userRole, size);
 
         // 반품 섹션을 추가
         addReturnSection(sections, pageable, keyword, size);
@@ -244,13 +245,19 @@ public class IntegratedSearchService {
             List<IntegratedSearchSectionDto> sections,
             PageRequest pageable,
             String keyword,
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
             int size
     ) {
         Page<ShipmentListResponseDto> page = shipmentSearchService.search(
                 pageable,
                 ShipmentSearchDto.builder()
                         .keyword(keyword)
-                        .build()
+                        .build(),
+                organizationPublicId,
+                organizationType,
+                userRole
         );
 
         if (page.isEmpty()) {

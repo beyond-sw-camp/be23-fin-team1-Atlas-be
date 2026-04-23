@@ -23,7 +23,8 @@ public class IntegratedSearchController {
             @RequestParam("keyword") String keyword,
             @RequestParam(value = "size", required = false) Integer size,
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
-            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
     ) {
         IntegratedSearchRequestDto request = IntegratedSearchRequestDto.builder()
                 .keyword(keyword)
@@ -31,7 +32,7 @@ public class IntegratedSearchController {
                 .build();
 
         return ResponseEntity.ok(
-                integratedSearchService.search(request, organizationPublicId, organizationType)
+                integratedSearchService.search(request, organizationPublicId, organizationType, userRole)
         );
     }
 }
