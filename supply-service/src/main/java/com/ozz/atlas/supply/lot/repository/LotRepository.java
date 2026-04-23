@@ -13,4 +13,5 @@ public interface LotRepository extends JpaRepository<Lot, Long> {
     List<Lot> findBySupplierPublicId(String supplierPublicId);
     List<Lot> findBySourcePoItemPublicId(String sourcePoItemPublicId);
     List<Lot> findByItemPublicId(String itemPublicId);
+    boolean existsByLotNumber(String lotNumber);
 }

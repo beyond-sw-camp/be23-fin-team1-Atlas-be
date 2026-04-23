@@ -49,6 +49,10 @@ public class LotService {
 
     @Transactional
     public LotResponseDto createLot(CreateLotRequestDto request) {
+        if (lotRepository.existsByLotNumber(request.getLotNumber())) {
+            throw new LotException(LotErrorCode.DUPLICATE_LOT_NUMBER);
+        }
+
         SupplyPurchaseOrderItem poItem = purchaseOrderItemRepository.findByPublicId(request.getSourcePoItemPublicId())
                 .orElseThrow(() -> new LotException(LotErrorCode.PO_ITEM_NOT_FOUND));
 
@@ -127,7 +131,7 @@ public class LotService {
     }
 
     @Transactional
-    public LotResponseDto updateLotStatus(String publicId, LotStatus lotStatus) {
+    public LotResponseDto updateLotStatus(String publicId, LotStatus lotStatus, String reason) {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
@@ -140,7 +144,7 @@ public class LotService {
                 .lotStatus(lot.getLotStatus())
                 .qualityStatus(lot.getQualityStatus())
                 .currentNodePublicId(lot.getCurrentNodePublicId())
-                .reason("상태 변경")
+                .reason(reason != null && !reason.isBlank() ? reason : "상태 변경")
                 .build();
         lotStatusHistoryRepository.save(history);
 
@@ -150,7 +154,7 @@ public class LotService {
     }
 
     @Transactional
-    public LotResponseDto updateQualityStatus(String publicId, QualityStatus qualityStatus) {
+    public LotResponseDto updateQualityStatus(String publicId, QualityStatus qualityStatus, String reason) {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
@@ -163,7 +167,7 @@ public class LotService {
                 .preQualityStatus(preQualityStatus)
                 .qualityStatus(lot.getQualityStatus())
                 .currentNodePublicId(lot.getCurrentNodePublicId())
-                .reason("품질 상태 변경")
+                .reason(reason != null && !reason.isBlank() ? reason : "품질 상태 변경")
                 .build();
         lotStatusHistoryRepository.save(history);
 
