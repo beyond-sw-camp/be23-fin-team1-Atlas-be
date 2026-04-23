@@ -72,34 +72,43 @@ public class LoginVerificationService {
 
     // 인증 요청을 검증
     public LoginVerification verify(String verificationRequestId, String verificationCode) {
-        // 요청 ID 로 인증 요청을 찾음
+        // 요청 ID 로 인증 요청을 찾습니다.
         LoginVerification verification = loginVerificationRepository.findById(verificationRequestId)
                 .orElseThrow(() -> new IllegalArgumentException("인증 요청을 찾을 수 없습니다. 다시 로그인해 주세요."));
 
-        // 만료되었으면 실패 처리하고 요청을 지움
+        // user 프록시를 먼저 꺼냅니다.
+        User user = verification.getUser();
+
+        // 만료됐으면 실패 처리하고 요청을 지웁니다.
         if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
             loginVerificationRepository.delete(verification);
 
             throw new LoginFailedException(
                     "이메일 인증 시간이 만료되었습니다. 다시 로그인해 주세요.",
                     "IP_VERIFICATION_EXPIRED",
-                    verification.getUser()
+                    user
             );
         }
 
-        // 코드가 다르면 실패 처리하고 요청을 지움
+        // 코드가 다르면 실패 처리하고 요청을 지웁니다.
         if (!verification.getVerificationCode().equals(verificationCode)) {
             loginVerificationRepository.delete(verification);
 
             throw new LoginFailedException(
                     "이메일 인증 코드가 올바르지 않습니다. 다시 로그인해 주세요.",
                     "IP_VERIFICATION_CODE_MISMATCH",
-                    verification.getUser()
+                    user
             );
         }
 
+        // verify-ip 응답에서 토큰을 만들 때 organization 정보가 필요합니다.
+        // open-in-view=false 라서 여기서 미리 organization 을 초기화해 둡니다.
+        user.getOrganization().getPublicId();
+
         return verification;
     }
+
+
 
     // 인증이 끝난 요청은 삭제
     public void consume(LoginVerification verification) {
