@@ -27,7 +27,6 @@ public class PurchaseOrderDetailResponse { // 발주 상세 조회용
     private String supplierName;
     private PoStatus poStatus;
     private LocalDateTime orderedAt;
-    private LocalDate dueDate;
     private BigDecimal totalAmount;
     private CurrencyCode currencyCode;
     private String memo;
@@ -46,7 +45,6 @@ public class PurchaseOrderDetailResponse { // 발주 상세 조회용
                 .supplierName(purchaseOrder.getSupplier().getSupplierName())
                 .poStatus(purchaseOrder.getPoStatus())
                 .orderedAt(purchaseOrder.getOrderedAt())
-                .dueDate(purchaseOrder.getDueDate())
                 .totalAmount(purchaseOrder.getTotalAmount())
                 .currencyCode(purchaseOrder.getCurrencyCode())
                 .memo(purchaseOrder.getMemo())

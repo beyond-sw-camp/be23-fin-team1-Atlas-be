@@ -12,8 +12,5 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdatePurchaseOrderRequest {
-
-    private String poNumber;
-    private LocalDate dueDate;
     private String memo;
 }

@@ -50,8 +50,10 @@ public class SupplierItemCapabilityService {
                 request.getMoq(),
                 request.getQualityGrade(),
                 request.getUnitPriceHint(),
-                request.getValidFrom()
+                request.getValidFrom(),
+                request.getPartialConfirmationAllowed()
         );
+
 
         return SupplierItemCapabilityResponse.fromEntity(capabilityRepository.save(capability));
     }
@@ -105,8 +107,10 @@ public class SupplierItemCapabilityService {
                 request.getMoq(),
                 request.getQualityGrade(),
                 request.getUnitPriceHint(),
-                request.getValidFrom()
+                request.getValidFrom(),
+                request.getPartialConfirmationAllowed()
         );
+
 
         return SupplierItemCapabilityResponse.fromEntity(capability);
     }
@@ -132,6 +136,7 @@ public class SupplierItemCapabilityService {
                 && request.getMoq() == null
                 && request.getQualityGrade() == null
                 && request.getUnitPriceHint() == null
-                && request.getValidFrom() == null;
+                && request.getValidFrom() == null
+                && request.getPartialConfirmationAllowed() == null;
     }
 }

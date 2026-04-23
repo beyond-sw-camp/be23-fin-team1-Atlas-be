@@ -20,17 +20,10 @@ import java.util.List;
 public class CreateSubPurchaseOrderRequest {
 
     @NotBlank
-    private String subPoNumber;
-
-    @NotBlank
     private String parentPoPublicId;
 
     @NotBlank
     private String supplierPublicId;
-
-    @NotNull
-    @FutureOrPresent
-    private LocalDate dueDate;
 
     @Valid
     @NotEmpty

@@ -22,10 +22,4 @@ public class CreatePurchaseOrderItemRequest {
     @NotNull
     @Positive
     private Long orderedQty;
-
-    @NotNull
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal unitPrice;
-
-    private LocalDate requiredDate;
 }

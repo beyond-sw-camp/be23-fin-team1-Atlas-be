@@ -52,9 +52,6 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
     @Column(name = "ordered_at", nullable = false)
     private LocalDateTime orderedAt;
 
-    @Column(name = "due_date", nullable = false)
-    private LocalDate dueDate;
-
     @Column(name = "total_amount", nullable = false, precision = 18, scale = 2)
     private java.math.BigDecimal totalAmount;
 
@@ -69,7 +66,6 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
             String subPoNumber,
             SupplyPurchaseOrder parentPurchaseOrder,
             SupplySupplier supplier,
-            LocalDate dueDate,
             String createdByUserPublicId,
             List<SupplySubPurchaseOrderItem> items
     ) {
@@ -79,7 +75,6 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
                 .supplier(supplier)
                 .subPoStatus(SubPoStatus.CREATED)
                 .orderedAt(LocalDateTime.now())
-                .dueDate(dueDate)
                 .totalAmount(java.math.BigDecimal.ZERO)
                 .createdByUserPublicId(createdByUserPublicId)
                 .build();

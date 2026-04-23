@@ -86,4 +86,8 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
             @Param("excludedStatuses") Collection<PoStatus> excludedStatuses
     );
 
+    boolean existsByPoNumber(String poNumber);
+    Optional<SupplyPurchaseOrder> findTopByPoNumberStartingWithOrderByPoNumberDesc(String prefix);
+
+
 }

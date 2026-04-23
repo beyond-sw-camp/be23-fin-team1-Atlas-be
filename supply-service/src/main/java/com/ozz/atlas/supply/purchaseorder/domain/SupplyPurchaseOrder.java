@@ -50,9 +50,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDateTime orderedAt;
 
-    @Column(nullable = false)
-    private LocalDate dueDate;
-
     @Column(nullable = false, precision = 18, scale = 2)
     private BigDecimal totalAmount;
 
@@ -75,7 +72,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
             String poNumber,
             String buyerOrganizationPublicId,
             SupplySupplier supplier,
-            LocalDate dueDate,
             CurrencyCode currencyCode,
             String memo,
             String createdByUserPublicId,
@@ -86,7 +82,6 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
                 .buyerOrganizationPublicId(buyerOrganizationPublicId)
                 .supplier(supplier)
                 .orderedAt(LocalDateTime.now())
-                .dueDate(dueDate)
                 .currencyCode(currencyCode != null ? currencyCode : CurrencyCode.KRW)
                 .memo(memo)
                 .createdByUserPublicId(createdByUserPublicId)
@@ -108,16 +103,8 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
     }
 
     public void updateHeader(
-            String poNumber,
-            LocalDate dueDate,
             String memo
     ) {
-        if (poNumber != null && !poNumber.isBlank()) {
-            this.poNumber = poNumber;
-        }
-        if (dueDate != null) {
-            this.dueDate = dueDate;
-        }
         if (memo != null) {
             this.memo = memo;
         }

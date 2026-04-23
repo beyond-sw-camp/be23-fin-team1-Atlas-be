@@ -19,7 +19,4 @@ public class UpdatePurchaseOrderItemRequest {
     private String itemPublicId;
     @Positive
     private Long orderedQty;
-    @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal unitPrice;
-    private LocalDate requiredDate;
 }

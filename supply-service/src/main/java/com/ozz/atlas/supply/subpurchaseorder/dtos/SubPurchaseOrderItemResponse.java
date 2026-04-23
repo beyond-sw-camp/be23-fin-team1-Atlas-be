@@ -26,8 +26,10 @@ public class SubPurchaseOrderItemResponse {
     private BigDecimal lineAmount;
     private Long orderedQty;
     private Long confirmedQty;
-    private LocalDate requiredDate;
     private SubPurchaseOrderLineStatus lineStatus;
+    private LocalDate expectedDueDate;
+    private Integer leadTimeDays;
+    private Boolean partialConfirmationAllowed;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -42,10 +44,13 @@ public class SubPurchaseOrderItemResponse {
                 .lineAmount(item.getLineAmount())
                 .orderedQty(item.getOrderedQty())
                 .confirmedQty(item.getConfirmedQty())
-                .requiredDate(item.getRequiredDate())
                 .lineStatus(item.getLineStatus())
+                .expectedDueDate(item.getExpectedDueDate())
+                .leadTimeDays(item.getLeadTimeDays())
+                .partialConfirmationAllowed(item.getPartialConfirmationAllowed())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
                 .build();
     }
+
 }

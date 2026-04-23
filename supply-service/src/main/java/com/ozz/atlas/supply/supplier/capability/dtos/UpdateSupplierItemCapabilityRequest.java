@@ -32,4 +32,6 @@ public class UpdateSupplierItemCapabilityRequest {
     private SupplierItemQualityGrade qualityGrade;
     private BigDecimal unitPriceHint;
     private LocalDate validFrom;
+    private Boolean partialConfirmationAllowed;
+
 }

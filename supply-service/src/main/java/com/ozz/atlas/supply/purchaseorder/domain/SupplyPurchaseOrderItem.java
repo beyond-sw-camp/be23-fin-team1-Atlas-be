@@ -51,7 +51,13 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
     private BigDecimal lineAmount;
 
     @Column(nullable = false)
-    private LocalDate requiredDate; // 요청 납기일
+    private LocalDate expectedDueDate;
+
+    @Column(nullable = false)
+    private Integer leadTimeDays;
+
+    @Column(nullable = false)
+    private Boolean partialConfirmationAllowed;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -62,14 +68,18 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
             SupplyItem item,
             Long orderedQty,
             BigDecimal unitPrice,
-            LocalDate requiredDate
+            Integer leadTimeDays,
+            Boolean partialConfirmationAllowed,
+            LocalDate expectedDueDate
     ) {
         return SupplyPurchaseOrderItem.builder()
                 .item(item)
                 .orderedQty(orderedQty)
                 .unitPrice(unitPrice)
                 .lineAmount(calculateLineAmount(orderedQty, unitPrice))
-                .requiredDate(requiredDate)
+                .leadTimeDays(leadTimeDays)
+                .partialConfirmationAllowed(partialConfirmationAllowed)
+                .expectedDueDate(expectedDueDate)
                 .itemStatus(PurchaseOrderItemStatus.OPEN)
                 .build();
     }
@@ -79,8 +89,7 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
     }
 
     public boolean isSubOrderable() {
-        return this.itemStatus == PurchaseOrderItemStatus.OPEN
-                || this.itemStatus == PurchaseOrderItemStatus.PARTIALLY_CONFIRMED
+        return this.itemStatus == PurchaseOrderItemStatus.PARTIALLY_CONFIRMED
                 || this.itemStatus == PurchaseOrderItemStatus.CONFIRMED;
     }
 
@@ -88,16 +97,21 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
             SupplyItem item,
             Long orderedQty,
             BigDecimal unitPrice,
-            LocalDate requiredDate
+            Integer leadTimeDays,
+            Boolean partialConfirmationAllowed,
+            LocalDate expectedDueDate
     ) {
         this.item = item;
         this.orderedQty = orderedQty;
         this.unitPrice = unitPrice;
         this.lineAmount = calculateLineAmount(orderedQty, unitPrice);
-        this.requiredDate = requiredDate;
+        this.leadTimeDays = leadTimeDays;
+        this.partialConfirmationAllowed = partialConfirmationAllowed;
+        this.expectedDueDate = expectedDueDate;
         this.confirmedQty = null;
         this.itemStatus = PurchaseOrderItemStatus.OPEN;
     }
+
 
     public void confirm(Long confirmedQty) {
         this.confirmedQty = confirmedQty;

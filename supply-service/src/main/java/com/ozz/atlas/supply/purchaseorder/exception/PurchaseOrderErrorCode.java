@@ -27,6 +27,7 @@ public enum PurchaseOrderErrorCode implements ErrorCode {
     INTERNAL_SERVER_ERROR(500, "PO_999", "서버 내부 오류가 발생했습니다."),
     PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH(400, "PO_017", "선택한 품목이 발주 대상 협력사의 품목이 아닙니다."),
     PURCHASE_ORDER_REQUIRED_DATE_AFTER_DUE_DATE(400, "PO_018", "요청 납기일은 발주 납기일보다 늦을 수 없습니다."),
+    PURCHASE_ORDER_ITEM_CAPABILITY_NOT_FOUND(404, "PO_020", "발주 대상 공급사의 품목 공급 역량을 찾을 수 없습니다."),
     PURCHASE_ORDER_SELF_SUPPLIER_NOT_ALLOWED(409, "PO_019", "자기 회사에는 발주할 수 없습니다.");
 
 
