@@ -2,6 +2,9 @@ package com.ozz.atlas.supply.lot.domain;
 
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
+import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -31,11 +34,35 @@ public class Lot extends BaseTimeEntity {
     @Column(nullable = false, length = 26)
     private String sourcePoItemPublicId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_po_item_id")
+    private SupplyPurchaseOrderItem sourcePoItem;
+
+    public void setSourcePoItem(SupplyPurchaseOrderItem sourcePoItem) {
+        this.sourcePoItem = sourcePoItem;
+    }
+
     @Column(nullable = false, length = 26)
     private String supplierPublicId;
 
     @Column(nullable = false, length = 26)
     private String itemPublicId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id")
+    private SupplyItem item;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private SupplySupplier supplier;
+
+    public void setItem(SupplyItem item) {
+        this.item = item;
+    }
+
+    public void setSupplier(SupplySupplier supplier) {
+        this.supplier = supplier;
+    }
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

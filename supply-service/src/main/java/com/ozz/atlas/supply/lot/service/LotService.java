@@ -13,8 +13,15 @@ import com.ozz.atlas.supply.lot.exception.LotException;
 import com.ozz.atlas.supply.lot.repository.LotRepository;
 import com.ozz.atlas.supply.lot.repository.LotStatusHistoryRepository;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderItemRepository;
+import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.item.exception.ItemException;
+import com.ozz.atlas.supply.item.exception.ItemErrorCode;
+import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
+import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.exception.SupplierException;
+import com.ozz.atlas.supply.supplier.exception.SupplierErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,14 +43,14 @@ public class LotService {
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final LotSearchService lotSearchService;
     private final SupplyItemRepository supplyItemRepository;
+    private final SupplierRepository supplierRepository;
     private final LotStatusHistoryRepository lotStatusHistoryRepository;
 
 
     @Transactional
     public LotResponseDto createLot(CreateLotRequestDto request) {
-        if (!purchaseOrderItemRepository.existsByPublicId(request.getSourcePoItemPublicId())) {
-            throw new LotException(LotErrorCode.PO_ITEM_NOT_FOUND);
-        }
+        SupplyPurchaseOrderItem poItem = purchaseOrderItemRepository.findByPublicId(request.getSourcePoItemPublicId())
+                .orElseThrow(() -> new LotException(LotErrorCode.PO_ITEM_NOT_FOUND));
 
         Lot lot = Lot.builder()
                 .lotNumber(request.getLotNumber())
@@ -56,6 +63,16 @@ public class LotService {
                 .unit(request.getUnit())
                 .currentNodePublicId(request.getCurrentNodePublicId())
                 .build();
+
+        lot.setSourcePoItem(poItem);
+
+        SupplyItem item = supplyItemRepository.findByPublicId(request.getItemPublicId())
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
+        lot.setItem(item);
+
+        SupplySupplier supplier = supplierRepository.findByPublicId(request.getSupplierPublicId())
+                .orElseThrow(() -> new SupplierException(SupplierErrorCode.SUPPLIER_NOT_FOUND));
+        lot.setSupplier(supplier);
 
         Lot savedLot = lotRepository.save(lot);
 
