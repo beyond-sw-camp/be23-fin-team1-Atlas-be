@@ -5,9 +5,11 @@ import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
+import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
+import com.ozz.atlas.supply.shipment.exception.ShipmentException;
+import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.shipment.search.document.ShipmentDocument;
 import com.ozz.atlas.supply.shipment.search.dtos.ShipmentSearchDto;
-import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.shipment.search.repository.ShipmentSearchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,13 +31,15 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class ShipmentSearchService {
 
+    private static final String ADMIN_ORGANIZATION_TYPE = "ADMIN";
+    private static final String ADMIN_ROLE = "ADMIN";
+
     private final ShipmentSearchRepository shipmentSearchRepository;
     private final ShipmentRepository shipmentRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ElasticsearchOperations elasticsearchOperations;
 
-    // 출하 엔티티를 Elasticsearch 문서로 저장
-    // 생성, 트래킹, 상태 변경 등 출하 핵심 정보가 바뀔 때마다 재저장
+    // 출하 엔티티를 Elasticsearch 문서로 저장한다.
     @Transactional
     public void saveShipmentDocument(Shipment shipment) {
         LogisticsNode originNode = findNode(shipment.getOriginNodeId()).orElse(null);
@@ -47,7 +51,7 @@ public class ShipmentSearchService {
         );
     }
 
-    // 검색 조건이 하나라도 있으면 ES 검색으로 분기
+    // 검색 조건이 하나라도 있으면 ES 검색을 사용한다.
     public boolean hasSearchCondition(ShipmentSearchDto searchDto) {
         return searchDto != null && (
                 hasText(searchDto.getKeyword())
@@ -59,11 +63,20 @@ public class ShipmentSearchService {
         );
     }
 
-    // 출하 통합검색
-    // keyword 는 출하번호, 송장번호, 운송사명, 차량번호, 노드명 기준으로 검색
-    public Page<ShipmentListResponseDto> search(Pageable pageable, ShipmentSearchDto searchDto) {
+    // 출하 통합 검색
+    public Page<ShipmentListResponseDto> search(
+            Pageable pageable,
+            ShipmentSearchDto searchDto,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateReadActor(organizationPublicId, organizationType, userRole);
+
         List<Query> mustQueries = new ArrayList<>();
         List<Query> filterQueries = new ArrayList<>();
+
+        addAccessFilter(filterQueries, organizationPublicId);
 
         if (searchDto != null && hasText(searchDto.getKeyword())) {
             mustQueries.add(Query.of(q -> q.multiMatch(m -> m
@@ -140,7 +153,7 @@ public class ShipmentSearchService {
         return new PageImpl<>(content, pageable, searchHits.getTotalHits());
     }
 
-    // 인덱스가 비어 있거나 새로 만들어졌을 때 DB 기준으로 전체 재색인
+    // 인덱스가 비어 있거나 필드가 바뀐 뒤 재색인이 필요할 때 사용한다.
     @Transactional
     public void reindexAllShipments() {
         shipmentRepository.findAll().forEach(this::saveShipmentDocument);
@@ -150,26 +163,48 @@ public class ShipmentSearchService {
         return ShipmentListResponseDto.builder()
                 .publicId(document.getPublicId())
                 .shipmentNumber(document.getShipmentNumber())
+                .purchaseOrderPublicId(document.getPurchaseOrderPublicId())
+                .subPurchaseOrderPublicId(document.getSubPurchaseOrderPublicId())
                 .carrierName(document.getCarrierName())
+                .originNodePublicId(document.getOriginNodePublicId())
+                .originNodeName(document.getOriginNodeName())
                 .destinationNodePublicId(document.getDestinationNodePublicId())
+                .destinationNodeName(document.getDestinationNodeName())
                 .currentNodePublicId(document.getCurrentNodePublicId())
+                .currentNodeName(document.getCurrentNodeName())
                 .arrivalEta(document.getArrivalEta())
                 .status(document.getStatus())
                 .build();
     }
 
-    private Query buildFinalQuery(List<Query> mustQueries, List<Query> filterQueries) {
-        if (mustQueries.isEmpty() && filterQueries.isEmpty()) {
-            return Query.of(q -> q.matchAll(m -> m));
-        }
+    private void addAccessFilter(List<Query> filterQueries, String organizationPublicId) {
+        Query originOrganizationQuery = Query.of(q -> q.term(t -> t
+                .field("originOrganizationPublicId")
+                .value(organizationPublicId)
+        ));
 
+        Query destinationOrganizationQuery = Query.of(q -> q.term(t -> t
+                .field("destinationOrganizationPublicId")
+                .value(organizationPublicId)
+        ));
+
+        filterQueries.add(Query.of(q -> q.bool(b -> b
+                .should(originOrganizationQuery)
+                .should(destinationOrganizationQuery)
+                .minimumShouldMatch("1")
+        )));
+    }
+
+    private Query buildFinalQuery(List<Query> mustQueries, List<Query> filterQueries) {
         return Query.of(q -> q.bool(b -> {
             if (!mustQueries.isEmpty()) {
                 b.must(mustQueries);
             }
+
             if (!filterQueries.isEmpty()) {
                 b.filter(filterQueries);
             }
+
             return b;
         }));
     }
@@ -178,7 +213,22 @@ public class ShipmentSearchService {
         if (nodeId == null) {
             return Optional.empty();
         }
+
         return logisticsNodeRepository.findById(nodeId);
+    }
+
+    private void validateReadActor(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (!hasText(organizationPublicId) || !hasText(organizationType)) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        if (ADMIN_ORGANIZATION_TYPE.equals(organizationType) || ADMIN_ROLE.equals(userRole)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        }
     }
 
     private boolean hasText(String value) {

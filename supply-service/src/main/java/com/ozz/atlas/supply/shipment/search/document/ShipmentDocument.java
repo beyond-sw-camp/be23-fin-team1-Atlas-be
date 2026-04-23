@@ -8,12 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.elasticsearch.annotations.Document;
-import org.springframework.data.elasticsearch.annotations.Field;
-import org.springframework.data.elasticsearch.annotations.FieldType;
-import org.springframework.data.elasticsearch.annotations.InnerField;
-import org.springframework.data.elasticsearch.annotations.MultiField;
-import org.springframework.data.elasticsearch.annotations.Setting;
+import org.springframework.data.elasticsearch.annotations.*;
 
 import java.time.LocalDateTime;
 
@@ -28,11 +23,9 @@ public class ShipmentDocument {
     @Id
     private Long id;
 
-
     @Field(type = FieldType.Keyword)
     private String publicId;
 
-    // 사용자 검색 핵심 필드라 ngram 검색을 함께
     @MultiField(
             mainField = @Field(type = FieldType.Text),
             otherFields = {
@@ -102,6 +95,9 @@ public class ShipmentDocument {
     private String trackingNo;
 
     @Field(type = FieldType.Keyword)
+    private String originOrganizationPublicId;
+
+    @Field(type = FieldType.Keyword)
     private String originNodePublicId;
 
     @MultiField(
@@ -116,6 +112,9 @@ public class ShipmentDocument {
             }
     )
     private String originNodeName;
+
+    @Field(type = FieldType.Keyword)
+    private String destinationOrganizationPublicId;
 
     @Field(type = FieldType.Keyword)
     private String destinationNodePublicId;
@@ -190,8 +189,10 @@ public class ShipmentDocument {
                 .carrierName(shipment.getCarrierName())
                 .vehicleNo(shipment.getVehicleNo())
                 .trackingNo(shipment.getTrackingNo())
+                .originOrganizationPublicId(originNode != null ? originNode.getOrganizationPublicId() : null)
                 .originNodePublicId(originNode != null ? originNode.getPublicId() : null)
                 .originNodeName(originNode != null ? originNode.getNodeName() : null)
+                .destinationOrganizationPublicId(destinationNode != null ? destinationNode.getOrganizationPublicId() : null)
                 .destinationNodePublicId(destinationNode != null ? destinationNode.getPublicId() : null)
                 .destinationNodeName(destinationNode != null ? destinationNode.getNodeName() : null)
                 .currentNodePublicId(currentNode != null ? currentNode.getPublicId() : null)
