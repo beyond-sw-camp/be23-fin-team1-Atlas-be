@@ -30,7 +30,6 @@ public class SubPurchaseOrderResponse {
     private BigDecimal totalAmount;
     private SubPoStatus subPoStatus;
     private LocalDateTime orderedAt;
-    private LocalDate dueDate;
     private String createdByUserPublicId;
     private List<SubPurchaseOrderItemResponse> items;
 
@@ -48,7 +47,6 @@ public class SubPurchaseOrderResponse {
                 .totalAmount(subPo.getTotalAmount())
                 .subPoStatus(subPo.getSubPoStatus())
                 .orderedAt(subPo.getOrderedAt())
-                .dueDate(subPo.getDueDate())
                 .createdByUserPublicId(subPo.getCreatedByUserPublicId())
                 .items(
                         includeItems

@@ -1,6 +1,8 @@
 package com.ozz.atlas.supply.item.service;
 
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.common.code.SequenceCodeType;
+import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import com.ozz.atlas.supply.item.dtos.CreateItemRequest;
@@ -224,23 +226,18 @@ public class SupplyItemService {
     }
 
     private String generateNextItemCode() {
-        String prefix = "ITM-" + Year.now(KST).getValue() + "-";
-
-        int nextSequence = supplyItemRepository
-                .findTopByItemCodeStartingWithOrderByItemCodeDesc(prefix)
+        String prefix = YearlySequenceCodeGenerator.currentPrefix(SequenceCodeType.ITEM);
+        String lastCode = supplyItemRepository.findTopByItemCodeStartingWithOrderByItemCodeDesc(prefix)
                 .map(SupplyItem::getItemCode)
-                .map(this::extractSequence)
-                .orElse(0) + 1;
+                .orElse(null);
 
-        return prefix + String.format("%07d", nextSequence);
-    }
-
-    private int extractSequence(String itemCode) {
-        try {
-            return Integer.parseInt(itemCode.substring(itemCode.lastIndexOf('-') + 1));
-        } catch (RuntimeException e) {
-            return 0;
+        String candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.ITEM, lastCode, 7);
+        while (supplyItemRepository.existsByItemCode(candidate)) {
+            candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.ITEM, candidate, 7);
         }
+        return candidate;
     }
+
+
 
 }

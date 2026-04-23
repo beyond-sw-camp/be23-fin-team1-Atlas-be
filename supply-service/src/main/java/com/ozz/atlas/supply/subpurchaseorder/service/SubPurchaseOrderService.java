@@ -1,6 +1,8 @@
 package com.ozz.atlas.supply.subpurchaseorder.service;
 
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.common.code.SequenceCodeType;
+import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
@@ -85,14 +87,6 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_STATUS_NOT_ALLOWED);
         }
 
-        if (subPurchaseOrderRepository.existsBySubPoNumberAndParentPurchaseOrder_IdAndSubPoStatusNot(
-                request.getSubPoNumber(),
-                parentPurchaseOrder.getId(),
-                SubPoStatus.DELETED
-        )) {
-            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_NUMBER_ALREADY_EXISTS);
-        }
-
         SupplySupplier issuerSupplier = parentPurchaseOrder.getSupplier();
 
         SupplySupplier targetSupplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
@@ -109,23 +103,20 @@ public class SubPurchaseOrderService {
         Map<String, SupplyPurchaseOrderItem> parentItems = parentPurchaseOrder.getActiveItems().stream()
                 .collect(Collectors.toMap(SupplyPurchaseOrderItem::getPublicId, Function.identity()));
 
+        String subPoNumber = generateNextSubPoNumber();
+
         List<SupplySubPurchaseOrderItem> items = request.getItems().stream()
-                .map(itemRequest -> createSubPurchaseOrderItem(
-                        parentItems,
-                        targetSupplier,
-                        request.getDueDate(),
-                        itemRequest
-                ))
+                .map(itemRequest -> createSubPurchaseOrderItem(parentItems, targetSupplier, itemRequest))
                 .toList();
 
         SupplySubPurchaseOrder subPurchaseOrder = SupplySubPurchaseOrder.create(
-                request.getSubPoNumber(),
+                subPoNumber,
                 parentPurchaseOrder,
                 targetSupplier,
-                request.getDueDate(),
                 createdByUserPublicId,
                 items
         );
+
 
         SupplySubPurchaseOrder savedSubPurchaseOrder = subPurchaseOrderRepository.save(subPurchaseOrder);
         syncRelationStatus(savedSubPurchaseOrder);
@@ -280,7 +271,6 @@ public class SubPurchaseOrderService {
     private SupplySubPurchaseOrderItem createSubPurchaseOrderItem(
             Map<String, SupplyPurchaseOrderItem> parentItems,
             SupplySupplier targetSupplier,
-            LocalDate subPoDueDate,
             CreateSubPurchaseOrderItemRequest request
     ) {
         SupplyPurchaseOrderItem parentItem = parentItems.get(request.getParentPoItemPublicId());
@@ -295,33 +285,29 @@ public class SubPurchaseOrderService {
         SupplyItem subItem = getActiveItem(request.getItemPublicId());
         validateItemBelongsToSupplier(subItem, targetSupplier);
 
-        Long requestedQty = request.getOrderedQty();
-
-        LocalDate requiredDate = request.getRequiredDate() != null
-                ? request.getRequiredDate()
-                : parentItem.getRequiredDate();
-
-        if (requiredDate.isAfter(subPoDueDate) || requiredDate.isAfter(parentItem.getRequiredDate())) {
-            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        validateSupplierCapability(targetSupplier.getId(), subItem, requestedQty, requiredDate);
+        SupplySupplierItemCapability capability = validateAndGetSupplierCapability(
+                targetSupplier.getId(),
+                subItem,
+                request.getOrderedQty()
+        );
 
         return SupplySubPurchaseOrderItem.create(
                 parentItem,
                 subItem,
-                requestedQty,
-                request.getUnitPrice(),
-                requiredDate
+                request.getOrderedQty(),
+                subItem.getUnitPrice(),
+                capability.getLeadTimeDays(),
+                capability.getPartialConfirmationAllowed(),
+                LocalDate.now().plusDays(capability.getLeadTimeDays())
         );
-
     }
 
-    private void validateSupplierCapability(
+
+
+    private SupplySupplierItemCapability validateAndGetSupplierCapability(
             Long targetSupplierId,
             SupplyItem subItem,
-            Long requestedQty,
-            LocalDate requiredDate
+            Long requestedQty
     ) {
         Long itemId = subItem.getId();
 
@@ -329,27 +315,18 @@ public class SubPurchaseOrderService {
                 .findBySupplier_IdAndItem_Id(targetSupplierId, itemId)
                 .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.TARGET_SUPPLIER_CAPABILITY_NOT_FOUND));
 
-        if (capability.getValidFrom() != null && requiredDate.isBefore(capability.getValidFrom())) {
+        if (capability.getValidFrom() != null && LocalDate.now().isBefore(capability.getValidFrom())) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_CAPABILITY_NOT_ACTIVE);
         }
 
-        long requestedQtyValue = requestedQty;
-        long moq = capability.getMoq();
-        long availableQty = capability.getAvailableQty();
-        long monthlyCapacity = capability.getMonthlyCapacity();
-
-        if (requestedQtyValue < moq) {
+        if (requestedQty < capability.getMoq()) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_MOQ_NOT_MET);
         }
 
-        long allocatedOpenQty = subPurchaseOrderItemRepository
-                .sumOrderedQtyBySupplierIdAndItemIdAndLineStatusIn(
-                        targetSupplierId,
-                        itemId,
-                        ACTIVE_LINE_STATUSES
-                );
-
-        if (allocatedOpenQty + requestedQtyValue > availableQty) {
+        long allocatedOpenQty = subPurchaseOrderItemRepository.sumOrderedQtyBySupplierIdAndItemIdAndLineStatusIn(
+                targetSupplierId, itemId, ACTIVE_LINE_STATUSES
+        );
+        if (allocatedOpenQty + requestedQty > capability.getAvailableQty()) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_AVAILABLE_QTY_EXCEEDED);
         }
 
@@ -358,23 +335,15 @@ public class SubPurchaseOrderService {
 
         long allocatedMonthQty = subPurchaseOrderItemRepository
                 .sumMonthlyOrderedQtyBySupplierIdAndItemIdAndOrderedAtBetweenAndLineStatusIn(
-                        targetSupplierId,
-                        itemId,
-                        monthStart,
-                        nextMonthStart,
-                        ACTIVE_LINE_STATUSES
+                        targetSupplierId, itemId, monthStart, nextMonthStart, ACTIVE_LINE_STATUSES
                 );
 
-        if (allocatedMonthQty + requestedQtyValue > monthlyCapacity) {
+        if (allocatedMonthQty + requestedQty > capability.getMonthlyCapacity()) {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_MONTHLY_CAPACITY_EXCEEDED);
         }
 
-        LocalDate earliestAvailableDate = LocalDate.now().plusDays(capability.getLeadTimeDays());
-        if (requiredDate.isBefore(earliestAvailableDate)) {
-            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_LEAD_TIME_NOT_MET);
-        }
+        return capability;
     }
-
 
     private SupplyItem getActiveItem(String itemPublicId) {
         return supplyItemRepository.findByPublicIdAndStatusIn(itemPublicId, List.of(Status.ACTIVE))
@@ -445,5 +414,17 @@ public class SubPurchaseOrderService {
                 subPurchaseOrder.getSupplier(),
                 relationStatus
         );
+    }
+    private String generateNextSubPoNumber() {
+        String prefix = YearlySequenceCodeGenerator.currentPrefix(SequenceCodeType.SUB_PURCHASE_ORDER);
+        String lastCode = subPurchaseOrderRepository.findTopBySubPoNumberStartingWithOrderBySubPoNumberDesc(prefix)
+                .map(SupplySubPurchaseOrder::getSubPoNumber)
+                .orElse(null);
+
+        String candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.SUB_PURCHASE_ORDER, lastCode, 7);
+        while (subPurchaseOrderRepository.existsBySubPoNumber(candidate)) {
+            candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.SUB_PURCHASE_ORDER, candidate, 7);
+        }
+        return candidate;
     }
 }

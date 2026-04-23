@@ -22,16 +22,8 @@ import java.util.List;
 public class CreatePurchaseOrderRequest {
 
     @NotBlank
-    @Size(max = 50)
-    private String poNumber;
-
-    @NotBlank
     @Size(max = 26)
     private String supplierPublicId;
-
-    @NotNull
-    @FutureOrPresent
-    private LocalDate dueDate; // 납기일
 
     private CurrencyCode currencyCode;
 

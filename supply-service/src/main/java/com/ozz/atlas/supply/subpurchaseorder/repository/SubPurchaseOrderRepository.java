@@ -88,4 +88,8 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
             @Param("supplierId") Long supplierId,
             @Param("excludedStatuses") Collection<SubPoStatus> excludedStatuses
     );
+
+    boolean existsBySubPoNumber(String subPoNumber);
+    Optional<SupplySubPurchaseOrder> findTopBySubPoNumberStartingWithOrderBySubPoNumberDesc(String prefix);
+
 }

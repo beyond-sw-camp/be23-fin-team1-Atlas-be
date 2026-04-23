@@ -53,6 +53,11 @@ public class SupplySupplierItemCapability {
 
     private LocalDate validFrom;
 
+    // 발주 품목 부분 수락 가능/불가능
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean partialConfirmationAllowed = Boolean.TRUE;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -66,7 +71,8 @@ public class SupplySupplierItemCapability {
             Long moq,
             SupplierItemQualityGrade qualityGrade,
             BigDecimal unitPriceHint,
-            LocalDate validFrom
+            LocalDate validFrom,
+            Boolean partialConfirmationAllowed
     ) {
         return SupplySupplierItemCapability.builder()
                 .supplier(supplier)
@@ -78,8 +84,12 @@ public class SupplySupplierItemCapability {
                 .qualityGrade(qualityGrade != null ? qualityGrade : SupplierItemQualityGrade.AA_PLUS)
                 .unitPriceHint(unitPriceHint)
                 .validFrom(validFrom)
+                .partialConfirmationAllowed(
+                        partialConfirmationAllowed != null ? partialConfirmationAllowed : Boolean.TRUE
+                )
                 .build();
     }
+
 
     public void update(
             Integer leadTimeDays,
@@ -88,7 +98,8 @@ public class SupplySupplierItemCapability {
             Long moq,
             SupplierItemQualityGrade qualityGrade,
             BigDecimal unitPriceHint,
-            LocalDate validFrom
+            LocalDate validFrom,
+            Boolean partialConfirmationAllowed
     ) {
         if (leadTimeDays != null) {
             this.leadTimeDays = leadTimeDays;
@@ -111,5 +122,9 @@ public class SupplySupplierItemCapability {
         if (validFrom != null) {
             this.validFrom = validFrom;
         }
+        if (partialConfirmationAllowed != null) {
+            this.partialConfirmationAllowed = partialConfirmationAllowed;
+        }
     }
+
 }

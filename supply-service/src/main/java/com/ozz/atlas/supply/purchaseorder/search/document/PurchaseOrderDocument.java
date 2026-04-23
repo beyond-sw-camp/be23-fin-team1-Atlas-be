@@ -101,10 +101,6 @@ public class PurchaseOrderDocument {
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime orderedAt;
 
-    // 납기일
-    @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd")
-    private LocalDate dueDate;
-
     // 총 금액
     @Field(type = FieldType.Double)
     private BigDecimal totalAmount;
@@ -159,7 +155,6 @@ public class PurchaseOrderDocument {
                 .supplierName(purchaseOrder.getSupplier().getSupplierName())
                 .poStatus(purchaseOrder.getPoStatus())
                 .orderedAt(purchaseOrder.getOrderedAt())
-                .dueDate(purchaseOrder.getDueDate())
                 .totalAmount(purchaseOrder.getTotalAmount())
                 .currencyCode(purchaseOrder.getCurrencyCode())
                 .memo(purchaseOrder.getMemo())

@@ -48,12 +48,17 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
     @Column(name = "line_amount", nullable = false, precision = 18, scale = 2)
     private BigDecimal lineAmount;
 
-
     @Column(name = "confirmed_qty", precision = 18, scale = 2)
     private Long confirmedQty;
 
-    @Column(name = "required_date", nullable = false)
-    private LocalDate requiredDate;
+    @Column(name = "expected_due_date", nullable = false)
+    private LocalDate expectedDueDate;
+
+    @Column(name = "lead_time_days", nullable = false)
+    private Integer leadTimeDays;
+
+    @Column(name = "partial_confirmation_allowed", nullable = false)
+    private Boolean partialConfirmationAllowed;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "line_status", nullable = false)
@@ -65,7 +70,9 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
             SupplyItem item,
             Long orderedQty,
             BigDecimal unitPrice,
-            LocalDate requiredDate
+            Integer leadTimeDays,
+            Boolean partialConfirmationAllowed,
+            LocalDate expectedDueDate
     ) {
         return SupplySubPurchaseOrderItem.builder()
                 .parentPurchaseOrderItem(parentPurchaseOrderItem)
@@ -73,10 +80,13 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
                 .orderedQty(orderedQty)
                 .unitPrice(unitPrice)
                 .lineAmount(calculateLineAmount(orderedQty, unitPrice))
-                .requiredDate(requiredDate)
+                .expectedDueDate(expectedDueDate)
+                .leadTimeDays(leadTimeDays)
+                .partialConfirmationAllowed(partialConfirmationAllowed)
                 .lineStatus(SubPurchaseOrderLineStatus.OPEN)
                 .build();
     }
+
 
     private static BigDecimal calculateLineAmount(Long orderedQty, BigDecimal unitPrice) {
         return BigDecimal.valueOf(orderedQty)

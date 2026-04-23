@@ -25,7 +25,6 @@ public enum SubPurchaseOrderErrorCode implements ErrorCode {
     SUB_PURCHASE_ORDER_MOQ_NOT_MET(409, "SUB_PO_014", "서브발주 수량이 최소 주문 수량보다 작습니다."),
     SUB_PURCHASE_ORDER_AVAILABLE_QTY_EXCEEDED(409, "SUB_PO_015", "서브발주 수량이 현재 공급 가능 수량을 초과했습니다."),
     SUB_PURCHASE_ORDER_MONTHLY_CAPACITY_EXCEEDED(409, "SUB_PO_016", "서브발주 수량이 월 생산 가능 수량을 초과했습니다."),
-    SUB_PURCHASE_ORDER_LEAD_TIME_NOT_MET(409, "SUB_PO_017", "리드타임 기준으로 요청 납기를 맞출 수 없습니다."),
     SUB_PURCHASE_ORDER_CAPABILITY_NOT_ACTIVE(409, "SUB_PO_018", "해당 품목 공급 역량의 유효 시작일 이전에는 서브발주할 수 없습니다."),
     TARGET_SUPPLIER_TIER_NOT_ALLOWED(409, "SUB_PO_019", "서브발주 대상 협력사는 발행 협력사보다 하위 tier여야 합니다."),
     SUB_PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH(409, "SUB_PO_020", "선택한 품목은 대상 협력사 소속 품목이어야 합니다."),

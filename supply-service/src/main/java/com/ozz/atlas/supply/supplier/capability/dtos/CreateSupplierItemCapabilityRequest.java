@@ -38,4 +38,8 @@ public class CreateSupplierItemCapabilityRequest {
     private SupplierItemQualityGrade qualityGrade;
     private BigDecimal unitPriceHint;
     private LocalDate validFrom;
+
+    @NotNull
+    private Boolean partialConfirmationAllowed;
+
 }

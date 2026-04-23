@@ -177,7 +177,6 @@ public class PurchaseOrderSearchService {
                 .supplierName(document.getSupplierName())
                 .poStatus(document.getPoStatus())
                 .orderedAt(document.getOrderedAt())
-                .dueDate(document.getDueDate())
                 .totalAmount(document.getTotalAmount())
                 .currencyCode(document.getCurrencyCode())
                 .createdAt(document.getCreatedAt())

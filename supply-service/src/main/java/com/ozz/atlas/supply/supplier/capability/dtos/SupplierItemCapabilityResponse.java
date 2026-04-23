@@ -28,6 +28,9 @@ public class SupplierItemCapabilityResponse {
     private Long availableQty;
     private Long moq;
     private SupplierItemQualityGrade qualityGrade;
+    private Boolean partialConfirmationAllowed;
+    private String unit;
+    private BigDecimal unitPrice;
     private BigDecimal unitPriceHint;
     private LocalDate validFrom;
     private LocalDateTime createdAt;
@@ -47,6 +50,9 @@ public class SupplierItemCapabilityResponse {
                 .qualityGrade(capability.getQualityGrade())
                 .unitPriceHint(capability.getUnitPriceHint())
                 .validFrom(capability.getValidFrom())
+                .unit(capability.getItem().getUnit().name())
+                .unitPrice(capability.getItem().getUnitPrice())
+                .partialConfirmationAllowed(capability.getPartialConfirmationAllowed())
                 .createdAt(capability.getCreatedAt())
                 .build();
     }

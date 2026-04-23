@@ -1,6 +1,8 @@
 package com.ozz.atlas.supply.purchaseorder.service;
 
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.common.code.SequenceCodeType;
+import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
@@ -21,6 +23,8 @@ import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus;
 import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderItemRepository;
 import com.ozz.atlas.supply.purchaseorder.search.service.PurchaseOrderSearchService;
+import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
+import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
 import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
@@ -54,6 +58,7 @@ public class PurchaseOrderService {
     private final SupplyItemRepository supplyItemRepository;
     private final SubPurchaseOrderItemRepository subPurchaseOrderItemRepository;
     private final PurchaseOrderSearchService purchaseOrderSearchService;
+    private final SupplierItemCapabilityRepository supplierItemCapabilityRepository;
 
 
     public PurchaseOrderDetailResponse createPurchaseOrder(
@@ -62,14 +67,6 @@ public class PurchaseOrderService {
                         CreatePurchaseOrderRequest request
                 ) {
             validateCreateRequest(request);
-
-            if (purchaseOrderRepository.existsByPoNumberAndBuyerOrganizationPublicIdAndPoStatusNot(
-                    request.getPoNumber(),
-                    buyerOrganizationPublicId,
-                    PoStatus.DELETED
-        )) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NUMBER_ALREADY_EXISTS);
-        }
 
         SupplySupplier supplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
                         request.getSupplierPublicId(),
@@ -91,35 +88,35 @@ public class PurchaseOrderService {
 
         validateItemsBelongToSupplier(itemMap.values(), supplier);
 
+        String poNumber = generateNextPoNumber();
+
         List<SupplyPurchaseOrderItem> purchaseOrderItems = request.getItems().stream()
                 .map(itemRequest -> {
-                    LocalDate requiredDate = itemRequest.getRequiredDate() != null
-                            ? itemRequest.getRequiredDate()
-                            : request.getDueDate();
-
-                    if (requiredDate.isAfter(request.getDueDate())) {
-                        throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_REQUIRED_DATE_AFTER_DUE_DATE);
-                    }
+                    SupplyItem item = itemMap.get(itemRequest.getItemPublicId());
+                    SupplySupplierItemCapability capability = getCapability(supplier, item);
 
                     return SupplyPurchaseOrderItem.create(
-                            itemMap.get(itemRequest.getItemPublicId()),
+                            item,
                             itemRequest.getOrderedQty(),
-                            itemRequest.getUnitPrice(),
-                            requiredDate
+                            item.getUnitPrice(),
+                            capability.getLeadTimeDays(),
+                            capability.getPartialConfirmationAllowed(),
+                            calculateExpectedDueDate(capability)
                     );
+
                 })
                 .toList();
 
         SupplyPurchaseOrder purchaseOrder = SupplyPurchaseOrder.create(
-                request.getPoNumber(),
+                poNumber,
                 buyerOrganizationPublicId,
                 supplier,
-                request.getDueDate(),
                 request.getCurrencyCode(),
                 request.getMemo(),
                 createdByUserPublicId,
                 purchaseOrderItems
         );
+
 
         SupplyPurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
         purchaseOrderSearchService.savePurchaseOrderDocument(savedPurchaseOrder);
@@ -202,34 +199,8 @@ public class PurchaseOrderService {
         // 발주 상태가 CREATED일 때만 수정 가능
         validateBuyerEditable(purchaseOrder);
 
-        // 발주번호 중복 체크
-        if (request.getPoNumber() != null
-                && !request.getPoNumber().isBlank()
-                && !request.getPoNumber().equals(purchaseOrder.getPoNumber())
-                && purchaseOrderRepository.existsByPoNumberAndBuyerOrganizationPublicIdAndIdNotAndPoStatusNot(
-                request.getPoNumber(),
-                buyerOrganizationPublicId,
-                purchaseOrder.getId(),
-                PoStatus.DELETED
-        )) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NUMBER_ALREADY_EXISTS);
-        }
+        purchaseOrder.updateHeader(request.getMemo());
 
-        // dueDate(납기일) 변경 시, 기존 아이템 requiredDate(요청 납기일) 검증 (requiredDate ≤ dueDate)
-        if (request.getDueDate() != null) {
-            boolean invalidRequiredDate = purchaseOrder.getActiveItems().stream()
-                    .anyMatch(item -> item.getRequiredDate().isAfter(request.getDueDate()));
-
-            if (invalidRequiredDate) {
-                throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
-            }
-        }
-
-        purchaseOrder.updateHeader(
-                request.getPoNumber(),
-                request.getDueDate(),
-                request.getMemo()
-        );
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
@@ -291,7 +262,6 @@ public class PurchaseOrderService {
         SupplyItem item = resolveSingleItem(request.getItemPublicId());
         validateItemBelongsToSupplier(item, purchaseOrder.getSupplier());
 
-        // 요청은 itemPublicId로 들어오지만, 엔티티를 찾은 뒤 중복 비교는 내부 PK로 처리한다.
         boolean duplicatedItem = purchaseOrder.getActiveItems().stream()
                 .anyMatch(existingItem -> existingItem.getItem().getId().equals(item.getId()));
 
@@ -299,20 +269,16 @@ public class PurchaseOrderService {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_DUPLICATE_ITEM);
         }
 
-        LocalDate requiredDate = request.getRequiredDate() != null
-                ? request.getRequiredDate()
-                : purchaseOrder.getDueDate();
-
-        if (requiredDate.isAfter(purchaseOrder.getDueDate())) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
-        }
+        SupplySupplierItemCapability capability = getCapability(purchaseOrder.getSupplier(), item);
 
         purchaseOrder.addItem(
                 SupplyPurchaseOrderItem.create(
                         item,
                         request.getOrderedQty(),
-                        request.getUnitPrice(),
-                        requiredDate
+                        item.getUnitPrice(),
+                        capability.getLeadTimeDays(),
+                        capability.getPartialConfirmationAllowed(),
+                        calculateExpectedDueDate(capability)
                 )
         );
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
@@ -354,20 +320,18 @@ public class PurchaseOrderService {
             targetItem = requestedItem;
         }
 
-        LocalDate requiredDate = request.getRequiredDate() != null
-                ? request.getRequiredDate()
-                : purchaseOrderItem.getRequiredDate();
-
-        if (requiredDate.isAfter(purchaseOrder.getDueDate())) {
-            throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
-        }
+        SupplySupplierItemCapability capability = getCapability(purchaseOrder.getSupplier(), targetItem);
 
         purchaseOrderItem.update(
                 targetItem,
                 request.getOrderedQty() != null ? request.getOrderedQty() : purchaseOrderItem.getOrderedQty(),
-                request.getUnitPrice() != null ? request.getUnitPrice() : purchaseOrderItem.getUnitPrice(),
-                requiredDate
+                targetItem.getUnitPrice(),
+                capability.getLeadTimeDays(),
+                capability.getPartialConfirmationAllowed(),
+                calculateExpectedDueDate(capability)
         );
+
+
 
         purchaseOrder.refreshAfterItemChanged();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
@@ -486,16 +450,12 @@ public class PurchaseOrderService {
     }
 
     private boolean isEmptyHeaderPatch(UpdatePurchaseOrderRequest request) {
-        return (request.getPoNumber() == null || request.getPoNumber().isBlank())
-                && request.getDueDate() == null
-                && request.getMemo() == null;
+        return request.getMemo() == null;
     }
 
     private boolean isEmptyItemPatch(UpdatePurchaseOrderItemRequest request) {
         return (request.getItemPublicId() == null || request.getItemPublicId().isBlank())
-                && request.getOrderedQty() == null
-                && request.getUnitPrice() == null
-                && request.getRequiredDate() == null;
+                && request.getOrderedQty() == null;
     }
 
     private SupplyPurchaseOrderItem findActivePurchaseOrderItem(
@@ -543,5 +503,30 @@ public class PurchaseOrderService {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH);
         }
     }
+
+    private SupplySupplierItemCapability getCapability(SupplySupplier supplier, SupplyItem item) {
+        return supplierItemCapabilityRepository.findBySupplier_IdAndItem_Id(supplier.getId(), item.getId())
+                .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_CAPABILITY_NOT_FOUND));
+    }
+
+    private LocalDate calculateExpectedDueDate(SupplySupplierItemCapability capability) {
+        return LocalDate.now().plusDays(capability.getLeadTimeDays());
+    }
+
+    private String generateNextPoNumber() {
+        String prefix = YearlySequenceCodeGenerator.currentPrefix(SequenceCodeType.PURCHASE_ORDER);
+        String lastCode = purchaseOrderRepository.findTopByPoNumberStartingWithOrderByPoNumberDesc(prefix)
+                .map(SupplyPurchaseOrder::getPoNumber)
+                .orElse(null);
+
+        String candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.PURCHASE_ORDER, lastCode, 7);
+        while (purchaseOrderRepository.existsByPoNumber(candidate)) {
+            candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.PURCHASE_ORDER, candidate, 7);
+        }
+        return candidate;
+    }
+
+
+
 
 }

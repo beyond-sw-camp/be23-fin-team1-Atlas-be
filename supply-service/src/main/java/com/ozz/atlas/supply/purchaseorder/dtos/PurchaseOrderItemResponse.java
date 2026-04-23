@@ -26,8 +26,10 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
     private Long confirmedQty;
     private BigDecimal unitPrice;
     private BigDecimal lineAmount;
-    private LocalDate requiredDate;
     private PurchaseOrderItemStatus itemStatus;
+    private LocalDate expectedDueDate;
+    private Integer leadTimeDays;
+    private Boolean partialConfirmationAllowed;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -42,8 +44,10 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
                 .confirmedQty(purchaseOrderItem.getConfirmedQty())
                 .unitPrice(purchaseOrderItem.getUnitPrice())
                 .lineAmount(purchaseOrderItem.getLineAmount())
-                .requiredDate(purchaseOrderItem.getRequiredDate())
                 .itemStatus(purchaseOrderItem.getItemStatus())
+                .expectedDueDate(purchaseOrderItem.getExpectedDueDate())
+                .leadTimeDays(purchaseOrderItem.getLeadTimeDays())
+                .partialConfirmationAllowed(purchaseOrderItem.getPartialConfirmationAllowed())
                 .createdAt(purchaseOrderItem.getCreatedAt())
                 .updatedAt(purchaseOrderItem.getUpdatedAt())
                 .build();
