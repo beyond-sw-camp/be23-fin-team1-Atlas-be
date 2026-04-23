@@ -6,8 +6,10 @@ import com.ozz.atlas.common.domain.DomainType;
 import com.ozz.atlas.common.kafka.EventEnvelope;
 import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.control.kafka.processed.ProcessedEventService;
+import com.ozz.atlas.control.kafka.recommendation.RecommendationDecisionPayload;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationFailedPayload;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationGeneratedPayload;
+import com.ozz.atlas.control.kafka.rule.service.KafkaEventRuleService;
 import com.ozz.atlas.control.notification.dto.NotificationDto;
 import com.ozz.atlas.control.notification.service.NotificationService;
 import com.ozz.atlas.control.recommendation.service.RecommendationService;
@@ -27,9 +29,11 @@ public class RecommendationResultConsumer {
     private final ProcessedEventService processedEventService;
     private final NotificationService notificationService;
     private final RecommendationService recommendationService;
+    private final KafkaEventRuleService kafkaEventRuleService;
 
     @KafkaListener(
             topics = {
+                    KafkaTopics.CONTROL_RECOMMENDATION_DECISION,
                     KafkaTopics.CONTROL_RECOMMENDATION_GENERATED,
                     KafkaTopics.CONTROL_RECOMMENDATION_FAILED
             },
@@ -48,7 +52,9 @@ public class RecommendationResultConsumer {
                 return;
             }
 
-            if (KafkaTopics.CONTROL_RECOMMENDATION_GENERATED.equals(eventEnvelope.topic())) {
+            if (KafkaTopics.CONTROL_RECOMMENDATION_DECISION.equals(eventEnvelope.topic())) {
+                handleDecision(eventEnvelope);
+            } else if (KafkaTopics.CONTROL_RECOMMENDATION_GENERATED.equals(eventEnvelope.topic())) {
                 handleGenerated(eventEnvelope);
             } else if (KafkaTopics.CONTROL_RECOMMENDATION_FAILED.equals(eventEnvelope.topic())) {
                 handleFailed(eventEnvelope);
@@ -86,6 +92,13 @@ public class RecommendationResultConsumer {
             return;
         }
 
+        if (!kafkaEventRuleService.isEnabled(eventEnvelope.eventType())) {
+            log.info("비활성화된 Kafka 이벤트 규칙입니다. eventType={}", eventEnvelope.eventType());
+            return;
+        }
+
+        kafkaEventRuleService.markTriggered(eventEnvelope.eventType());
+
         notificationService.saveAndPublish(NotificationDto.builder()
                 .recipientUserPublicId(eventEnvelope.actorUserPublicId())
                 .notificationType(DomainType.RISK)
@@ -114,6 +127,13 @@ public class RecommendationResultConsumer {
             return;
         }
 
+        if (!kafkaEventRuleService.isEnabled(eventEnvelope.eventType())) {
+            log.info("비활성화된 Kafka 이벤트 규칙입니다. eventType={}", eventEnvelope.eventType());
+            return;
+        }
+
+        kafkaEventRuleService.markTriggered(eventEnvelope.eventType());
+
         notificationService.saveAndPublish(NotificationDto.builder()
                 .recipientUserPublicId(eventEnvelope.actorUserPublicId())
                 .notificationType(DomainType.SYSTEM)
@@ -122,5 +142,20 @@ public class RecommendationResultConsumer {
                 .deepLinkUrl("/recommendations/%s".formatted(payload.recommendationPublicId()))
                 .referencePublicId(payload.recommendationPublicId())
                 .build());
+    }
+
+    private void handleDecision(EventEnvelope<JsonNode> eventEnvelope) {
+        RecommendationDecisionPayload payload =
+                objectMapper.convertValue(eventEnvelope.payload(), RecommendationDecisionPayload.class);
+
+        log.info("권고안 의사결정 이벤트 수신. recommendationPublicId={}, eventType={}",
+                payload.recommendationPublicId(), eventEnvelope.eventType());
+
+        if (!kafkaEventRuleService.isEnabled(eventEnvelope.eventType())) {
+            log.info("비활성화된 Kafka 이벤트 규칙입니다. eventType={}", eventEnvelope.eventType());
+            return;
+        }
+
+        kafkaEventRuleService.markTriggered(eventEnvelope.eventType());
     }
 }
