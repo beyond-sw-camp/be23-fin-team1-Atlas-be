@@ -12,4 +12,6 @@ import lombok.NoArgsConstructor;
 public class UpdateLotStatusRequestDto {
     @NotNull(message = "로트 상태는 필수입니다.")
     private LotStatus lotStatus;
+
+    private String reason;
 }

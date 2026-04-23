@@ -82,13 +82,13 @@ public class LotController {
     public ResponseEntity<LotResponseDto> updateLotStatus(
             @PathVariable String publicId,
             @Valid @RequestBody UpdateLotStatusRequestDto request) {
-        return ResponseEntity.ok(lotService.updateLotStatus(publicId, request.getLotStatus()));
+        return ResponseEntity.ok(lotService.updateLotStatus(publicId, request.getLotStatus(), request.getReason()));
     }
 
     @PatchMapping("/{publicId}/quality")
     public ResponseEntity<LotResponseDto> updateQualityStatus(
             @PathVariable String publicId,
             @Valid @RequestBody UpdateQualityStatusRequestDto request) {
-        return ResponseEntity.ok(lotService.updateQualityStatus(publicId, request.getQualityStatus()));
+        return ResponseEntity.ok(lotService.updateQualityStatus(publicId, request.getQualityStatus(), request.getReason()));
     }
 }

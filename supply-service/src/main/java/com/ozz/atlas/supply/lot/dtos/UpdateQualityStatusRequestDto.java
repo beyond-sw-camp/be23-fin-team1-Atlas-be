@@ -12,4 +12,6 @@ import lombok.NoArgsConstructor;
 public class UpdateQualityStatusRequestDto {
     @NotNull(message = "품질 상태는 필수입니다.")
     private QualityStatus qualityStatus;
+
+    private String reason;
 }
