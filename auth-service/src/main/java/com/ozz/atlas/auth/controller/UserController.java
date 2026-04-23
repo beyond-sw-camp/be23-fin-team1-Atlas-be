@@ -1,9 +1,11 @@
 package com.ozz.atlas.auth.controller;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
+import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.service.LoginHistoryService;
+import com.ozz.atlas.auth.service.SecurityHistoryService;
 import com.ozz.atlas.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -23,6 +26,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -31,11 +37,14 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
     private final LoginHistoryService loginHistoryService;
+    private final SecurityHistoryService securityHistoryService;
+
 
     @Autowired
-    public UserController(UserService userService, LoginHistoryService loginHistoryService) {
+    public UserController(UserService userService, LoginHistoryService loginHistoryService, SecurityHistoryService securityHistoryService) {
         this.userService = userService;
         this.loginHistoryService = loginHistoryService;
+        this.securityHistoryService = securityHistoryService;
     }
 
     //    회원가입
@@ -161,15 +170,31 @@ public class UserController {
     public ResponseEntity<UserDetailDto> userUpdate(
             @PathVariable Long userId,
             @RequestBody @Valid UserUpdateDto dto,
-            @AuthenticationPrincipal AuthPrincipal principal) {
+            @AuthenticationPrincipal AuthPrincipal principal,
+            HttpServletRequest request) {
 
         if (!principal.userId().equals(userId) && principal.role() != UserRole.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
+        // 수정 전 사용자 엔티티를 읽어서 변경 요약을 만듭니다.
+        User user = userService.getUserEntity(userId);
+        String summary = userService.buildProfileUpdateSummary(user, dto);
+
         UserDetailDto response = userService.userUpdate(userId, dto, principal);
+
+        // 프로필 수정 보안 이력을 저장합니다.
+        securityHistoryService.saveHistory(
+                user,
+                "PROFILE_UPDATED",
+                summary,
+                request.getRemoteAddr(),
+                request.getHeader("User-Agent")
+        );
+
         return ResponseEntity.ok(response);
     }
+
 
     //    사용자 삭제
     @DeleteMapping("/users/{userId}")
@@ -200,18 +225,30 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    //비밀번호 변경
     @PatchMapping("/users/{userId}/password")
     public ResponseEntity<Void> userPasswordUpdate(
             @PathVariable Long userId,
             @RequestBody @Valid UserPasswordUpdateDto dto,
-            @AuthenticationPrincipal AuthPrincipal principal) {
+            @AuthenticationPrincipal AuthPrincipal principal,
+            HttpServletRequest request) {
 
         if (!principal.userId().equals(userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         userService.userPasswordUpdate(userId, dto, principal);
+
+        // 비밀번호 변경 보안 이력을 저장합니다.
+        User user = userService.getUserEntity(userId);
+
+        securityHistoryService.saveHistory(
+                user,
+                "PASSWORD_CHANGED",
+                "비밀번호 변경",
+                request.getRemoteAddr(),
+                request.getHeader("User-Agent")
+        );
+
         return ResponseEntity.noContent().build();
     }
 
@@ -220,11 +257,16 @@ public class UserController {
     @GetMapping("/login-histories/me")
     public ResponseEntity<Page<LoginHistoryListDto>> myLoginHistories(
             @AuthenticationPrincipal AuthPrincipal principal,
-            @PageableDefault(size = 10, sort = "loginHistoryId", direction = Sort.Direction.DESC) Pageable pageable) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @PageableDefault(size = 10, sort = "loginHistoryId", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<LoginHistoryListDto> response =
+                loginHistoryService.myLoginHistories(principal.userId(), pageable, from, to);
 
-        Page<LoginHistoryListDto> response = loginHistoryService.myLoginHistories(principal.userId(), pageable);
         return ResponseEntity.ok(response);
     }
+
 
     // 채팅 서비스 등 내부 연동용 사용자 조회
     @GetMapping("/users/public/{userPublicId}")
@@ -234,7 +276,19 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    // 현재 로그인한 사용자의 보안 이력을 조회
+    @GetMapping("/security-histories/me")
+    public ResponseEntity<Page<SecurityHistoryListDto>> mySecurityHistories(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @PageableDefault(size = 10, sort = "securityHistoryId", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<SecurityHistoryListDto> response =
+                securityHistoryService.mySecurityHistories(principal.userId(), pageable, from, to);
 
+        return ResponseEntity.ok(response);
+    }
 
 
 
