@@ -47,6 +47,11 @@ public class LogisticsNode extends BaseTimeEntity {
     @Column(precision = 10, scale = 7)
     private BigDecimal longitude;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30, columnDefinition = "varchar(30) default 'EMPTY'")
+    @Builder.Default
+    private LogisticsNodeCapacityStatus capacityStatus = LogisticsNodeCapacityStatus.EMPTY;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
@@ -63,13 +68,15 @@ public class LogisticsNode extends BaseTimeEntity {
             LogisticsNodeType nodeType,
             String address,
             BigDecimal latitude,
-            BigDecimal longitude
+            BigDecimal longitude,
+            LogisticsNodeCapacityStatus capacityStatus
     ){
         this.nodeName = nodeName;
         this.nodeType = nodeType;
         this.address = address;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.capacityStatus = capacityStatus;
     }
 
     public void activate(){

@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.logistics.dtos;
 
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeType;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNodeCapacityStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -22,6 +23,7 @@ public class CreateLogisticsNodeRequestDto {
     private LogisticsNodeType nodeType;
 
     private String address;
+    private LogisticsNodeCapacityStatus capacityStatus;
 
     // nodeCode와 좌표는 서비스에서 계산한 값을 받아 엔티티에 넣는다.
     public LogisticsNode toEntity(
@@ -38,6 +40,7 @@ public class CreateLogisticsNodeRequestDto {
                 .address(this.address)
                 .latitude(latitude)
                 .longitude(longitude)
+                .capacityStatus(this.capacityStatus == null ? LogisticsNodeCapacityStatus.EMPTY : this.capacityStatus)
                 .active(true)
                 .build();
     }

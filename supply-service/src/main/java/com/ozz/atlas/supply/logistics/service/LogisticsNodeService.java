@@ -22,21 +22,31 @@ import java.util.stream.Collectors;
 @Transactional
 public class LogisticsNodeService {
 
+    private static final String ADMIN_ORGANIZATION_TYPE = "ADMIN";
+    private static final String ADMIN_ROLE = "ADMIN";
+
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final OrganizationAliasClient organizationAliasClient;
     private final AddressGeocodingClient addressGeocodingClient;
 
-    public LogisticsNodeService(LogisticsNodeRepository logisticsNodeRepository, OrganizationAliasClient organizationAliasClient, AddressGeocodingClient addressGeocodingClient) {
+    public LogisticsNodeService(
+            LogisticsNodeRepository logisticsNodeRepository,
+            OrganizationAliasClient organizationAliasClient,
+            AddressGeocodingClient addressGeocodingClient
+    ) {
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.organizationAliasClient = organizationAliasClient;
         this.addressGeocodingClient = addressGeocodingClient;
     }
 
-//    창고 생성
-    public LogisticsNodeResponseDto createLogisticsNode(String organizationPublicId, CreateLogisticsNodeRequestDto dto) {
-        if (organizationPublicId == null || organizationPublicId.isBlank()) {
-            throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
-        }
+    // 물류거점 생성
+    public LogisticsNodeResponseDto createLogisticsNode(
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            CreateLogisticsNodeRequestDto dto
+    ) {
+        validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
 
         String organizationAlias = organizationAliasClient.getOrganizationAlias(organizationPublicId);
         String generatedNodeCode = generateNodeCode(organizationPublicId, organizationAlias);
@@ -54,45 +64,54 @@ public class LogisticsNodeService {
         return LogisticsNodeResponseDto.from(savedNode);
     }
 
-    //    창고 목록 조회
+    // 물류거점 목록 조회
     @Transactional(readOnly = true)
-    public Page<LogisticsNodeResponseDto> getLogisticsNodes(String organizationPublicId, Pageable pageable){
-        validateOrganizationHeader(organizationPublicId);
+    public Page<LogisticsNodeResponseDto> getLogisticsNodes(
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            Pageable pageable
+    ) {
+        validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
+
         return logisticsNodeRepository
                 .findByOrganizationPublicId(organizationPublicId, pageable)
                 .map(LogisticsNodeResponseDto::from);
     }
 
-    //    창고 상세 조회
+    // 물류거점 상세 조회
     @Transactional(readOnly = true)
-    public LogisticsNodeResponseDto getLogisticsNode(String organizationPublicId, String publicId){
-        validateOrganizationHeader(organizationPublicId);
+    public LogisticsNodeResponseDto getLogisticsNode(
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            String publicId
+    ) {
+        validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
+
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
 
         return LogisticsNodeResponseDto.from(node);
     }
 
-
-    //    출하에서 창고 조회용(요청 입력 처리)
-//    요청 body에서 받은 node publicId -> 내부 entity로 변환
+    // 출하에서 물류거점 publicId로 entity 조회할 때 사용
     @Transactional(readOnly = true)
-    public LogisticsNode getLogisticsNodeEntityByPublicId(String publicId){
+    public LogisticsNode getLogisticsNodeEntityByPublicId(String publicId) {
         return logisticsNodeRepository.findByPublicId(publicId)
-                .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+                .orElseThrow(() -> new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
     }
 
-//    entity 조회(응답 변환)
-//    내부 node id -> node publicId로 변경
+    // 출하에서 물류거점 id로 entity 조회할 때 사용
     @Transactional(readOnly = true)
-    public LogisticsNode getLogisticsNodeEntity(Long id){
+    public LogisticsNode getLogisticsNodeEntity(Long id) {
         return logisticsNodeRepository.findById(id)
-                .orElseThrow(()->new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
+                .orElseThrow(() -> new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
     }
 
-//    node id를 모아서 목록 조회
+    // node id 목록을 publicId map으로 변환
     @Transactional(readOnly = true)
-    public Map<Long, String> getNodePublicIdMap(Collection<Long> nodeIds){
-        if (nodeIds == null || nodeIds.isEmpty()){
+    public Map<Long, String> getNodePublicIdMap(Collection<Long> nodeIds) {
+        if (nodeIds == null || nodeIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
@@ -100,15 +119,17 @@ public class LogisticsNodeService {
                 .collect(Collectors.toMap(LogisticsNode::getId, LogisticsNode::getPublicId));
     }
 
-//    창고 수정
+    // 물류거점 수정
     public LogisticsNodeResponseDto updateLogisticsNode(
             String organizationPublicId,
+            String organizationType,
+            String userRole,
             String publicId,
             UpdateLogisticsNodeRequestDto dto
-    ){
-        validateOrganizationHeader(organizationPublicId);
-        LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
+    ) {
+        validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
 
+        LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
         GeocodingPointDto point = geocodeRequiredAddress(dto.getAddress());
 
         node.update(
@@ -116,27 +137,42 @@ public class LogisticsNodeService {
                 dto.getNodeType(),
                 dto.getAddress(),
                 point.getLatitude(),
-                point.getLongitude()
+                point.getLongitude(),
+                dto.getCapacityStatus()
         );
 
         return LogisticsNodeResponseDto.from(node);
     }
 
-    //    창고 활성화
-    public LogisticsNodeResponseDto activateLogisticsNode(String organizationPublicId, String publicId){
-        validateOrganizationHeader(organizationPublicId);
+    // 물류거점 활성화
+    public LogisticsNodeResponseDto activateLogisticsNode(
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            String publicId
+    ) {
+        validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
+
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
 
         node.activate();
+
         return LogisticsNodeResponseDto.from(node);
     }
 
-    //    창고 비활성화
-    public LogisticsNodeResponseDto deactivateLogisticsNode(String organizationPublicId, String publicId){
-        validateOrganizationHeader(organizationPublicId);
+    // 물류거점 비활성화
+    public LogisticsNodeResponseDto deactivateLogisticsNode(
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            String publicId
+    ) {
+        validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
+
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
 
         node.deactivate();
+
         return LogisticsNodeResponseDto.from(node);
     }
 
@@ -157,6 +193,7 @@ public class LogisticsNodeService {
     private String buildNodeCode(String organizationAlias, long sequence) {
         return "WH-" + organizationAlias + "-" + String.format("%03d", sequence);
     }
+
     // 물류거점은 로그인한 조직 자신의 데이터만 조회/수정할 수 있다.
     private LogisticsNode getOwnedLogisticsNode(String publicId, String organizationPublicId) {
         return logisticsNodeRepository.findByPublicIdAndOrganizationPublicId(publicId, organizationPublicId)
@@ -168,7 +205,25 @@ public class LogisticsNodeService {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
         }
     }
-    // 주소는 필수로 받고, 저장 직전에 외부 지오코딩으로 좌표를 계산한다.
+
+    // 플랫폼 관리자는 물류거점을 관리하지 않는다. 실제 조직만 자기 거점을 관리할 수 있다.
+    private void validateLogisticsNodeActor(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateOrganizationHeader(organizationPublicId);
+
+        if (organizationType == null || organizationType.isBlank()) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        if (ADMIN_ORGANIZATION_TYPE.equals(organizationType) || ADMIN_ROLE.equals(userRole)) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    // 주소는 필수로 받고, 저장 직전에 외부 지오코딩 API로 좌표를 계산한다.
     private GeocodingPointDto geocodeRequiredAddress(String address) {
         if (address == null || address.isBlank()) {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
@@ -176,5 +231,4 @@ public class LogisticsNodeService {
 
         return addressGeocodingClient.geocode(address);
     }
-
 }
