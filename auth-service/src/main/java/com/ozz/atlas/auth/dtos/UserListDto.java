@@ -22,6 +22,9 @@ public class UserListDto {
     private String email;
     private String phone;
     private String jobTitle;
+    private String departmentPublicId;
+    private String departmentCode;
+    private String departmentName;
     private UserRole userRole;
 
     public static UserListDto fromEntity(User user){
@@ -32,6 +35,9 @@ public class UserListDto {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .jobTitle(user.getJobTitle())
+                .departmentPublicId(user.getDepartment() != null ? user.getDepartment().getPublicId() : null)
+                .departmentCode(user.getDepartment() != null ? user.getDepartment().getDepartmentCode() : null)
+                .departmentName(user.getDepartment() != null ? user.getDepartment().getDepartmentName() : null)
                 .userRole(user.getUserRole())
                 .firstName(user.getFirstName())
                 .middleName(user.getMiddleName())
@@ -51,6 +57,9 @@ public class UserListDto {
                 .lastName(user.getLastName())
                 .phone(user.getPhone())
                 .jobTitle(user.getJobTitle())
+                .departmentPublicId(user.getDepartmentPublicId())
+                .departmentCode(user.getDepartmentCode())
+                .departmentName(user.getDepartmentName())
                 .build();
     }
 }

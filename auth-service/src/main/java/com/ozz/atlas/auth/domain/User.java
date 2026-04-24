@@ -27,6 +27,10 @@ public class User extends BaseTimeEntity {
     @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
+
     @Column(nullable = false, unique = true, length = 50)
     private String loginId;
 
@@ -75,6 +79,10 @@ public class User extends BaseTimeEntity {
         if (dto.getEmail() != null && !dto.getEmail().isBlank()) this.email = dto.getEmail();
         if (dto.getPhone() != null && !dto.getPhone().isBlank()) this.phone = dto.getPhone();
         if (dto.getJobTitle() != null) this.jobTitle = dto.getJobTitle();
+    }
+
+    public void updateDepartment(Department department) {
+        this.department = department;
     }
 
     public void deleteUser() {
