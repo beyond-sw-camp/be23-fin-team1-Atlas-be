@@ -16,6 +16,9 @@ import lombok.NoArgsConstructor;
 @Schema(description = "조직 목록")
 public class OrganizationListDto {
 
+    @Schema(description = "조직 내부 ID", example = "1")
+    private Long organizationId;
+
     @Schema(description = "조직 공개 식별자", example = "org_01HZX9X5D4P2Q7F8R9S1T2U3V4")
     private String organizationPublicId;
 
@@ -52,6 +55,7 @@ public class OrganizationListDto {
 
     public static OrganizationListDto fromEntity(Organization organization){
         return OrganizationListDto.builder()
+                .organizationId(organization.getOrganizationId())
                 .organizationPublicId(organization.getPublicId())
                 .organizationType(organization.getOrganizationType())
                 .organizationName(organization.getOrganizationName())
