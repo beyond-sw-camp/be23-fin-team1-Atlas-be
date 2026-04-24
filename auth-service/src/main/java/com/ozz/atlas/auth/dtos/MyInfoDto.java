@@ -21,4 +21,10 @@ public class MyInfoDto {
 
     @Schema(description = "사용자 역할", example = "ADMIN")
     private UserRole role;
+
+    @Schema(description = "프로필 이미지 attachment 공개 식별자", example = "att_01HZXABCDEF1234567890", nullable = true)
+    private String profileAttachmentPublicId;
+
+    @Schema(description = "프로필 이미지 썸네일 경로", example = "https://atlas-media.s3.ap-northeast-2.amazonaws.com/thumbs/profile.png", nullable = true)
+    private String profileImageThumbPath;
 }
