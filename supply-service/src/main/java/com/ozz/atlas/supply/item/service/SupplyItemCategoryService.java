@@ -66,13 +66,17 @@ public class SupplyItemCategoryService {
             String userRole,
             UpdateItemCategoryRequest request
     ) {
+        // 카테고리 수정 권한이 있는 조직/역할인지 먼저 검증
         validateCategoryWriteAuthority(organizationPublicId, organizationType, userRole);
 
+        // 수정 대상 카테고리를 활성 상태(Status.ACTIVE) 기준으로 조회
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(categoryPublicId, Status.ACTIVE)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
 
+        // 조회한 카테고리가 현재 사용자 조직 소유인지 검증
         validateCategoryOwner(category, organizationPublicId, userRole);
 
+        // 하위 카테고리가 하나라도 있으면 수정 불가
         if (supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(category.getId(), Status.ACTIVE)) {
             throw new ItemException(ItemErrorCode.CATEGORY_CHILD_EXISTS);
         }
@@ -80,19 +84,24 @@ public class SupplyItemCategoryService {
         SupplyItemCategory parentCategory = null;
         int categoryLevel = 1;
 
+        // 요청에 부모 카테고리 publicId가 들어온 경우 부모 카테고리 변경 처리
         if (request.getParentCategoryPublicId() != null && !request.getParentCategoryPublicId().isBlank()) {
+            // 자기 자신을 부모 카테고리로 지정하는 것은 불가
             if (request.getParentCategoryPublicId().equals(category.getPublicId())) {
                 throw new ItemException(ItemErrorCode.CATEGORY_SELF_PARENT);
             }
 
+            // 새 부모 카테고리를 활성 상태 기준으로 조회
             parentCategory = supplyItemCategoryRepository.findByPublicIdAndStatus(
                             request.getParentCategoryPublicId(),
                             Status.ACTIVE
                     )
                     .orElseThrow(() -> new ItemException(ItemErrorCode.PARENT_CATEGORY_NOT_FOUND));
+            // 부모 카테고리 레벨 + 1로 현재 카테고리 레벨 재계산
             categoryLevel = parentCategory.getCategoryLevel() + 1;
         }
 
+        // 카테고리 정보 수정
         category.update(
                 parentCategory,
                 request.getCategoryName(),

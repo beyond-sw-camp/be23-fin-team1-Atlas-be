@@ -12,7 +12,6 @@ import com.ozz.atlas.supply.item.exception.ItemErrorCode;
 import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.relation.service.SupplierRelationService;
@@ -24,7 +23,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Year;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -155,10 +153,6 @@ public class SupplyItemService {
         SupplySupplier supplier = supplierRepository.findByOrganizationPublicId(organizationPublicId)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.SUPPLIER_NOT_FOUND));
 
-        if (supplier.getApprovalStatus() != ApprovalStatus.APPROVED) {
-            throw new ItemException(ItemErrorCode.SUPPLIER_NOT_APPROVED);
-        }
-
         if (supplier.getSupplierStatus() != SupplierStatus.ACTIVE) {
             throw new ItemException(ItemErrorCode.SUPPLIER_NOT_ACTIVE);
         }
@@ -211,16 +205,14 @@ public class SupplyItemService {
             String supplierOrganizationPublicId
     ) {
         if (supplierPublicId != null && !supplierPublicId.isBlank()) {
-            return supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+            return supplierRepository.findByPublicIdAndSupplierStatusNot(
                             supplierPublicId,
-                            ApprovalStatus.APPROVED,
                             SupplierStatus.TERMINATED
                     )
                     .orElseThrow(() -> new ItemException(ItemErrorCode.SUPPLIER_NOT_FOUND));
         }
 
         return supplierRepository.findByOrganizationPublicId(supplierOrganizationPublicId)
-                .filter(supplier -> supplier.getApprovalStatus() == ApprovalStatus.APPROVED)
                 .filter(supplier -> supplier.getSupplierStatus() != SupplierStatus.TERMINATED)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.SUPPLIER_NOT_FOUND));
     }

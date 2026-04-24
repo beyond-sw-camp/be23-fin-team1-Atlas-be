@@ -5,7 +5,6 @@ import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapabil
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
 import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificate;
 import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateRepository;
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.dtos.SupplierResponse;
@@ -91,13 +90,6 @@ public class SupplierSearchService {
                     ))
             )));
         }
-
-
-        // 승인 상태가 없으면 기본적으로 승인 완료된 협력사만 검색
-        ApprovalStatus approvalStatus = searchDto.getApprovalStatus() != null
-                ? searchDto.getApprovalStatus()
-                : ApprovalStatus.APPROVED;
-        filters.add(termQuery("approvalStatus.keyword", approvalStatus.name()));
 
         // 협력사 상태가 있으면 그 상태만 조회
         if (searchDto.getSupplierStatus() != null) {
@@ -274,7 +266,6 @@ public class SupplierSearchService {
                 .supplierCode(document.getSupplierCode())
                 .supplierName(document.getSupplierName())
                 .supplierStatus(document.getSupplierStatus())
-                .approvalStatus(document.getApprovalStatus())
                 .primaryContactName(document.getPrimaryContactName())
                 .primaryContactEmail(document.getPrimaryContactEmail())
                 .primaryContactPhone(document.getPrimaryContactPhone())

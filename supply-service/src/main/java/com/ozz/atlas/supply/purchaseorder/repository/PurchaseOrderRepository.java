@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrder, Long> {
@@ -89,5 +90,16 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
     boolean existsByPoNumber(String poNumber);
     Optional<SupplyPurchaseOrder> findTopByPoNumberStartingWithOrderByPoNumberDesc(String prefix);
 
+    boolean existsByBuyerOrganizationPublicIdAndSupplier_IdAndPoStatusNot(
+            String buyerOrganizationPublicId,
+            Long supplierId,
+            PoStatus poStatus
+    );
+
+    @EntityGraph(attributePaths = {"supplier"})
+    List<SupplyPurchaseOrder> findAllByBuyerOrganizationPublicIdAndPoStatusNot(
+            String buyerOrganizationPublicId,
+            PoStatus poStatus
+    );
 
 }

@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurchaseOrder, Long> {
@@ -91,5 +92,41 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
 
     boolean existsBySubPoNumber(String subPoNumber);
     Optional<SupplySubPurchaseOrder> findTopBySubPoNumberStartingWithOrderBySubPoNumberDesc(String prefix);
+
+    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    @Query("""
+        select subPo
+        from SupplySubPurchaseOrder subPo
+        where subPo.subPoStatus <> :deletedStatus
+          and (
+                (subPo.parentPurchaseOrder.supplier.id = :loginSupplierId and subPo.supplier.id in :relatedSupplierIds)
+                or
+                (subPo.parentPurchaseOrder.supplier.id in :relatedSupplierIds and subPo.supplier.id = :loginSupplierId)
+          )
+        order by subPo.orderedAt desc
+        """)
+    List<SupplySubPurchaseOrder> findAllBetweenSupplierAndRelatedSuppliers(
+            @Param("loginSupplierId") Long loginSupplierId,
+            @Param("relatedSupplierIds") Collection<Long> relatedSupplierIds,
+            @Param("deletedStatus") SubPoStatus deletedStatus
+    );
+
+    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    @Query("""
+        select subPo
+        from SupplySubPurchaseOrder subPo
+        where subPo.subPoStatus <> :deletedStatus
+          and (
+                (subPo.parentPurchaseOrder.supplier.id = :firstSupplierId and subPo.supplier.id = :secondSupplierId)
+                or
+                (subPo.parentPurchaseOrder.supplier.id = :secondSupplierId and subPo.supplier.id = :firstSupplierId)
+          )
+        order by subPo.orderedAt desc
+        """)
+    List<SupplySubPurchaseOrder> findAllBetweenSuppliers(
+            @Param("firstSupplierId") Long firstSupplierId,
+            @Param("secondSupplierId") Long secondSupplierId,
+            @Param("deletedStatus") SubPoStatus deletedStatus
+    );
 
 }

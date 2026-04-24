@@ -23,7 +23,6 @@ import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderItemRepo
 import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.relation.domain.SupplierRelationStatus;
@@ -35,7 +34,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -89,9 +87,8 @@ public class SubPurchaseOrderService {
 
         SupplySupplier issuerSupplier = parentPurchaseOrder.getSupplier();
 
-        SupplySupplier targetSupplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+        SupplySupplier targetSupplier = supplierRepository.findByPublicIdAndSupplierStatusNot(
                         request.getSupplierPublicId(),
-                        ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.TARGET_SUPPLIER_NOT_FOUND));

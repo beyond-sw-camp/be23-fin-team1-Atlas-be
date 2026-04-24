@@ -25,7 +25,6 @@ import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderItemRepo
 import com.ozz.atlas.supply.purchaseorder.search.service.PurchaseOrderSearchService;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
@@ -35,7 +34,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -68,9 +66,8 @@ public class PurchaseOrderService {
                 ) {
             validateCreateRequest(request);
 
-        SupplySupplier supplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+        SupplySupplier supplier = supplierRepository.findByPublicIdAndSupplierStatusNot(
                         request.getSupplierPublicId(),
-                        ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_SUPPLIER_NOT_FOUND));

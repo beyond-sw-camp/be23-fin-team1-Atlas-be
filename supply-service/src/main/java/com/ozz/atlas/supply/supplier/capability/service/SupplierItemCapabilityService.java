@@ -10,7 +10,6 @@ import com.ozz.atlas.supply.supplier.capability.dtos.UpdateSupplierItemCapabilit
 import com.ozz.atlas.supply.supplier.capability.exception.SupplierItemCapabilityErrorCode;
 import com.ozz.atlas.supply.supplier.capability.exception.SupplierItemCapabilityException;
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
@@ -33,7 +32,7 @@ public class SupplierItemCapabilityService {
             String supplierPublicId,
             CreateSupplierItemCapabilityRequest request
     ) {
-        SupplySupplier supplier = getApprovedSupplier(supplierPublicId);
+        SupplySupplier supplier = getSupplierOrThrow(supplierPublicId);
         SupplyItem item = getActiveItem(request.getItemPublicId());
 
         // supplier, item 모두 내부 FK 엔티티이므로 중복 체크는 id 기준으로 처리한다.
@@ -60,7 +59,7 @@ public class SupplierItemCapabilityService {
 
     @Transactional(readOnly = true)
     public List<SupplierItemCapabilityResponse> getCapabilities(String supplierPublicId) {
-        SupplySupplier supplier = getApprovedSupplier(supplierPublicId);
+        SupplySupplier supplier = getSupplierOrThrow(supplierPublicId);
 
         return capabilityRepository.findAllBySupplier_IdOrderByItem_ItemNameAsc(supplier.getId())
                 .stream()
@@ -70,7 +69,7 @@ public class SupplierItemCapabilityService {
 
     @Transactional(readOnly = true)
     public SupplierItemCapabilityResponse getCapability(String supplierPublicId, String itemPublicId) {
-        SupplySupplier supplier = getApprovedSupplier(supplierPublicId);
+        SupplySupplier supplier = getSupplierOrThrow(supplierPublicId);
         SupplyItem item = getActiveItem(itemPublicId);
 
         SupplySupplierItemCapability capability = capabilityRepository.findBySupplier_IdAndItem_Id(
@@ -91,7 +90,7 @@ public class SupplierItemCapabilityService {
             throw new SupplierItemCapabilityException(SupplierItemCapabilityErrorCode.EMPTY_PATCH_NOT_ALLOWED);
         }
 
-        SupplySupplier supplier = getApprovedSupplier(supplierPublicId);
+        SupplySupplier supplier = getSupplierOrThrow(supplierPublicId);
         SupplyItem item = getActiveItem(itemPublicId);
 
         SupplySupplierItemCapability capability = capabilityRepository.findBySupplier_IdAndItem_Id(
@@ -115,10 +114,9 @@ public class SupplierItemCapabilityService {
         return SupplierItemCapabilityResponse.fromEntity(capability);
     }
 
-    private SupplySupplier getApprovedSupplier(String supplierPublicId) {
-        return supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+    private SupplySupplier getSupplierOrThrow(String supplierPublicId) {
+        return supplierRepository.findByPublicIdAndSupplierStatusNot(
                         supplierPublicId,
-                        ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new SupplierItemCapabilityException(SupplierItemCapabilityErrorCode.SUPPLIER_NOT_FOUND));

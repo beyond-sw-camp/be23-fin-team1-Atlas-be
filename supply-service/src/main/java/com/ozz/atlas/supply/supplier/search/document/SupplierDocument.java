@@ -4,7 +4,6 @@ import com.ozz.atlas.supply.supplier.capability.domain.SupplierItemQualityGrade;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
 import com.ozz.atlas.supply.supplier.certificate.domain.CertificateStatus;
 import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificate;
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.esg.domain.EsgGrade;
@@ -64,9 +63,6 @@ public class SupplierDocument {
     )
     private String supplierName;
 
-    // 승인 요청 / 승인 완료 / 반려 상태
-    private ApprovalStatus approvalStatus;
-
     // 활성 / 비활성 / 중지 / 종료 상태
     private SupplierStatus supplierStatus;
 
@@ -120,7 +116,6 @@ public class SupplierDocument {
                 .organizationPublicId(supplier.getOrganizationPublicId())
                 .supplierCode(supplier.getSupplierCode())
                 .supplierName(supplier.getSupplierName())
-                .approvalStatus(supplier.getApprovalStatus())
                 .supplierStatus(supplier.getSupplierStatus())
                 .primaryContactName(supplier.getPrimaryContactName())
                 .primaryContactEmail(supplier.getPrimaryContactEmail())
