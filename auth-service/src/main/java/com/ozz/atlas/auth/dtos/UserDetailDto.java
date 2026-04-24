@@ -25,6 +25,8 @@ public class UserDetailDto {
     private String departmentPublicId;
     private String departmentCode;
     private String departmentName;
+    private String profileAttachmentPublicId;
+    private String profileImageThumbPath;
     private UserRole userRole;
 
 
@@ -43,6 +45,8 @@ public class UserDetailDto {
                 .departmentPublicId(user.getDepartment() != null ? user.getDepartment().getPublicId() : null)
                 .departmentCode(user.getDepartment() != null ? user.getDepartment().getDepartmentCode() : null)
                 .departmentName(user.getDepartment() != null ? user.getDepartment().getDepartmentName() : null)
+                .profileAttachmentPublicId(user.getProfileAttachmentPublicId())
+                .profileImageThumbPath(user.getProfileImageThumbPath())
                 .userRole(user.getUserRole())
                 .build();
     }

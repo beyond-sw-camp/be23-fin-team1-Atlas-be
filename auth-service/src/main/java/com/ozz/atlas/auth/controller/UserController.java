@@ -68,8 +68,7 @@ public class UserController {
                                               "lastName": "Lee",
                                               "email": "seoyeon.lee@atlas.com",
                                               "phone": "010-8888-9999",
-                                              "jobTitle": "Procurement Manager",
-                                              "profileImagePublicId": "file_01HZXABCDEF1234567890"
+                                              "jobTitle": "Procurement Manager"
                                             }
                                             """
                             )
@@ -149,7 +148,9 @@ public class UserController {
                                             {
                                               "organizationPublicId": "org_01HZX9X5D4P2Q7F8R9S1T2U3V4",
                                               "userPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0",
-                                              "role": "ADMIN"
+                                              "role": "ADMIN",
+                                              "profileAttachmentPublicId": "att_01HZXABCDEF1234567890",
+                                              "profileImageThumbPath": "https://atlas-media.s3.ap-northeast-2.amazonaws.com/thumbs/profile.png"
                                             }
                                             """
                             )
@@ -167,6 +168,59 @@ public class UserController {
 
     //    사용자 정보 수정
     @PatchMapping("/users/{userId}")
+    @Operation(
+            summary = "사용자 정보 수정",
+            description = "기본 프로필 정보와 부서, 프로필 이미지 참조값을 수정한다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = UserUpdateDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "firstName": "철수",
+                                              "lastName": "김",
+                                              "email": "user01@hanbit.com",
+                                              "phone": "010-5555-6666",
+                                              "jobTitle": "물류 운영 담당",
+                                              "departmentPublicId": "01KQ123456789ABCDEFGHJKMN",
+                                              "profileAttachmentPublicId": "att_01HZXABCDEF1234567890",
+                                              "profileImageThumbPath": "https://atlas-media.s3.ap-northeast-2.amazonaws.com/thumbs/profile.png"
+                                            }
+                                            """
+                            )
+                    )
+            ),
+            responses = @ApiResponse(
+                    responseCode = "200",
+                    description = "수정 성공",
+                    content = @Content(
+                            schema = @Schema(implementation = UserDetailDto.class),
+                            examples = @ExampleObject(
+                                    value = """
+                                            {
+                                              "userPublicId": "usr_01HZXA1B2C3D4E5F6G7H8J9K0",
+                                              "organizationPublicId": "org_01HZX9X5D4P2Q7F8R9S1T2U3V4",
+                                              "userId": 1,
+                                              "loginId": "atlas_user01",
+                                              "firstName": "철수",
+                                              "middleName": "",
+                                              "lastName": "김",
+                                              "email": "user01@hanbit.com",
+                                              "phone": "010-5555-6666",
+                                              "jobTitle": "물류 운영 담당",
+                                              "departmentPublicId": "01KQ123456789ABCDEFGHJKMN",
+                                              "departmentCode": "LOGISTICS_DEPARTMENT",
+                                              "departmentName": "물류 부서",
+                                              "profileAttachmentPublicId": "att_01HZXABCDEF1234567890",
+                                              "profileImageThumbPath": "https://atlas-media.s3.ap-northeast-2.amazonaws.com/thumbs/profile.png",
+                                              "userRole": "USER"
+                                            }
+                                            """
+                            )
+                    )
+            )
+    )
     public ResponseEntity<UserDetailDto> userUpdate(
             @PathVariable Long userId,
             @RequestBody @Valid UserUpdateDto dto,

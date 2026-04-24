@@ -207,10 +207,15 @@ public class UserService {
 
     //    사용자 정보 조회 (내정보조회)
     public MyInfoDto getMyInfo(String userPublicId, String organizationPublicId, UserRole role) {
+        User user = userRepository.findByPublicId(userPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
         return MyInfoDto.builder()
                 .userPublicId(userPublicId)
                 .organizationPublicId(organizationPublicId)
                 .role(role)
+                .profileAttachmentPublicId(user.getProfileAttachmentPublicId())
+                .profileImageThumbPath(user.getProfileImageThumbPath())
                 .build();
 
     }
@@ -499,6 +504,11 @@ public class UserService {
             if (!Objects.equals(currentDepartmentPublicId, dto.getDepartmentPublicId())) {
                 changedFields.add("부서");
             }
+        }
+
+        if (!Objects.equals(user.getProfileAttachmentPublicId(), dto.getProfileAttachmentPublicId())
+                || !Objects.equals(user.getProfileImageThumbPath(), dto.getProfileImageThumbPath())) {
+            changedFields.add("프로필 이미지");
         }
 
         // 바뀐 값이 없으면 일반 문구를 반환합니다.

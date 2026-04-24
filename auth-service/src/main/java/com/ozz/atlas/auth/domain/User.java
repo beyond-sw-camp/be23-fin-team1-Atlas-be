@@ -54,6 +54,12 @@ public class User extends BaseTimeEntity {
     @Column(length = 50)
     private String jobTitle;
 
+    @Column(length = 26)
+    private String profileAttachmentPublicId;
+
+    @Column(length = 255)
+    private String profileImageThumbPath;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role_code", nullable = false, length = 40)
     private UserRole userRole;
@@ -79,10 +85,20 @@ public class User extends BaseTimeEntity {
         if (dto.getEmail() != null && !dto.getEmail().isBlank()) this.email = dto.getEmail();
         if (dto.getPhone() != null && !dto.getPhone().isBlank()) this.phone = dto.getPhone();
         if (dto.getJobTitle() != null) this.jobTitle = dto.getJobTitle();
+        if (dto.getProfileAttachmentPublicId() != null) this.profileAttachmentPublicId = dto.getProfileAttachmentPublicId();
+        if (dto.getProfileImageThumbPath() != null) this.profileImageThumbPath = dto.getProfileImageThumbPath();
     }
 
     public void updateDepartment(Department department) {
         this.department = department;
+    }
+
+    public String getProfileAttachmentPublicId() {
+        return profileAttachmentPublicId;
+    }
+
+    public String getProfileImageThumbPath() {
+        return profileImageThumbPath;
     }
 
     public void deleteUser() {
