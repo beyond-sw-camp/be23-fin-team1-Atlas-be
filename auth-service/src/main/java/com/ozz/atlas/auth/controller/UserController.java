@@ -7,6 +7,7 @@ import com.ozz.atlas.auth.dtos.*;
 import com.ozz.atlas.auth.service.LoginHistoryService;
 import com.ozz.atlas.auth.service.SecurityHistoryService;
 import com.ozz.atlas.auth.service.UserService;
+import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -342,6 +343,23 @@ public class UserController {
                 securityHistoryService.mySecurityHistories(principal.userId(), pageable, from, to);
 
         return ResponseEntity.ok(response);
+    }
+
+    // 조직 대표자가 엑셀 파일로 자기 조직 사원을 한 번에 등록
+    @PostMapping("/org-admin/users/upload")
+    public ResponseEntity<OrganizationUserExcelUploadResponseDto> uploadOrganizationUsers(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        // 조직 대표자만 업로드
+        if (principal.role() != UserRole.ORG_ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        OrganizationUserExcelUploadResponseDto response =
+                userService.uploadOrganizationUsers(file, principal);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 

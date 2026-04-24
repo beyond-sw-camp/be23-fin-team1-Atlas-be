@@ -18,7 +18,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.ozz.atlas.common.excel.ExcelUtils;
+
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+
+
 import java.util.List;
 import java.util.Objects;
 
@@ -40,7 +53,6 @@ public class UserService {
     private final SecurityHistoryService securityHistoryService;
     // 계정 생성 후 로그인 정보 메일을 보내는 서비스
     private final CredentialMailService credentialMailService;
-
 
 
     @Autowired
@@ -394,18 +406,18 @@ public class UserService {
         return "Atlas!" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
     }
 
-    // 조직 영문명을 로그인 ID에 쓸 수 있는 slug 형태로 정리합니다.
+    // 조직 영문명을 로그인 ID에 쓸 수 있는 slug 형태로 정리
     // 예: "Hanwha Aerospace" -> "hanwha-aerospace"
     private String toOrganizationSlug(String organizationEnglishName) {
-        // 값이 없으면 기본값으로 org를 씁니다.
+        // 값이 없으면 기본값으로 org를 씀
         if (organizationEnglishName == null || organizationEnglishName.isBlank()) {
             return "org";
         }
 
-        // 영문명에 섞인 특수문자를 정리하기 위해 정규화합니다.
+        // 영문명에 섞인 특수문자를 정리하기 위해 정규화
         String normalized = Normalizer.normalize(organizationEnglishName, Normalizer.Form.NFKC);
 
-        // 영문/숫자/공백/하이픈만 남기고 나머지는 제거합니다.
+        // 영문/숫자/공백/하이픈만 남기고 나머지는 제거
         String slug = normalized
                 .replaceAll("[^A-Za-z0-9\\s-]", "")
                 .trim()
@@ -413,25 +425,25 @@ public class UserService {
                 .replaceAll("-{2,}", "-")
                 .toLowerCase();
 
-        // 정리 후 비어 있으면 기본값을 씁니다.
+        // 정리 후 비어 있으면 기본값
         return slug.isBlank() ? "org" : slug;
     }
 
-    // 최초 ORG_ADMIN 로그인 ID를 자동 생성합니다.
-// 1순위는 admin@{orgSlug} 이고, 이미 있으면 admin001@{orgSlug} 로 올립니다.
+    // 최초 ORG_ADMIN 로그인 ID를 자동 생성
+// 1순위는 admin@{orgSlug} 이고, 이미 있으면 admin001@{orgSlug} 로 올람
     private String generateInitialOrgAdminLoginId(Organization organization) {
-        // 조직 영문명을 slug로 바꿉니다.
+        // 조직 영문명을 slug로 바꿈
         String orgSlug = toOrganizationSlug(organization.getOrganizationEnglishName());
 
-        // 가장 먼저 시도할 기본 로그인 ID입니다.
+        // 가장 먼저 시도할 기본 로그인 ID
         String baseLoginId = "admin@" + orgSlug;
 
-        // 기본 아이디가 비어 있으면 바로 사용합니다.
+        // 기본 아이디가 비어 있으면 바로 사용
         if (!userRepository.existsByLoginId(baseLoginId)) {
             return baseLoginId;
         }
 
-        // 이미 있으면 001부터 하나씩 올려가며 빈 값을 찾습니다.
+        // 이미 있으면 001부터 하나씩 올려가며 빈 값을 찾음
         int sequence = 1;
 
         while (true) {
@@ -445,13 +457,13 @@ public class UserService {
         }
     }
 
-    // 일반 직원 로그인 ID를 자동 생성합니다.
-// 지금은 부서 없이 user001@{orgSlug} 형식으로 생성합니다.
+    // 일반 직원 로그인 ID를 자동 생성
+// 지금은 부서 없이 user001@{orgSlug} 형식으로 생성
     private String generateOrganizationUserLoginId(Organization organization) {
-        // 조직 영문명을 slug로 바꿉니다.
+        // 조직 영문명을 slug로 바꿈
         String orgSlug = toOrganizationSlug(organization.getOrganizationEnglishName());
 
-        // 001부터 시작해서 빈 값을 찾을 때까지 반복합니다.
+        // 001부터 시작해서 빈 값을 찾을 때까지 반복
         int sequence = 1;
 
         while (true) {
@@ -465,36 +477,36 @@ public class UserService {
         }
     }
 
-    // 사용자 엔티티를 그대로 조회합니다.
-// 보안 이력 저장 시 재사용합니다.
+    // 사용자 엔티티를 그대로 조회
+// 보안 이력 저장 시 재사용
     @Transactional(readOnly = true)
     public User getUserEntity(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
     }
 
-    // 사용자 수정 시 어떤 항목이 바뀌었는지 한 줄 요약을 만듭니다.
+    // 사용자 수정 시 어떤 항목이 바뀌었는지 한 줄 요약을 만듬
     public String buildProfileUpdateSummary(User user, UserUpdateDto dto) {
         List<String> changedFields = new ArrayList<>();
 
-        // 이름 변경 여부를 확인합니다.
+        // 이름 변경 여부를 확인
         if (!Objects.equals(user.getFirstName(), dto.getFirstName())
                 || !Objects.equals(user.getMiddleName(), dto.getMiddleName())
                 || !Objects.equals(user.getLastName(), dto.getLastName())) {
             changedFields.add("이름");
         }
 
-        // 이메일 변경 여부를 확인합니다.
+        // 이메일 변경 여부를 확인
         if (!Objects.equals(user.getEmail(), dto.getEmail())) {
             changedFields.add("이메일");
         }
 
-        // 연락처 변경 여부를 확인합니다.
+        // 연락처 변경 여부를 확인
         if (!Objects.equals(user.getPhone(), dto.getPhone())) {
             changedFields.add("연락처");
         }
 
-        // 직책 변경 여부를 확인합니다.
+        // 직책 변경 여부를 확인
         if (!Objects.equals(user.getJobTitle(), dto.getJobTitle())) {
             changedFields.add("직책");
         }
@@ -511,15 +523,132 @@ public class UserService {
             changedFields.add("프로필 이미지");
         }
 
-        // 바뀐 값이 없으면 일반 문구를 반환합니다.
+        // 바뀐 값이 없으면 일반 문구를 반환
         if (changedFields.isEmpty()) {
             return "프로필 정보 수정";
         }
 
-        // 변경된 항목들을 이어 붙여서 반환합니다.
+        // 변경된 항목들을 이어 붙여서 반환
         return String.join(", ", changedFields) + " 변경";
     }
 
+    // 조직 대표자가 엑셀 파일로 자기 조직 사원을 일괄 등록
+    public OrganizationUserExcelUploadResponseDto uploadOrganizationUsers(
+            MultipartFile file,
+            AuthPrincipal principal
+    ) {
+        // 조직 대표자만 업로드할 수 있음
+        if (principal.role() != UserRole.ORG_ADMIN) {
+            throw new IllegalArgumentException("사원 일괄 등록 권한이 없습니다.");
+        }
+
+        // 파일이 없거나 비어 있으면 바로 막음
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드할 파일이 비어 있습니다.");
+        }
+
+        // 줄별 처리 결과를 담을 리스트
+        List<OrganizationUserExcelUploadResponseDto.RowResult> results = new ArrayList<>();
+
+        // 셀 값을 문자열로 안정적으로 읽기 위한 도구
+        DataFormatter formatter = new DataFormatter();
+
+        try (InputStream inputStream = file.getInputStream();
+             Workbook workbook = new XSSFWorkbook(inputStream)) {
+
+            // 첫 번째 시트만 사용
+            Sheet sheet = ExcelUtils.getFirstSheetOrThrow(workbook);
+
+            // 시트가 비어 있으면 바로 막음
+            if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) {
+                throw new IllegalArgumentException("엑셀 시트가 비어 있습니다.");
+            }
+
+            // 0번 줄은 헤더라고 가정하고 1번 줄부터 실제 데이터로 처리
+            for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+                Row row = sheet.getRow(rowIndex);
+
+                // 완전히 빈 줄은 그냥 건너뜀
+                if (ExcelUtils.isRowEmpty(row, 6, formatter)) {
+                    continue;
+                }
+
+                try {
+                    // 엑셀 컬럼 순서:
+                    // 0 firstName
+                    // 1 middleName
+                    // 2 lastName
+                    // 3 email
+                    // 4 phone
+                    // 5 jobTitle
+                    // 6 departmentPublicId
+
+                    String firstName = ExcelUtils.getCellValue(row, 0, formatter);
+                    String middleName = ExcelUtils.getCellValue(row, 1, formatter);
+                    String lastName = ExcelUtils.getCellValue(row, 2, formatter);
+                    String email = ExcelUtils.getCellValue(row, 3, formatter);
+                    String phone = ExcelUtils.getCellValue(row, 4, formatter);
+                    String jobTitle = ExcelUtils.getCellValue(row, 5, formatter);
+                    String departmentPublicId = ExcelUtils.getCellValue(row, 6, formatter);
 
 
+                    // 필수값은 여기서 한 번 더 확인
+                    if (firstName.isBlank() || lastName.isBlank() || email.isBlank()
+                            || phone.isBlank() || departmentPublicId.isBlank()) {
+                        throw new IllegalArgumentException("필수값이 비어 있습니다.");
+                    }
+
+                    // 기존 사원 생성 DTO로 그대로 변환
+                    OrganizationUserCreateDto dto = OrganizationUserCreateDto.builder()
+                            .firstName(firstName)
+                            .middleName(middleName.isBlank() ? null : middleName)
+                            .lastName(lastName)
+                            .email(email)
+                            .phone(phone)
+                            .jobTitle(jobTitle.isBlank() ? null : jobTitle)
+                            .departmentPublicId(departmentPublicId)
+                            .build();
+
+                    // 기존 단건 생성 로직을 그대로 재사용
+                    OrganizationUserCreateResponseDto createdUser =
+                            createOrganizationUser(dto, principal);
+
+                    // 성공 결과를 담음
+                    results.add(OrganizationUserExcelUploadResponseDto.RowResult.builder()
+                            .rowNumber(rowIndex + 1)
+                            .success(true)
+                            .userPublicId(createdUser.getUserPublicId())
+                            .loginId(createdUser.getLoginId())
+                            .temporaryPassword(createdUser.getTemporaryPassword())
+                            .message("생성 완료")
+                            .build());
+
+                } catch (Exception rowError) {
+                    // 한 줄 실패해도 전체 업로드는 계속 진행
+                    results.add(OrganizationUserExcelUploadResponseDto.RowResult.builder()
+                            .rowNumber(rowIndex + 1)
+                            .success(false)
+                            .message(rowError.getMessage())
+                            .build());
+                }
+            }
+
+        } catch (IOException e) {
+            throw new IllegalArgumentException("엑셀 파일을 읽는 중 오류가 발생했습니다.");
+        }
+
+        // 성공/실패 개수를 계산
+        int totalCount = results.size();
+        int successCount = (int) results.stream().filter(OrganizationUserExcelUploadResponseDto.RowResult::isSuccess).count();
+        int failCount = totalCount - successCount;
+
+        // 최종 업로드 결과를 반환
+        return OrganizationUserExcelUploadResponseDto.builder()
+                .totalCount(totalCount)
+                .successCount(successCount)
+                .failCount(failCount)
+                .results(results)
+                .build();
+    }
 }
+
