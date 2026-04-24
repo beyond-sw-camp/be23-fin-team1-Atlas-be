@@ -94,11 +94,10 @@ public class OrganizationService {
             throw new IllegalArgumentException("존재하지 않는 조직입니다.");
         }
 
-        boolean isAdmin = principal.role() == UserRole.ADMIN;
         boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
                 && principal.organizationPublicId().equals(organization.getPublicId());
 
-        if (!isAdmin && !isOrgAdmin) {
+        if (!isOrgAdmin) {
             throw new IllegalArgumentException("수정 권한이 없습니다.");
         }
 
