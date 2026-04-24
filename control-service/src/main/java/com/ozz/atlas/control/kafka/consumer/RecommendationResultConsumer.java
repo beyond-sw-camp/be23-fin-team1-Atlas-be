@@ -2,16 +2,13 @@ package com.ozz.atlas.control.kafka.consumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ozz.atlas.common.domain.DomainType;
 import com.ozz.atlas.common.kafka.EventEnvelope;
 import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.control.kafka.notification.KafkaNotificationOrchestrator;
 import com.ozz.atlas.control.kafka.processed.ProcessedEventService;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationDecisionPayload;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationFailedPayload;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationGeneratedPayload;
-import com.ozz.atlas.control.kafka.rule.service.KafkaEventRuleService;
-import com.ozz.atlas.control.notification.dto.NotificationDto;
-import com.ozz.atlas.control.notification.service.NotificationService;
 import com.ozz.atlas.control.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +24,8 @@ public class RecommendationResultConsumer {
 
     private final ObjectMapper objectMapper;
     private final ProcessedEventService processedEventService;
-    private final NotificationService notificationService;
+    private final KafkaNotificationOrchestrator kafkaNotificationOrchestrator;
     private final RecommendationService recommendationService;
-    private final KafkaEventRuleService kafkaEventRuleService;
 
     @KafkaListener(
             topics = {
@@ -86,27 +82,7 @@ public class RecommendationResultConsumer {
 
         log.info("권고안 생성 완료 이벤트 수신. recommendationPublicId={}, shipmentPublicId={}",
                 payload.recommendationPublicId(), payload.shipmentPublicId());
-
-        if (eventEnvelope.actorUserPublicId() == null || eventEnvelope.actorUserPublicId().isBlank()) {
-            // 사용자 식별자가 없으면 저장만 수행하고 사용자 알림은 생략한다.
-            return;
-        }
-
-        if (!kafkaEventRuleService.isEnabled(eventEnvelope.eventType())) {
-            log.info("비활성화된 Kafka 이벤트 규칙입니다. eventType={}", eventEnvelope.eventType());
-            return;
-        }
-
-        kafkaEventRuleService.markTriggered(eventEnvelope.eventType());
-
-        notificationService.saveAndPublish(NotificationDto.builder()
-                .recipientUserPublicId(eventEnvelope.actorUserPublicId())
-                .notificationType(DomainType.RISK)
-                .title("권고안 생성이 완료되었습니다.")
-                .message("%s 출하 지연에 대한 권고안이 생성되었습니다.".formatted(payload.shipmentPublicId()))
-                .deepLinkUrl("/recommendations/%s".formatted(payload.recommendationPublicId()))
-                .referencePublicId(payload.recommendationPublicId())
-                .build());
+        kafkaNotificationOrchestrator.dispatch(eventEnvelope);
     }
 
     private void handleFailed(EventEnvelope<JsonNode> eventEnvelope) {
@@ -122,26 +98,7 @@ public class RecommendationResultConsumer {
 
         log.warn("권고안 생성 실패 이벤트 수신. recommendationPublicId={}, error={}",
                 payload.recommendationPublicId(), payload.errorMessage());
-
-        if (eventEnvelope.actorUserPublicId() == null || eventEnvelope.actorUserPublicId().isBlank()) {
-            return;
-        }
-
-        if (!kafkaEventRuleService.isEnabled(eventEnvelope.eventType())) {
-            log.info("비활성화된 Kafka 이벤트 규칙입니다. eventType={}", eventEnvelope.eventType());
-            return;
-        }
-
-        kafkaEventRuleService.markTriggered(eventEnvelope.eventType());
-
-        notificationService.saveAndPublish(NotificationDto.builder()
-                .recipientUserPublicId(eventEnvelope.actorUserPublicId())
-                .notificationType(DomainType.SYSTEM)
-                .title("권고안 생성에 실패했습니다.")
-                .message(payload.errorMessage())
-                .deepLinkUrl("/recommendations/%s".formatted(payload.recommendationPublicId()))
-                .referencePublicId(payload.recommendationPublicId())
-                .build());
+        kafkaNotificationOrchestrator.dispatch(eventEnvelope);
     }
 
     private void handleDecision(EventEnvelope<JsonNode> eventEnvelope) {
@@ -150,12 +107,6 @@ public class RecommendationResultConsumer {
 
         log.info("권고안 의사결정 이벤트 수신. recommendationPublicId={}, eventType={}",
                 payload.recommendationPublicId(), eventEnvelope.eventType());
-
-        if (!kafkaEventRuleService.isEnabled(eventEnvelope.eventType())) {
-            log.info("비활성화된 Kafka 이벤트 규칙입니다. eventType={}", eventEnvelope.eventType());
-            return;
-        }
-
-        kafkaEventRuleService.markTriggered(eventEnvelope.eventType());
+        kafkaNotificationOrchestrator.dispatch(eventEnvelope);
     }
 }
