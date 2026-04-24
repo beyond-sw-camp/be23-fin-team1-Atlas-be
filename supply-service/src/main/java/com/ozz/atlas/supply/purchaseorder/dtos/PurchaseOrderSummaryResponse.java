@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.purchaseorder.dtos;
 import com.ozz.atlas.supply.purchaseorder.domain.CurrencyCode;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
+import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,6 +31,7 @@ public class PurchaseOrderSummaryResponse { // 발주 목록 조회용
     private CurrencyCode currencyCode;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private SupplierStatus supplierStatus;
 
     public static PurchaseOrderSummaryResponse fromEntity(SupplyPurchaseOrder purchaseOrder) {
         return PurchaseOrderSummaryResponse.builder()
@@ -45,6 +47,7 @@ public class PurchaseOrderSummaryResponse { // 발주 목록 조회용
                 .currencyCode(purchaseOrder.getCurrencyCode())
                 .createdAt(purchaseOrder.getCreatedAt())
                 .updatedAt(purchaseOrder.getUpdatedAt())
+                .supplierStatus(purchaseOrder.getSupplier().getSupplierStatus())
                 .build();
     }
 }
