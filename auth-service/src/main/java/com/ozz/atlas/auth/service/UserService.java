@@ -3,9 +3,11 @@ package com.ozz.atlas.auth.service;
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
 import com.ozz.atlas.auth.domain.Organization;
+import com.ozz.atlas.auth.domain.Department;
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.*;
+import com.ozz.atlas.auth.repository.DepartmentRepository;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.auth.search.service.UserSearchService;
@@ -32,6 +34,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final OrganizationRepository organizationRepository;
+    private final DepartmentRepository departmentRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserSearchService userSearchService;
     private final SecurityHistoryService securityHistoryService;
@@ -41,10 +44,11 @@ public class UserService {
 
 
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, JwtTokenProvider jwtTokenProvider, UserSearchService userSearchService, SecurityHistoryService securityHistoryService, CredentialMailService credentialMailService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, DepartmentRepository departmentRepository, JwtTokenProvider jwtTokenProvider, UserSearchService userSearchService, SecurityHistoryService securityHistoryService, CredentialMailService credentialMailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.organizationRepository = organizationRepository;
+        this.departmentRepository = departmentRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userSearchService = userSearchService;
         this.securityHistoryService = securityHistoryService;
@@ -58,9 +62,10 @@ public class UserService {
         }
         Organization organization = organizationRepository.findByPublicId(dto.getOrganizationPublicId()).
                 orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직 입니다."));
+        Department department = resolveDepartment(dto.getDepartmentPublicId(), false);
 
         String encodedPassword = passwordEncoder.encode(dto.getPassword());
-        User user = dto.toEntity(organization, encodedPassword);
+        User user = dto.toEntity(organization, department, encodedPassword);
 
         User savedUser = userRepository.save(user);
         userSearchService.saveUserDocument(savedUser);
@@ -148,6 +153,7 @@ public class UserService {
         // 현재 로그인한 대표자의 조직을 기준으로 직원을 생성
         Organization organization = organizationRepository.findByPublicId(principal.organizationPublicId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
+        Department department = resolveDepartment(dto.getDepartmentPublicId(), true);
 
         // 조직 영문명을 기준으로 일반 직원 로그인 ID를 자동 생성합니다..
         String generatedLoginId = generateOrganizationUserLoginId(organization);
@@ -162,6 +168,7 @@ public class UserService {
         // 일반 직원(USER) 계정을 생성
         User user = User.builder()
                 .organization(organization)
+                .department(department)
                 .loginId(generatedLoginId)
                 .password(encodedPassword)
                 .firstName(dto.getFirstName())
@@ -248,6 +255,12 @@ public class UserService {
         }
 
         user.updateUser(dto);
+        if (dto.getDepartmentPublicId() != null) {
+            if (principal.role() != UserRole.ADMIN) {
+                throw new IllegalArgumentException("부서는 관리자만 변경할 수 있습니다.");
+            }
+            user.updateDepartment(resolveDepartment(dto.getDepartmentPublicId(), true));
+        }
         userSearchService.saveUserDocument(user);
 
         return UserDetailDto.fromEntity(user);
@@ -338,6 +351,19 @@ public class UserService {
                 || hasText(searchDto.getLastName())
                 || searchDto.getStatus() != null
                 || hasText(searchDto.getKeyword());
+    }
+
+    private Department resolveDepartment(String departmentPublicId, boolean required) {
+        if (!hasText(departmentPublicId)) {
+            if (required) {
+                throw new IllegalArgumentException("부서 선택은 필수입니다.");
+            }
+            return null;
+        }
+
+        return departmentRepository.findByPublicId(departmentPublicId)
+                .filter(department -> department.getStatus() == Status.ACTIVE)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않거나 비활성화된 부서입니다."));
     }
 
     // 문자열 값이 null 이거나 공백인지 확인하는 공통 메서드
@@ -466,6 +492,13 @@ public class UserService {
         // 직책 변경 여부를 확인합니다.
         if (!Objects.equals(user.getJobTitle(), dto.getJobTitle())) {
             changedFields.add("직책");
+        }
+
+        if (dto.getDepartmentPublicId() != null) {
+            String currentDepartmentPublicId = user.getDepartment() != null ? user.getDepartment().getPublicId() : null;
+            if (!Objects.equals(currentDepartmentPublicId, dto.getDepartmentPublicId())) {
+                changedFields.add("부서");
+            }
         }
 
         // 바뀐 값이 없으면 일반 문구를 반환합니다.

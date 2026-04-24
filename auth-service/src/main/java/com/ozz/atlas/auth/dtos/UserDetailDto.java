@@ -22,6 +22,9 @@ public class UserDetailDto {
     private String email;
     private String phone;
     private String jobTitle;
+    private String departmentPublicId;
+    private String departmentCode;
+    private String departmentName;
     private UserRole userRole;
 
 
@@ -37,6 +40,9 @@ public class UserDetailDto {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .jobTitle(user.getJobTitle())
+                .departmentPublicId(user.getDepartment() != null ? user.getDepartment().getPublicId() : null)
+                .departmentCode(user.getDepartment() != null ? user.getDepartment().getDepartmentCode() : null)
+                .departmentName(user.getDepartment() != null ? user.getDepartment().getDepartmentName() : null)
                 .userRole(user.getUserRole())
                 .build();
     }

@@ -16,9 +16,9 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     Optional<User> findByLoginId(String loginId);
     Optional<User> findByPublicId(String publicId);
     boolean existsByLoginId(String loginId);
-    @EntityGraph(attributePaths = "organization")
+    @EntityGraph(attributePaths = {"organization", "department"})
     Optional<User> findWithOrganizationByUserId(Long userId);
-    @EntityGraph(attributePaths = "organization")
+    @EntityGraph(attributePaths = {"organization", "department"})
     List<User> findAllWithOrganizationBy();
     // 해당 조직에 활성 상태 ORG_ADMIN 이 이미 있는지 확인
     boolean existsByOrganization_PublicIdAndUserRoleAndStatus(

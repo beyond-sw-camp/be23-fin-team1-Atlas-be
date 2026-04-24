@@ -1,6 +1,7 @@
 package com.ozz.atlas.auth.dtos;
 
 import com.ozz.atlas.auth.domain.Organization;
+import com.ozz.atlas.auth.domain.Department;
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.common.jpa.Status;
@@ -50,15 +51,19 @@ public class UserSignUpDto {
     @Schema(description = "직책", example = "Procurement Manager")
     private String jobTitle;
 
+    @Schema(description = "부서 공개 식별자", example = "01KQ123456789ABCDEFGHJKMN", nullable = true)
+    private String departmentPublicId;
+
     @Schema(description = "프로필 이미지 파일 공개 식별자", example = "file_01HZXABCDEF1234567890", nullable = true)
     private String profileImagePublicId;
 
     @Schema(description = "사용자 상태", example = "ACTIVE", nullable = true)
     private Status status;
 
-    public User toEntity(Organization organization, String encodedPassword) {
+    public User toEntity(Organization organization, Department department, String encodedPassword) {
         return User.builder()
                 .organization(organization)
+                .department(department)
                 .loginId(this.loginId)
                 .password(encodedPassword)
                 .firstName(this.firstName)

@@ -96,7 +96,9 @@ public class UserSearchService {
                             "phone",
                             "phone.ngram^2.0",
                             "jobTitle",
-                            "jobTitle.ngram"
+                            "jobTitle.ngram",
+                            "departmentName",
+                            "departmentName.ngram"
                     ))
             )));
         }

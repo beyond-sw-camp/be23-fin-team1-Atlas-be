@@ -41,4 +41,8 @@ public class OrganizationUserCreateDto {
     // 직책은 선택입니다.
     @Schema(description = "직책", example = "품질 담당자")
     private String jobTitle;
+
+    @NotBlank(message = "부서 식별값은 비어 있을 수 없습니다.")
+    @Schema(description = "부서 공개 식별자", example = "01KQ123456789ABCDEFGHJKMN")
+    private String departmentPublicId;
 }
