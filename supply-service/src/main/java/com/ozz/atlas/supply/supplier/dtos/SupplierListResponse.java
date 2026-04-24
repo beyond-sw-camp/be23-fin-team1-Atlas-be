@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.supplier.dtos;
 
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.relation.domain.SupplierRelationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,7 +23,7 @@ public class SupplierListResponse {
     private Long purchaseOrderCount;
     private BigDecimal totalAmount;
     private BigDecimal cumulativeAmount;
-    private String status;
+    private SupplierRelationStatus relationStatus;
     private SupplierResponse detail;
 
     public static SupplierListResponse of(
@@ -33,7 +34,7 @@ public class SupplierListResponse {
             Long purchaseOrderCount,
             BigDecimal totalAmount,
             BigDecimal cumulativeAmount,
-            String status
+            SupplierRelationStatus relationStatus
     ) {
         return SupplierListResponse.builder()
                 .supplierCode(supplier.getSupplierCode())
@@ -44,9 +45,8 @@ public class SupplierListResponse {
                 .purchaseOrderCount(purchaseOrderCount)
                 .totalAmount(totalAmount)
                 .cumulativeAmount(cumulativeAmount)
-                .status(status)
+                .relationStatus(relationStatus)
                 .detail(SupplierResponse.fromEntity(supplier))
                 .build();
     }
-
 }

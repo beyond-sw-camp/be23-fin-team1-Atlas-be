@@ -1,6 +1,5 @@
 package com.ozz.atlas.supply.supplier.dtos;
 
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import lombok.AllArgsConstructor;
@@ -21,7 +20,6 @@ public class SupplierResponse {
     private String supplierCode;
     private String supplierName;
     private SupplierStatus supplierStatus;
-    private ApprovalStatus approvalStatus;
     private String primaryContactName;
     private String primaryContactEmail;
     private String primaryContactPhone;
@@ -35,7 +33,6 @@ public class SupplierResponse {
                 .supplierCode(supplier.getSupplierCode())
                 .supplierName(supplier.getSupplierName())
                 .supplierStatus(supplier.getSupplierStatus())
-                .approvalStatus(supplier.getApprovalStatus())
                 .primaryContactName(supplier.getPrimaryContactName())
                 .primaryContactEmail(supplier.getPrimaryContactEmail())
                 .primaryContactPhone(supplier.getPrimaryContactPhone())

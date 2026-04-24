@@ -33,11 +33,6 @@ public class SupplySupplier extends BaseTimeEntity {
     @Builder.Default
     private SupplierStatus supplierStatus = SupplierStatus.INACTIVE;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private ApprovalStatus approvalStatus = ApprovalStatus.REQUESTED;
-
     @Column(length = 50)
     private String primaryContactName;
 
@@ -60,7 +55,6 @@ public class SupplySupplier extends BaseTimeEntity {
                 .supplierCode(supplierCode)
                 .supplierName(supplierName)
                 .supplierStatus(SupplierStatus.INACTIVE)
-                .approvalStatus(ApprovalStatus.REQUESTED)
                 .primaryContactName(primaryContactName)
                 .primaryContactEmail(primaryContactEmail)
                 .primaryContactPhone(primaryContactPhone)
@@ -81,13 +75,11 @@ public class SupplySupplier extends BaseTimeEntity {
         this.primaryContactPhone = primaryContactPhone;
     }
 
-    public void approve() {
-        this.approvalStatus = ApprovalStatus.APPROVED;
+    public void activate() {
         this.supplierStatus = SupplierStatus.ACTIVE;
     }
 
-    public void reject() {
-        this.approvalStatus = ApprovalStatus.REJECTED;
+    public void deactivate() {
         this.supplierStatus = SupplierStatus.INACTIVE;
     }
 

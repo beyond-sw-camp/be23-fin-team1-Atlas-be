@@ -1,6 +1,5 @@
 package com.ozz.atlas.supply.supplier.relation.service;
 
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.relation.domain.SupplierRelationStatus;
@@ -43,7 +42,7 @@ public class SupplierRelationService {
         validateDateRange(request.getEffectiveFrom(), request.getEffectiveTo());
 
         SupplySupplier parentSupplier = getOwnedParentSupplier(organizationPublicId, parentSupplierPublicId);
-        SupplySupplier childSupplier = getApprovedChildSupplier(request.getChildSupplierPublicId());
+        SupplySupplier childSupplier = getChildSupplierOrThrow(request.getChildSupplierPublicId());
 
         validateNotSelf(parentSupplier, childSupplier);
 
@@ -210,9 +209,8 @@ public class SupplierRelationService {
             String organizationPublicId,
             String parentSupplierPublicId
     ) {
-        SupplySupplier parentSupplier = supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+        SupplySupplier parentSupplier = supplierRepository.findByPublicIdAndSupplierStatusNot(
                         parentSupplierPublicId,
-                        ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new SupplierRelationException(SupplierRelationErrorCode.PARENT_SUPPLIER_NOT_FOUND));
@@ -224,10 +222,9 @@ public class SupplierRelationService {
         return parentSupplier;
     }
 
-    private SupplySupplier getApprovedChildSupplier(String childSupplierPublicId) {
-        return supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+    private SupplySupplier getChildSupplierOrThrow(String childSupplierPublicId) {
+        return supplierRepository.findByPublicIdAndSupplierStatusNot(
                         childSupplierPublicId,
-                        ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new SupplierRelationException(SupplierRelationErrorCode.CHILD_SUPPLIER_NOT_FOUND));

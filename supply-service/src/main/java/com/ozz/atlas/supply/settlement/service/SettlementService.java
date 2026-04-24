@@ -22,7 +22,6 @@ import com.ozz.atlas.supply.settlement.repository.SettlementDetailRepository;
 import com.ozz.atlas.supply.settlement.repository.SettlementRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
-import com.ozz.atlas.supply.supplier.domain.ApprovalStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
@@ -167,11 +166,10 @@ public class SettlementService {
         return toResponseDto(settlement, supplierPublicId, details);
     }
 
-    // 승인 완료되고 종료되지 않은 협력사만 정산 생성 대상으로 허용
+    // 종료되지 않은 협력사만 정산 생성 대상으로 허용
     private SupplySupplier getApprovedActiveSupplier(String supplierPublicId) {
-        return supplierRepository.findByPublicIdAndApprovalStatusAndSupplierStatusNot(
+        return supplierRepository.findByPublicIdAndSupplierStatusNot(
                         supplierPublicId,
-                        ApprovalStatus.APPROVED,
                         SupplierStatus.TERMINATED
                 )
                 .orElseThrow(() -> new SettlementException(SettlementErrorCode.SUPPLIER_NOT_FOUND));

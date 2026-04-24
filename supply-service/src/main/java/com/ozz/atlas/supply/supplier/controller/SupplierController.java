@@ -94,5 +94,31 @@ public class SupplierController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/connections/summary")
+    public ResponseEntity<?> getConnectedSupplierSummary(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                supplierService.getConnectedSupplierSummary(organizationPublicId, organizationType)
+        );
+    }
+
+    @GetMapping("/{supplierPublicId}/connections/detail")
+    public ResponseEntity<?> getConnectedSupplierDetail(
+            @PathVariable String supplierPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                supplierService.getConnectedSupplierDetail(
+                        supplierPublicId,
+                        organizationPublicId,
+                        organizationType
+                )
+        );
+    }
+
+
 
 }
