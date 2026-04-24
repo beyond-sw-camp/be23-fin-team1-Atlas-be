@@ -170,4 +170,32 @@ public class PurchaseOrderController {
                 purchaseOrderService.changePurchaseOrderStatus(buyerOrganizationPublicId, poPublicId, request)
         );
     }
+
+    @PostMapping("/batch")
+    public ResponseEntity<?> createPurchaseOrdersBatch(
+            @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @RequestHeader("X-User-Public-Id") String createdByUserPublicId,
+            @Valid @RequestBody CreatePurchaseOrderBatchRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(purchaseOrderService.createPurchaseOrdersBatch(
+                        buyerOrganizationPublicId,
+                        createdByUserPublicId,
+                        request
+                ));
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<OrderDashboardSummaryResponse> getOrderDashboardSummary(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                purchaseOrderService.getOrderDashboardSummary(
+                        organizationPublicId,
+                        organizationType
+                )
+        );
+    }
+
 }

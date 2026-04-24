@@ -424,4 +424,29 @@ public class SubPurchaseOrderService {
         }
         return candidate;
     }
+
+    @Transactional(readOnly = true)
+    public Page<SubPurchaseOrderResponse> getSentSubPurchaseOrders(
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            Pageable pageable
+    ) {
+        if (isAdmin(userRole)) {
+            return subPurchaseOrderRepository
+                    .findAllBySubPoStatusNot(SubPoStatus.DELETED, pageable)
+                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+        }
+
+        validateSupplierActor(organizationPublicId, organizationType);
+
+        return subPurchaseOrderRepository
+                .findAllByParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
+                        organizationPublicId,
+                        SubPoStatus.DELETED,
+                        pageable
+                )
+                .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+    }
+
 }

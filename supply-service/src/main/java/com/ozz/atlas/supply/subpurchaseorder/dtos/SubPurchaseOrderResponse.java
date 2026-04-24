@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.subpurchaseorder.dtos;
 
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrder;
+import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,6 +33,7 @@ public class SubPurchaseOrderResponse {
     private LocalDateTime orderedAt;
     private String createdByUserPublicId;
     private List<SubPurchaseOrderItemResponse> items;
+    private SupplierStatus supplierStatus;
 
     public static SubPurchaseOrderResponse fromEntity(SupplySubPurchaseOrder subPo, boolean includeItems) {
         return SubPurchaseOrderResponse.builder()
@@ -55,6 +57,7 @@ public class SubPurchaseOrderResponse {
                                 .toList()
                                 : null
                 )
+                .supplierStatus(subPo.getSupplier().getSupplierStatus())
                 .build();
     }
 }

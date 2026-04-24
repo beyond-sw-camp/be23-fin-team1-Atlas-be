@@ -122,4 +122,22 @@ public class SubPurchaseOrderController {
                 )
         );
     }
+
+    @GetMapping("/sent")
+    public ResponseEntity<?> getSentSubPurchaseOrders(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PageableDefault(size = 10) Pageable pageable
+    ) {
+        return ResponseEntity.ok(
+                subPurchaseOrderService.getSentSubPurchaseOrders(
+                        organizationPublicId,
+                        organizationType,
+                        userRole,
+                        pageable
+                )
+        );
+    }
+
 }
