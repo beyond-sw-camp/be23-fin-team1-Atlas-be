@@ -3,8 +3,9 @@ package com.ozz.atlas.auth.service;
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.Organization;
 import com.ozz.atlas.auth.domain.UserRole;
-import com.ozz.atlas.auth.dtos.*;
+import com.ozz.atlas.auth.dtos.organization.*;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
+import com.ozz.atlas.auth.search.dtos.OrganizationSearchDto;
 import com.ozz.atlas.auth.search.service.OrganizationSearchService;
 import com.ozz.atlas.common.jpa.Status;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.regex.Pattern;
-import com.ozz.atlas.auth.dtos.OrganizationAliasLookupDto;
-
 @Service
 @Transactional
 public class OrganizationService {

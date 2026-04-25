@@ -2,7 +2,7 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.LoginHistory;
 import com.ozz.atlas.auth.domain.User;
-import com.ozz.atlas.auth.dtos.LoginHistoryListDto;
+import com.ozz.atlas.auth.dtos.history.LoginHistoryListDto;
 import com.ozz.atlas.auth.repository.LoginHistoryRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
 import java.time.LocalDate;

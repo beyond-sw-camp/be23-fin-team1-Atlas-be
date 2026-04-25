@@ -1,6 +1,6 @@
 package com.ozz.atlas.auth.common.exception;
 
-import com.ozz.atlas.auth.dtos.ErrorResponseDto;
+import com.ozz.atlas.auth.dtos.common.ErrorResponseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

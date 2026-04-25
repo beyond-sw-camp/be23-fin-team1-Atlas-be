@@ -2,7 +2,7 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.SecurityHistory;
 import com.ozz.atlas.auth.domain.User;
-import com.ozz.atlas.auth.dtos.SecurityHistoryListDto;
+import com.ozz.atlas.auth.dtos.history.SecurityHistoryListDto;
 import com.ozz.atlas.auth.repository.SecurityHistoryRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

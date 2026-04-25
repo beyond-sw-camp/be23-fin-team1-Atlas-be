@@ -2,10 +2,10 @@ package com.ozz.atlas.auth.controller;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.UserRole;
-import com.ozz.atlas.auth.dtos.DepartmentCreateDto;
-import com.ozz.atlas.auth.dtos.DepartmentResponseDto;
-import com.ozz.atlas.auth.dtos.DepartmentStatusUpdateDto;
-import com.ozz.atlas.auth.dtos.DepartmentUpdateDto;
+import com.ozz.atlas.auth.dtos.department.DepartmentCreateDto;
+import com.ozz.atlas.auth.dtos.department.DepartmentResponseDto;
+import com.ozz.atlas.auth.dtos.department.DepartmentStatusUpdateDto;
+import com.ozz.atlas.auth.dtos.department.DepartmentUpdateDto;
 import com.ozz.atlas.auth.service.DepartmentService;
 import jakarta.validation.Valid;
 import java.util.List;

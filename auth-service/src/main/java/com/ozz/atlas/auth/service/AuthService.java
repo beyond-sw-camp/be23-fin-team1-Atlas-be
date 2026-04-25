@@ -1,7 +1,7 @@
 package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.User;
-import com.ozz.atlas.auth.dtos.AccessTokenResponseDto;
+import com.ozz.atlas.auth.dtos.auth.AccessTokenResponseDto;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
