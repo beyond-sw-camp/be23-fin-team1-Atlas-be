@@ -1,10 +1,10 @@
 package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.Department;
-import com.ozz.atlas.auth.dtos.DepartmentCreateDto;
-import com.ozz.atlas.auth.dtos.DepartmentResponseDto;
-import com.ozz.atlas.auth.dtos.DepartmentStatusUpdateDto;
-import com.ozz.atlas.auth.dtos.DepartmentUpdateDto;
+import com.ozz.atlas.auth.dtos.department.DepartmentCreateDto;
+import com.ozz.atlas.auth.dtos.department.DepartmentResponseDto;
+import com.ozz.atlas.auth.dtos.department.DepartmentStatusUpdateDto;
+import com.ozz.atlas.auth.dtos.department.DepartmentUpdateDto;
 import com.ozz.atlas.auth.repository.DepartmentRepository;
 import com.ozz.atlas.common.jpa.Status;
 import java.util.List;

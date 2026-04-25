@@ -2,44 +2,37 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
-import com.ozz.atlas.auth.domain.Organization;
 import com.ozz.atlas.auth.domain.Department;
+import com.ozz.atlas.auth.domain.Organization;
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
-import com.ozz.atlas.auth.dtos.*;
+import com.ozz.atlas.auth.dtos.user.*;
 import com.ozz.atlas.auth.repository.DepartmentRepository;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
+import com.ozz.atlas.auth.search.dtos.UserSearchDto;
 import com.ozz.atlas.auth.search.service.UserSearchService;
+import com.ozz.atlas.common.excel.ExcelUtils;
 import com.ozz.atlas.common.jpa.Status;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Pageable;
-import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import com.ozz.atlas.common.excel.ExcelUtils;
-
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-
-
-import java.util.List;
-import java.util.Objects;
-
-import java.text.Normalizer;
-
-
-import java.util.UUID;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -54,9 +47,17 @@ public class UserService {
     // 계정 생성 후 로그인 정보 메일을 보내는 서비스
     private final CredentialMailService credentialMailService;
 
-
     @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, OrganizationRepository organizationRepository, DepartmentRepository departmentRepository, JwtTokenProvider jwtTokenProvider, UserSearchService userSearchService, SecurityHistoryService securityHistoryService, CredentialMailService credentialMailService) {
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            OrganizationRepository organizationRepository,
+            DepartmentRepository departmentRepository,
+            JwtTokenProvider jwtTokenProvider,
+            UserSearchService userSearchService,
+            SecurityHistoryService securityHistoryService,
+            CredentialMailService credentialMailService
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.organizationRepository = organizationRepository;
@@ -67,28 +68,11 @@ public class UserService {
         this.credentialMailService = credentialMailService;
     }
 
-    //    사용자 회원가입
-    public String signup(UserSignUpDto dto) {
-        if (userRepository.existsByLoginId(dto.getLoginId())) {
-            throw new IllegalArgumentException("이미 사용중인 아이디 입니다.");
-        }
-        Organization organization = organizationRepository.findByPublicId(dto.getOrganizationPublicId()).
-                orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직 입니다."));
-        Department department = resolveDepartment(dto.getDepartmentPublicId(), false);
-
-        String encodedPassword = passwordEncoder.encode(dto.getPassword());
-        User user = dto.toEntity(organization, department, encodedPassword);
-
-        User savedUser = userRepository.save(user);
-        userSearchService.saveUserDocument(savedUser);
-        return savedUser.getPublicId();
-    }
-
     // 관리자가 조직의 최초 ORG_ADMIN 계정을 생성
     // 임시 비밀번호는 서버가 생성해서 응답으로 내려줌
-    public InitialOrgAdminCreateResponseDto createInitialOrgAdmin(
+    public ProvisionedUserResponseDto createInitialOrgAdmin(
             String organizationPublicId,
-            InitialOrgAdminCreateDto dto
+            OrganizationUserCreateDto dto
     ) {
         // 조직이 없으면 대표자 계정을 만들 수 없음
         Organization organization = organizationRepository.findByPublicId(organizationPublicId)
@@ -132,7 +116,7 @@ public class UserService {
         User savedUser = userRepository.save(user);
         userSearchService.saveUserDocument(savedUser);
 
-// 방금 생성한 대표자 계정 정보를 이메일로 보냄
+        // 방금 생성한 대표자 계정 정보를 이메일로 보냄
         credentialMailService.sendTemporaryCredentialMail(
                 savedUser.getEmail(),
                 organization.getOrganizationName(),
@@ -140,20 +124,18 @@ public class UserService {
                 temporaryPassword
         );
 
-        return InitialOrgAdminCreateResponseDto.builder()
-
+        return ProvisionedUserResponseDto.builder()
                 .userPublicId(savedUser.getPublicId())
                 .organizationPublicId(organization.getPublicId())
                 .loginId(savedUser.getLoginId())
                 .temporaryPassword(temporaryPassword)
                 .passwordChangeRequired(true)
                 .build();
-
     }
 
     // 조직 관리자가 자기 조직의 일반 직원 계정을 생성
-    // 조직 정보는 로그인한 ORG_ADMIN 의 토큰에서 가져
-    public OrganizationUserCreateResponseDto createOrganizationUser(
+    // 조직 정보는 로그인한 ORG_ADMIN 의 토큰에서 가져옴
+    public ProvisionedUserResponseDto createOrganizationUser(
             OrganizationUserCreateDto dto,
             AuthPrincipal principal
     ) {
@@ -167,9 +149,8 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
         Department department = resolveDepartment(dto.getDepartmentPublicId(), true);
 
-        // 조직 영문명을 기준으로 일반 직원 로그인 ID를 자동 생성합니다..
+        // 조직 영문명을 기준으로 일반 직원 로그인 ID를 자동 생성합니다.
         String generatedLoginId = generateOrganizationUserLoginId(organization);
-
 
         // 직원 첫 로그인용 임시 비밀번호를 생성
         String temporaryPassword = createTemporaryPassword();
@@ -197,7 +178,7 @@ public class UserService {
         User savedUser = userRepository.save(user);
         userSearchService.saveUserDocument(savedUser);
 
-// 방금 생성한 직원 계정 정보를 이메일로 보냅니다.
+        // 방금 생성한 직원 계정 정보를 이메일로 보냅니다.
         credentialMailService.sendTemporaryCredentialMail(
                 savedUser.getEmail(),
                 organization.getOrganizationName(),
@@ -205,19 +186,16 @@ public class UserService {
                 temporaryPassword
         );
 
-        return OrganizationUserCreateResponseDto.builder()
-
+        return ProvisionedUserResponseDto.builder()
                 .userPublicId(savedUser.getPublicId())
                 .organizationPublicId(organization.getPublicId())
                 .loginId(savedUser.getLoginId())
                 .temporaryPassword(temporaryPassword)
                 .passwordChangeRequired(true)
                 .build();
-
     }
 
-
-    //    사용자 정보 조회 (내정보조회)
+    // 사용자 정보 조회 (내정보조회)
     public MyInfoDto getMyInfo(String userPublicId, String organizationPublicId, UserRole role) {
         User user = userRepository.findByPublicId(userPublicId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -229,10 +207,9 @@ public class UserService {
                 .profileAttachmentPublicId(user.getProfileAttachmentPublicId())
                 .profileImageThumbPath(user.getProfileImageThumbPath())
                 .build();
-
     }
 
-    //    사용자 목록 조회
+    // 사용자 목록 조회
     public Page<UserListDto> userList(Pageable pageable, UserSearchDto searchDto) {
         // 검색 조건이 하나라도 있으면 Elasticsearch 통합검색을 사용
         // 조건이 전혀 없을 때만 기본 DB 목록 조회로 내려감
@@ -244,8 +221,7 @@ public class UserService {
                 .map(UserListDto::fromEntity);
     }
 
-
-    //    사용자 상세 조회
+    // 사용자 상세 조회
     public UserDetailDto userDetail(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -257,8 +233,7 @@ public class UserService {
         return UserDetailDto.fromEntity(user);
     }
 
-
-    //    사용자 정보 수정
+    // 사용자 정보 수정
     public UserDetailDto userUpdate(Long userId, UserUpdateDto dto, AuthPrincipal principal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -283,7 +258,7 @@ public class UserService {
         return UserDetailDto.fromEntity(user);
     }
 
-    //    사용자 삭제
+    // 사용자 삭제
     public void userDelete(Long userId, AuthPrincipal principal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -315,7 +290,7 @@ public class UserService {
         return UserDetailDto.fromEntity(user);
     }
 
-    //    사용자 비밀번호 변경
+    // 사용자 비밀번호 변경
     public void userPasswordUpdate(Long userId, UserPasswordUpdateDto dto, AuthPrincipal principal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -349,9 +324,7 @@ public class UserService {
         user.clearPasswordChangeRequired();
 
         jwtTokenProvider.revokeRefreshToken(userId);
-
     }
-
 
     // 검색 DTO에 실제 검색 조건이 하나라도 들어왔는지 확인
     // keyword 뿐 아니라 조직, 권한, 이름, 아이디, 상태도 모두 통합검색 진입 조건으로 봄
@@ -430,7 +403,7 @@ public class UserService {
     }
 
     // 최초 ORG_ADMIN 로그인 ID를 자동 생성
-// 1순위는 admin@{orgSlug} 이고, 이미 있으면 admin001@{orgSlug} 로 올람
+    // 1순위는 admin@{orgSlug} 이고, 이미 있으면 admin001@{orgSlug} 로 올라감
     private String generateInitialOrgAdminLoginId(Organization organization) {
         // 조직 영문명을 slug로 바꿈
         String orgSlug = toOrganizationSlug(organization.getOrganizationEnglishName());
@@ -458,7 +431,7 @@ public class UserService {
     }
 
     // 일반 직원 로그인 ID를 자동 생성
-// 지금은 부서 없이 user001@{orgSlug} 형식으로 생성
+    // 지금은 부서 없이 user001@{orgSlug} 형식으로 생성
     private String generateOrganizationUserLoginId(Organization organization) {
         // 조직 영문명을 slug로 바꿈
         String orgSlug = toOrganizationSlug(organization.getOrganizationEnglishName());
@@ -478,7 +451,7 @@ public class UserService {
     }
 
     // 사용자 엔티티를 그대로 조회
-// 보안 이력 저장 시 재사용
+    // 보안 이력 저장 시 재사용
     @Transactional(readOnly = true)
     public User getUserEntity(Long userId) {
         return userRepository.findById(userId)
@@ -591,7 +564,6 @@ public class UserService {
                     String jobTitle = ExcelUtils.getCellValue(row, 5, formatter);
                     String departmentPublicId = ExcelUtils.getCellValue(row, 6, formatter);
 
-
                     // 필수값은 여기서 한 번 더 확인
                     if (firstName.isBlank() || lastName.isBlank() || email.isBlank()
                             || phone.isBlank() || departmentPublicId.isBlank()) {
@@ -610,7 +582,7 @@ public class UserService {
                             .build();
 
                     // 기존 단건 생성 로직을 그대로 재사용
-                    OrganizationUserCreateResponseDto createdUser =
+                    ProvisionedUserResponseDto createdUser =
                             createOrganizationUser(dto, principal);
 
                     // 성공 결과를 담음
@@ -622,7 +594,6 @@ public class UserService {
                             .temporaryPassword(createdUser.getTemporaryPassword())
                             .message("생성 완료")
                             .build());
-
                 } catch (Exception rowError) {
                     // 한 줄 실패해도 전체 업로드는 계속 진행
                     results.add(OrganizationUserExcelUploadResponseDto.RowResult.builder()
@@ -651,4 +622,3 @@ public class UserService {
                 .build();
     }
 }
-

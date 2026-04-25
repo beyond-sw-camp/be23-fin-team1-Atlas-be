@@ -1,5 +1,5 @@
 package com.ozz.atlas.auth.domain;
-import com.ozz.atlas.auth.dtos.UserUpdateDto;
+import com.ozz.atlas.auth.dtos.user.UserUpdateDto;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;

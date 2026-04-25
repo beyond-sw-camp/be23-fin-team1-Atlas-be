@@ -2,7 +2,10 @@ package com.ozz.atlas.auth.controller;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.UserRole;
-import com.ozz.atlas.auth.dtos.*;
+import com.ozz.atlas.auth.dtos.organization.*;
+import com.ozz.atlas.auth.dtos.user.OrganizationUserCreateDto;
+import com.ozz.atlas.auth.dtos.user.ProvisionedUserResponseDto;
+import com.ozz.atlas.auth.search.dtos.OrganizationSearchDto;
 import com.ozz.atlas.auth.service.OrganizationService;
 import com.ozz.atlas.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,8 +25,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import com.ozz.atlas.auth.dtos.OrganizationAliasLookupDto;
-
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Organizations")
@@ -98,16 +99,16 @@ public class OrganizationController {
     }
     // 관리자가 조직의 최초 ORG_ADMIN 계정을 생성
     @PostMapping("/organizations/{organizationPublicId}/org-admin")
-    public ResponseEntity<InitialOrgAdminCreateResponseDto> createInitialOrgAdmin(
+    public ResponseEntity<ProvisionedUserResponseDto> createInitialOrgAdmin(
             @PathVariable String organizationPublicId,
-            @RequestBody @Valid InitialOrgAdminCreateDto dto,
+            @RequestBody @Valid OrganizationUserCreateDto dto,
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
         if (principal.role() != UserRole.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        InitialOrgAdminCreateResponseDto response =
+        ProvisionedUserResponseDto response =
                 userService.createInitialOrgAdmin(organizationPublicId, dto);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
