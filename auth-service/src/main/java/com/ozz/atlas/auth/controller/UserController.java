@@ -8,6 +8,7 @@ import com.ozz.atlas.auth.dtos.history.SecurityHistoryListDto;
 import com.ozz.atlas.auth.dtos.user.*;
 import com.ozz.atlas.auth.search.dtos.UserSearchDto;
 import com.ozz.atlas.auth.service.LoginHistoryService;
+import com.ozz.atlas.auth.service.PasswordChangeVerificationService;
 import com.ozz.atlas.auth.service.SecurityHistoryService;
 import com.ozz.atlas.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,12 +42,14 @@ public class UserController {
     private final UserService userService;
     private final LoginHistoryService loginHistoryService;
     private final SecurityHistoryService securityHistoryService;
+    private final PasswordChangeVerificationService passwordChangeVerificationService;
 
     @Autowired
-    public UserController(UserService userService, LoginHistoryService loginHistoryService, SecurityHistoryService securityHistoryService) {
+    public UserController(UserService userService, LoginHistoryService loginHistoryService, SecurityHistoryService securityHistoryService, PasswordChangeVerificationService passwordChangeVerificationService) {
         this.userService = userService;
         this.loginHistoryService = loginHistoryService;
         this.securityHistoryService = securityHistoryService;
+        this.passwordChangeVerificationService = passwordChangeVerificationService;
     }
 
     // 조직 관리자가 자기 조직의 일반 직원 계정을 생성
@@ -228,20 +231,46 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/users/{userId}/password")
-    public ResponseEntity<Void> userPasswordUpdate(
+    @PostMapping("/users/{userId}/password/verification-request")
+    public ResponseEntity<PasswordVerificationRequestResponseDto> requestPasswordChangeVerification(
             @PathVariable Long userId,
             @RequestBody @Valid UserPasswordUpdateDto dto,
             @AuthenticationPrincipal AuthPrincipal principal,
             HttpServletRequest request
     ) {
+        // 본인만 자기 비밀번호 변경 인증을 요청할 수 있게 막음
         if (!principal.userId().equals(userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        userService.userPasswordUpdate(userId, dto, principal);
+        // 비밀번호 변경 인증 요청을 생성하고 메일을 발송
+        PasswordVerificationRequestResponseDto response =
+                passwordChangeVerificationService.createVerificationRequest(
+                        userId,
+                        dto,
+                        principal,
+                        request.getRemoteAddr(),
+                        request.getHeader("User-Agent")
+                );
 
-        // 비밀번호 변경 보안 이력을 저장합니다.
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/users/{userId}/password/verification-confirm")
+    public ResponseEntity<Void> confirmPasswordChangeVerification(
+            @PathVariable Long userId,
+            @RequestBody @Valid PasswordVerificationConfirmDto dto,
+            @AuthenticationPrincipal AuthPrincipal principal,
+            HttpServletRequest request
+    ) {
+        // 본인만 자기 비밀번호 변경 인증을 완료할 수 있게 막음
+        if (!principal.userId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        // 인증코드를 검증하고 실제 비밀번호를 변경
+        passwordChangeVerificationService.confirmVerification(userId, dto, principal);
+
         User user = userService.getUserEntity(userId);
 
         securityHistoryService.saveHistory(
@@ -254,6 +283,7 @@ public class UserController {
 
         return ResponseEntity.noContent().build();
     }
+
 
     // 내 로그인 이력 조회
     @GetMapping("/login-histories/me")
