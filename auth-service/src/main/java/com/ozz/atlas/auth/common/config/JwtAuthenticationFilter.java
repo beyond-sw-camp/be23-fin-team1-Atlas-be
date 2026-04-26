@@ -46,7 +46,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 User user = userRepository.findWithOrganizationByUserId(userId).orElse(null);
 
 
-                if (user == null || user.getStatus() != Status.ACTIVE) {
+                // 사용자 자체가 없거나,
+                // 사용자 상태가 활성 상태가 아니거나,
+                // 소속 조직 상태가 활성 상태가 아니면 인증을 막음
+                if (user == null
+                        || user.getStatus() != Status.ACTIVE
+                        || user.getOrganization().getStatus() != Status.ACTIVE) {
+
                     SecurityContextHolder.clearContext();
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     return;

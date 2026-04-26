@@ -198,18 +198,19 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // 사용자 삭제
-    @DeleteMapping("/users/{userId}")
-    public ResponseEntity<Void> userDelete(
+    // 사용자 상태변경
+    @PatchMapping("/users/{userId}/status")
+    public ResponseEntity<UserDetailDto> userStatusUpdate(
             @PathVariable Long userId,
+            @RequestBody @Valid UserStatusUpdateDto dto,
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
         if (!principal.userId().equals(userId) && principal.role() != UserRole.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        userService.userDelete(userId, principal);
-        return ResponseEntity.noContent().build();
+        UserDetailDto response = userService.userStatusUpdate(userId, dto, principal);
+        return ResponseEntity.ok(response);
     }
 
     // 사용자 권한 변경

@@ -258,24 +258,37 @@ public class UserService {
         return UserDetailDto.fromEntity(user);
     }
 
-    // 사용자 삭제
-    public void userDelete(Long userId, AuthPrincipal principal) {
+
+    // 사용자 권한 변경
+    // 사용자의 상태를 ACTIVE, DEACTIVE, DELETE 중 하나로 변경합니다.
+    public UserDetailDto userStatusUpdate(Long userId, UserStatusUpdateDto dto, AuthPrincipal principal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        if (user.getStatus() != Status.ACTIVE) {
-            throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
+        boolean isAdmin = principal.role() == UserRole.ADMIN;
+        boolean isSelf = principal.userId().equals(userId);
+        Status targetStatus = dto.getStatus();
+
+        if (!isAdmin && !isSelf) {
+            throw new IllegalArgumentException("사용자 상태 변경 권한이 없습니다.");
         }
 
-        if (!principal.userId().equals(userId) && principal.role() != UserRole.ADMIN) {
-            throw new IllegalArgumentException("삭제 권한이 없습니다.");
+        // 자기 자신의 계정은 비활성화나 삭제만 할 수 있고, 다시 활성화하는 것은 관리자만 허용합니다.
+        if (!isAdmin && targetStatus == Status.ACTIVE) {
+            throw new IllegalArgumentException("사용자 활성화는 관리자만 할 수 있습니다.");
         }
 
-        user.deleteUser();
+        // 소속 조직이 비활성화 또는 삭제된 상태라면 사용자만 단독으로 활성화할 수 없습니다.
+        if (targetStatus == Status.ACTIVE && user.getOrganization().getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("비활성화 또는 삭제된 조직 소속 사용자는 활성화할 수 없습니다.");
+        }
+
+        user.changeStatus(targetStatus);
         userSearchService.saveUserDocument(user);
+
+        return UserDetailDto.fromEntity(user);
     }
 
-    // 사용자 권한 변경
     public UserDetailDto userRoleUpdate(Long userId, UserRoleUpdateDto dto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));

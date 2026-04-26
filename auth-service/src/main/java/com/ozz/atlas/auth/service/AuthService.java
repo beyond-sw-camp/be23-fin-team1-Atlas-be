@@ -57,6 +57,15 @@ public class AuthService {
                     user
             );
         }
+        // 사용자 계정이 활성이어도 소속 조직이 비활성이면 로그인할 수 없음
+        if (user.getOrganization().getStatus() != Status.ACTIVE) {
+            throw new LoginFailedException(
+                    "비활성화 또는 삭제된 조직입니다.",
+                    "INACTIVE_ORGANIZATION",
+                    user
+            );
+        }
+
 
         user.getOrganization().getPublicId();
 
@@ -83,6 +92,11 @@ public class AuthService {
         if (user.getStatus() != Status.ACTIVE) {
             throw new IllegalArgumentException("비활성화 또는 삭제된 사용자입니다.");
         }
+        // 사용자가 살아 있어도 소속 조직이 비활성이면 토큰 재발급을 막음
+        if (user.getOrganization().getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("비활성화 또는 삭제된 조직입니다.");
+        }
+
 
         String newAccessToken = jwtTokenProvider.createAccessToken(
                 user.getUserId(),

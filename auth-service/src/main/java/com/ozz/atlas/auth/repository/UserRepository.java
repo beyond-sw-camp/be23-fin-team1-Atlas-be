@@ -26,6 +26,10 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             UserRole userRole,
             Status status
     );
+    // 특정 조직에 속한 사용자들을 한 번에 조회
+// 조직 상태 변경 시 소속 사용자 상태를 함께 바꾸는 데 사용
+    @EntityGraph(attributePaths = {"organization", "department"})
+    List<User> findAllByOrganization_PublicId(String organizationPublicId);
 
 
 
