@@ -86,11 +86,7 @@ public class Organization extends BaseTimeEntity {
         }
     }
 
-    public void deleteOrganization() {
-        this.status = Status.DELETE;
+    public void changeStatus(Status status) {
+        this.status = status;
     }
-
-
-
-
 }

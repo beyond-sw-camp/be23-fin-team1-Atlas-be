@@ -162,24 +162,16 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
-    //    조직 삭제
-    @DeleteMapping("/organizations/{organizationId}")
-    public ResponseEntity<Void> organizationDelete(
+    // 조직 상태를 활성화, 비활성화, 삭제 중 하나로 변경
+    @PatchMapping("/organizations/{organizationId}/status")
+    public ResponseEntity<OrganizationDetailDto> organizationStatusUpdate(
             @PathVariable Long organizationId,
+            @RequestBody @Valid OrganizationStatusUpdateDto dto,
             @AuthenticationPrincipal AuthPrincipal principal) {
 
-        OrganizationDetailDto organization = organizationService.organizationDetail(organizationId);
-
-        boolean isAdmin = principal.role() == UserRole.ADMIN;
-        boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
-                && principal.organizationPublicId().equals(organization.getOrganizationPublicId());
-
-        if (!isAdmin && !isOrgAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        organizationService.organizationDelete(organizationId, principal);
-        return ResponseEntity.noContent().build();
+        OrganizationDetailDto response =
+                organizationService.organizationStatusUpdate(organizationId, dto, principal);
+        return ResponseEntity.ok(response);
     }
 
     // 현재 로그인한 사용자의 조직 상세를 조회
