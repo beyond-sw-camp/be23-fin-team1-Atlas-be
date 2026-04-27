@@ -85,8 +85,14 @@ public class User extends BaseTimeEntity {
     @Column
     private LocalDateTime passwordChangedAt;
 
-    // 임시 비밀번호로 만든 계정인지 표시합니다.
-    // true면 첫 로그인 뒤 비밀번호를 다시 설정해야 합니다.
+
+    // 마지막 로그인 성공 시각
+    // 다른 기기에서 새로 로그인했는지 비교할 기준값
+    @Column
+    private LocalDateTime lastLoginAt;
+
+    // 임시 비밀번호로 만든 계정인지 표시
+    // true면 첫 로그인 뒤 비밀번호를 다시 설정
     @Builder.Default
     @Column(nullable = false)
     private boolean passwordChangeRequired = false;
@@ -130,8 +136,8 @@ public class User extends BaseTimeEntity {
         return profileImageThumbPath;
     }
 
-    // 사용자의 상태를 원하는 값으로 바꿉니다.
-    // 삭제도 별도 메서드 대신 이 메서드로 통일해서 처리합니다.
+    // 사용자의 상태를 원하는 값으로 변경
+    // 삭제도 별도 메서드 대신 이 메서드로 통일해서 처리
     public void changeStatus(Status status) {
         this.status = status;
     }
@@ -145,13 +151,27 @@ public class User extends BaseTimeEntity {
         this.passwordChangedAt = LocalDateTime.now();
     }
 
-    // 최초 생성 계정처럼 비밀번호 변경을 강제해야 할 때 호출합니다.
+    // 최초 생성 계정처럼 비밀번호 변경을 강제해야 할 때 호출
     public void requirePasswordChange() {
         this.passwordChangeRequired = true;
     }
 
-    // 비밀번호를 정상적으로 바꾼 뒤에는 강제 변경 상태를 해제합니다.
+    // 비밀번호를 정상적으로 바꾼 뒤에는 강제 변경 상태를 해제
     public void clearPasswordChangeRequired() {
         this.passwordChangeRequired = false;
     }
+
+    // 로그인에 성공한 시각을 현재 시각으로 기록
+    // 나중에 JWT 필터에서 "이 토큰이 최신 로그인보다 먼저 발급됐는지" 비교할 때 사용
+    public void markLoggedInNow() {
+        this.lastLoginAt = LocalDateTime.now();
+    }
+
+    // 로그인 성공 시각을 외부에서 받은 값으로 정확히 기록
+    // JWT 발급 시각과 DB 저장 시각을 완전히 같게 맞출 때 사용
+    public void markLoggedInAt(LocalDateTime loginAt) {
+        this.lastLoginAt = loginAt;
+    }
+
+
 }

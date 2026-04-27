@@ -16,15 +16,21 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.time.ZoneId;
-import java.util.Date;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
+import java.util.Map;
 
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, UserRepository userRepository) {
         this.jwtTokenProvider = jwtTokenProvider;
@@ -60,15 +66,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 Date issuedAt = jwtTokenProvider.getIssuedAtFromAccessToken(accessToken);
 
-                if (user.getPasswordChangedAt() != null &&
-                        issuedAt.toInstant().isBefore(
-                                user.getPasswordChangedAt().atZone(ZoneId.systemDefault()).toInstant()
-                        )) {
-                    SecurityContextHolder.clearContext();
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    return;
+                Instant tokenIssuedAt = issuedAt.toInstant()
+                        .truncatedTo(ChronoUnit.SECONDS);
+// 다른 곳에서 더 나중에 로그인했으면 기존 토큰 차단
+                if (user.getLastLoginAt() != null) {
+                    Instant lastLoginAt = user.getLastLoginAt()
+                            .atZone(ZoneId.systemDefault())
+                            .toInstant()
+                            .truncatedTo(ChronoUnit.SECONDS);
+
+                    if (tokenIssuedAt.isBefore(lastLoginAt)) {
+                        SecurityContextHolder.clearContext();
+
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                        response.setCharacterEncoding("UTF-8");
+
+                        objectMapper.writeValue(response.getWriter(), Map.of(
+                                "code", "DUPLICATE_LOGIN_SESSION_EXPIRED",
+                                "message", "다른 기기에서 로그인되어 로그아웃되었습니다. 다시 로그인해 주세요."
+                        ));
+
+                        return;
+                    }
                 }
 
+// 다른 곳에서 더 나중에 로그인했으면 기존 토큰 차단
+                if (user.getLastLoginAt() != null) {
+                    Instant lastLoginAt = user.getLastLoginAt()
+                            .atZone(ZoneId.systemDefault())
+                            .toInstant()
+                            .truncatedTo(ChronoUnit.SECONDS);
+
+                    if (tokenIssuedAt.isBefore(lastLoginAt)) {
+                        SecurityContextHolder.clearContext();
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        return;
+                    }
+                }
 
                 String userPublicId = user.getPublicId();
                 String organizationPublicId = user.getOrganization().getPublicId();

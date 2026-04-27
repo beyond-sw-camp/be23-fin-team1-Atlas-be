@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ozz.atlas.auth.common.exception.LoginFailedException;
+import java.time.LocalDateTime;
+
 
 
 
@@ -110,6 +112,21 @@ public class AuthService {
                 .accessToken(newAccessToken)
                 .build();
     }
+
+    // 로그인 최종 성공 시각을 기록
+    // user 객체 자체를 믿지 않고, 현재 트랜잭션 안에서 다시 조회한 엔티티를 수정
+    public void markLoginSuccess(Long userId, LocalDateTime loginAt) {
+        User managedUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // JWT 에 넣을 발급 시각과 똑같은 시각을 DB에도 저장합니다.
+        managedUser.markLoggedInAt(loginAt);
+
+        // 명시적으로 저장해 두면 의도가 더 분명합니다.
+        userRepository.save(managedUser);
+    }
+
+
 
 
 }
