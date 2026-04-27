@@ -25,8 +25,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // WebSocket 접속 엔드포인트: /ws-chat
-        registry.addEndpoint("/ws-chat")
+        // /ws-control은 채팅/알림 공용 엔드포인트, /ws-chat은 기존 FE 호환용으로 유지한다.
+        registry.addEndpoint("/ws-control", "/ws-chat")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
