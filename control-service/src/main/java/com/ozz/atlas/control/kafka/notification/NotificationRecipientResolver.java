@@ -7,6 +7,7 @@ import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.control.client.AuthServiceClient;
 import com.ozz.atlas.control.client.dto.AuthUserRecipientDto;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationDecisionPayload;
+import com.ozz.atlas.control.notification.service.NotificationPreferenceService;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,7 @@ public class NotificationRecipientResolver {
 
     private final ObjectMapper objectMapper;
     private final AuthServiceClient authServiceClient;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     public List<String> resolve(EventEnvelope<JsonNode> eventEnvelope) {
         if (isSupplyEvent(eventEnvelope.eventType())) {
@@ -41,7 +43,10 @@ public class NotificationRecipientResolver {
             addIfHasText(recipientUserPublicIds, payload.decidedByUserPublicId());
         }
 
-        return List.copyOf(recipientUserPublicIds);
+        return notificationPreferenceService.filterEnabledRecipients(
+                eventEnvelope.eventType(),
+                List.copyOf(recipientUserPublicIds)
+        );
     }
 
     private void addIfHasText(Set<String> recipientUserPublicIds, String userPublicId) {
@@ -64,7 +69,10 @@ public class NotificationRecipientResolver {
                     .forEach(recipientUserPublicIds::add);
         }
 
-        return List.copyOf(recipientUserPublicIds);
+        return notificationPreferenceService.filterEnabledRecipients(
+                eventEnvelope.eventType(),
+                List.copyOf(recipientUserPublicIds)
+        );
     }
 
     private Set<String> resolveOrganizationPublicIds(EventEnvelope<JsonNode> eventEnvelope) {
