@@ -9,6 +9,12 @@ public record ShipmentDelayDetectedPayload(
         long delayMinutes,
         LocalDateTime arrivalEta,
         LocalDateTime estimatedArrivalAt,
-        String currentNodePublicId
+        String currentNodePublicId,
+        String rootPurchaseOrderPublicId,
+        String rootBuyerOrganizationPublicId,
+        String directBuyerOrganizationPublicId,
+        String directSupplierOrganizationPublicId,
+        String parentPurchaseOrderPublicId,
+        String subPurchaseOrderPublicId
 ) {
 }

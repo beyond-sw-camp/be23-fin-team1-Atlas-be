@@ -31,6 +31,20 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @EntityGraph(attributePaths = {"organization", "department"})
     List<User> findAllByOrganization_PublicId(String organizationPublicId);
 
+    @EntityGraph(attributePaths = {"organization", "department"})
+    List<User> findAllByOrganization_PublicIdAndDepartment_DepartmentCodeAndStatus(
+            String organizationPublicId,
+            String departmentCode,
+            Status status
+    );
+
+    @EntityGraph(attributePaths = {"organization", "department"})
+    List<User> findAllByOrganization_PublicIdAndUserRoleAndStatus(
+            String organizationPublicId,
+            UserRole userRole,
+            Status status
+    );
+
 
 
 }

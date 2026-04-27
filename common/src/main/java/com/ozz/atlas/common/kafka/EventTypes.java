@@ -9,6 +9,11 @@ public final class EventTypes {
     public static final String PURCHASE_ORDER_REJECTED = "purchase-order.rejected";
     public static final String PURCHASE_ORDER_CANCELLED = "purchase-order.cancelled";
 
+    public static final String SUB_PURCHASE_ORDER_CREATED = "sub-purchase-order.created";
+    public static final String SUB_PURCHASE_ORDER_CONFIRMED = "sub-purchase-order.confirmed";
+    public static final String SUB_PURCHASE_ORDER_REJECTED = "sub-purchase-order.rejected";
+    public static final String SUB_PURCHASE_ORDER_CANCELLED = "sub-purchase-order.cancelled";
+
     public static final String SHIPMENT_CREATED = "shipment.created";
     public static final String SHIPMENT_DEPARTED = "shipment.departed";
     public static final String SHIPMENT_ARRIVED = "shipment.arrived";

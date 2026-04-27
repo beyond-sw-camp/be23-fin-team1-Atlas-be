@@ -1,5 +1,12 @@
 package com.ozz.atlas.supply.lot.service;
 
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.lot.domain.Lot;
 import com.ozz.atlas.supply.lot.domain.LotStatus;
 import com.ozz.atlas.supply.lot.domain.QualityStatus;
@@ -45,10 +52,13 @@ public class LotService {
     private final SupplyItemRepository supplyItemRepository;
     private final SupplierRepository supplierRepository;
     private final LotStatusHistoryRepository lotStatusHistoryRepository;
+    private final OutboxEventAppender outboxEventAppender;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SupplyChainContextResolver supplyChainContextResolver;
 
 
     @Transactional
-    public LotResponseDto createLot(CreateLotRequestDto request) {
+    public LotResponseDto createLot(CreateLotRequestDto request, String actorUserPublicId) {
         if (lotRepository.existsByLotNumber(request.getLotNumber())) {
             throw new LotException(LotErrorCode.DUPLICATE_LOT_NUMBER);
         }
@@ -91,6 +101,14 @@ public class LotService {
 
         // 새로 생성된 LOT를 ES에도 같이 저장
         lotSearchService.saveLotDocument(savedLot);
+        appendLotEvent(
+                EventTypes.LOT_CREATED,
+                savedLot,
+                actorUserPublicId,
+                supplier.getOrganizationPublicId(),
+                "LOT 생성",
+                "LOT 생성 시"
+        );
 
         return toResponseDto(savedLot);
 
@@ -131,7 +149,7 @@ public class LotService {
     }
 
     @Transactional
-    public LotResponseDto updateLotStatus(String publicId, LotStatus lotStatus, String reason) {
+    public LotResponseDto updateLotStatus(String publicId, LotStatus lotStatus, String reason, String actorUserPublicId) {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
@@ -150,11 +168,19 @@ public class LotService {
 
         // 상태가 바뀌었으니 ES 문서도 다시 저장
         lotSearchService.saveLotDocument(lot);
+        appendLotEvent(
+                resolveLotStatusEventType(lotStatus),
+                lot,
+                actorUserPublicId,
+                lot.getSupplier() != null ? lot.getSupplier().getOrganizationPublicId() : null,
+                "LOT 상태 변경",
+                reason != null && !reason.isBlank() ? reason : "LOT 상태 변경 시"
+        );
         return toResponseDto(lot);
     }
 
     @Transactional
-    public LotResponseDto updateQualityStatus(String publicId, QualityStatus qualityStatus, String reason) {
+    public LotResponseDto updateQualityStatus(String publicId, QualityStatus qualityStatus, String reason, String actorUserPublicId) {
         Lot lot = lotRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new LotException(LotErrorCode.LOT_NOT_FOUND));
 
@@ -173,6 +199,14 @@ public class LotService {
 
         // 품질 상태가 바뀌었으니 ES 문서도 다시 저장
         lotSearchService.saveLotDocument(lot);
+        appendLotEvent(
+                resolveQualityStatusEventType(qualityStatus),
+                lot,
+                actorUserPublicId,
+                lot.getSupplier() != null ? lot.getSupplier().getOrganizationPublicId() : null,
+                "LOT 품질 상태 변경",
+                reason != null && !reason.isBlank() ? reason : "LOT 품질 상태 변경 시"
+        );
         return toResponseDto(lot);
     }
 
@@ -196,5 +230,55 @@ public class LotService {
             }
         }
         return LotResponseDto.from(lot, supplierName, itemName);
+    }
+
+    private void appendLotEvent(
+            String eventType,
+            Lot lot,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String eventName,
+            String description
+    ) {
+        SupplyChainContext context = supplyChainContextResolver.fromLot(lot);
+        outboxEventAppender.append(
+                supplyDomainEventFactory.create(
+                        KafkaTopics.SUPPLY_LOT,
+                        eventType,
+                        AggregateType.LOT,
+                        lot.getPublicId(),
+                        actorUserPublicId,
+                        organizationPublicId,
+                        context,
+                        supplyDomainEventFactory.payload(
+                                lot.getPublicId(),
+                                lot.getLotNumber(),
+                                lot.getLotStatus().name(),
+                                eventName,
+                                description,
+                                null
+                        )
+                )
+        );
+    }
+
+    private String resolveLotStatusEventType(LotStatus lotStatus) {
+        if (lotStatus == LotStatus.IN_PRODUCTION) {
+            return EventTypes.LOT_IN_PRODUCTION;
+        }
+        if (lotStatus == LotStatus.COMPLETED) {
+            return EventTypes.LOT_COMPLETED;
+        }
+        return EventTypes.LOT_CREATED;
+    }
+
+    private String resolveQualityStatusEventType(QualityStatus qualityStatus) {
+        if (qualityStatus == QualityStatus.HOLD) {
+            return EventTypes.LOT_HOLD;
+        }
+        if (qualityStatus == QualityStatus.DEFECTIVE) {
+            return EventTypes.LOT_QUALITY_FAILED;
+        }
+        return EventTypes.LOT_QUALITY_PASSED;
     }
 }

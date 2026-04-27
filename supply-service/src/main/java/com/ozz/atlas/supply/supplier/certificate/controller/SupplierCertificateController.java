@@ -63,8 +63,11 @@ public class SupplierCertificateController {
 
     @Operation(summary = "협력사 인증서 삭제")
     @DeleteMapping("/certificates/{publicId}")
-    public ResponseEntity<Void> deleteSupplierCertificate(@PathVariable String publicId) {
-        supplierCertificateService.deleteSupplierCertificate(publicId);
+    public ResponseEntity<Void> deleteSupplierCertificate(
+            @PathVariable String publicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId
+    ) {
+        supplierCertificateService.deleteSupplierCertificate(publicId, actorPublicId);
         return ResponseEntity.noContent().build();
     }
 

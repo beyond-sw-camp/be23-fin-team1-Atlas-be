@@ -99,13 +99,15 @@ public class SubPurchaseOrderController {
     public ResponseEntity<?> rejectSubPurchaseOrder(
             @RequestHeader("X-Organization-Public-Id") String receiverOrganizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String subPoPublicId
     ) {
         return ResponseEntity.ok(
                 subPurchaseOrderService.rejectSubPurchaseOrder(
                         receiverOrganizationPublicId,
                         organizationType,
-                        subPoPublicId
+                        subPoPublicId,
+                        actorUserPublicId
                 )
         );
     }
@@ -115,6 +117,7 @@ public class SubPurchaseOrderController {
     public ResponseEntity<?> confirmSubPurchaseOrderItem(
             @RequestHeader("X-Organization-Public-Id") String receiverOrganizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String subPoPublicId,
             @PathVariable String parentPoItemPublicId,
             @PathVariable String itemPublicId,
@@ -127,6 +130,7 @@ public class SubPurchaseOrderController {
                         subPoPublicId,
                         parentPoItemPublicId,
                         itemPublicId,
+                        actorUserPublicId,
                         request
                 )
         );

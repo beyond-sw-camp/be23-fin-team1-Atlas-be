@@ -91,6 +91,7 @@ public class LogisticsNodeController {
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
             @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String publicId,
             @Valid @RequestBody UpdateLogisticsNodeRequestDto dto
     ) {
@@ -100,6 +101,7 @@ public class LogisticsNodeController {
                         organizationType,
                         userRole,
                         publicId,
+                        actorUserPublicId,
                         dto
                 )
         );

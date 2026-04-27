@@ -1,5 +1,12 @@
 package com.ozz.atlas.supply.supplier.certificate.service;
 
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.supplier.certificate.domain.CertificateStatus;
 import com.ozz.atlas.supply.supplier.certificate.domain.CertificateType;
 import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificate;
@@ -31,6 +38,9 @@ public class SupplierCertificateService {
     private final CertificateTypeRepository certificateTypeRepository;
     private final SupplierCertificateHistoryRepository supplierCertificateHistoryRepository;
     private final SupplierRepository supplierRepository;
+    private final OutboxEventAppender outboxEventAppender;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SupplyChainContextResolver supplyChainContextResolver;
 
     @Transactional
     public SupplierCertificateResponseDto createSupplierCertificate(String supplierPublicId, CreateSupplierCertificateRequestDto request, String actorPublicId) {
@@ -58,6 +68,14 @@ public class SupplierCertificateService {
         SupplierCertificate savedCert = supplierCertificateRepository.save(cert);
         
         saveHistory(savedCert.getId(), "CREATE", null, savedCert.getCertificateStatus(), "인증서 등록", actorPublicId);
+        appendCertificateEvent(
+                EventTypes.SUPPLIER_CERTIFICATE_CREATED,
+                savedCert,
+                supplier,
+                actorPublicId,
+                "협력사 인증서 생성",
+                "협력사 인증서 생성 시"
+        );
 
         return toResponseDto(savedCert);
     }
@@ -91,14 +109,30 @@ public class SupplierCertificateService {
         cert.update(request.getCertificateNo(), request.getIssuedAt(), request.getExpiredAt(), request.getIssuerName(), request.getAttachmentPublicId());
         
         saveHistory(cert.getId(), "UPDATE", beforeStatus, cert.getCertificateStatus(), "인증서 수정 및 재심사 요청", actorPublicId);
+        appendCertificateEvent(
+                EventTypes.SUPPLIER_CERTIFICATE_CREATED,
+                cert,
+                resolveSupplier(cert),
+                actorPublicId,
+                "협력사 인증서 수정",
+                "협력사 인증서 수정 시"
+        );
 
         return toResponseDto(cert);
     }
 
     @Transactional
-    public void deleteSupplierCertificate(String publicId) {
+    public void deleteSupplierCertificate(String publicId, String actorPublicId) {
         SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
+        appendCertificateEvent(
+                EventTypes.SUPPLIER_CERTIFICATE_REVOKED,
+                cert,
+                resolveSupplier(cert),
+                actorPublicId,
+                "협력사 인증서 철회",
+                "협력사 인증서 철회 시"
+        );
         supplierCertificateRepository.delete(cert);
     }
 
@@ -111,6 +145,14 @@ public class SupplierCertificateService {
         cert.approve();
         
         saveHistory(cert.getId(), "APPROVE", beforeStatus, cert.getCertificateStatus(), "관리자 승인 처리", actorPublicId);
+        appendCertificateEvent(
+                EventTypes.SUPPLIER_CERTIFICATE_APPROVED,
+                cert,
+                resolveSupplier(cert),
+                actorPublicId,
+                "협력사 인증서 승인",
+                "협력사 인증서 승인 시"
+        );
     }
 
     @Transactional
@@ -122,6 +164,14 @@ public class SupplierCertificateService {
         cert.reject(request.getRejectReason());
         
         saveHistory(cert.getId(), "REJECT", beforeStatus, cert.getCertificateStatus(), request.getRejectReason(), actorPublicId);
+        appendCertificateEvent(
+                EventTypes.SUPPLIER_CERTIFICATE_REJECTED,
+                cert,
+                resolveSupplier(cert),
+                actorPublicId,
+                "협력사 인증서 거절",
+                "협력사 인증서 거절 시"
+        );
     }
 
     public List<SupplierCertificateResponseDto> getExpiringCertificates(int days) {
@@ -163,5 +213,40 @@ public class SupplierCertificateService {
             }
         }
         return SupplierCertificateResponseDto.from(cert, supplierName);
+    }
+
+    private void appendCertificateEvent(
+            String eventType,
+            SupplierCertificate certificate,
+            SupplySupplier supplier,
+            String actorUserPublicId,
+            String eventName,
+            String description
+    ) {
+        SupplyChainContext context = supplyChainContextResolver.fromSupplier(supplier);
+        String organizationPublicId = supplier != null ? supplier.getOrganizationPublicId() : null;
+        outboxEventAppender.append(
+                supplyDomainEventFactory.create(
+                        KafkaTopics.SUPPLY_SUPPLIER_CERTIFICATE,
+                        eventType,
+                        AggregateType.SUPPLIER_CERTIFICATE,
+                        certificate.getPublicId(),
+                        actorUserPublicId,
+                        organizationPublicId,
+                        context,
+                        supplyDomainEventFactory.payload(
+                                certificate.getPublicId(),
+                                certificate.getCertificateNo(),
+                                certificate.getCertificateStatus().name(),
+                                eventName,
+                                description,
+                                null
+                        )
+                )
+        );
+    }
+
+    private SupplySupplier resolveSupplier(SupplierCertificate certificate) {
+        return supplierRepository.findByPublicId(certificate.getSupplierPublicId()).orElse(null);
     }
 }

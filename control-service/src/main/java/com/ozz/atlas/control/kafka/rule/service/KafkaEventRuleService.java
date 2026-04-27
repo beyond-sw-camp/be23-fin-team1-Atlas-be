@@ -149,6 +149,11 @@ public class KafkaEventRuleService {
                 rule("PO-005", "발주 거절", KafkaTopics.SUPPLY_PURCHASE_ORDER, EventTypes.PURCHASE_ORDER_REJECTED, "이벤트 발생", "발주 거절 시", KafkaRuleImportance.HIGH),
                 rule("PO-006", "발주 취소", KafkaTopics.SUPPLY_PURCHASE_ORDER, EventTypes.PURCHASE_ORDER_CANCELLED, "이벤트 발생", "발주 취소 시", KafkaRuleImportance.HIGH),
 
+                rule("SUB-001", "하위 발주 생성", KafkaTopics.SUPPLY_SUB_PURCHASE_ORDER, EventTypes.SUB_PURCHASE_ORDER_CREATED, "이벤트 발생", "하위 발주 생성 시", KafkaRuleImportance.MEDIUM),
+                rule("SUB-002", "하위 발주 확정", KafkaTopics.SUPPLY_SUB_PURCHASE_ORDER, EventTypes.SUB_PURCHASE_ORDER_CONFIRMED, "이벤트 발생", "하위 발주 확정 시", KafkaRuleImportance.MEDIUM),
+                rule("SUB-003", "하위 발주 거절", KafkaTopics.SUPPLY_SUB_PURCHASE_ORDER, EventTypes.SUB_PURCHASE_ORDER_REJECTED, "이벤트 발생", "하위 발주 거절 시", KafkaRuleImportance.HIGH),
+                rule("SUB-004", "하위 발주 취소", KafkaTopics.SUPPLY_SUB_PURCHASE_ORDER, EventTypes.SUB_PURCHASE_ORDER_CANCELLED, "이벤트 발생", "하위 발주 취소 시", KafkaRuleImportance.HIGH),
+
                 rule("SHP-001", "출하 생성", KafkaTopics.SUPPLY_SHIPMENT, EventTypes.SHIPMENT_CREATED, "이벤트 발생", "출하 생성 시", KafkaRuleImportance.MEDIUM),
                 rule("SHP-002", "출하 출발", KafkaTopics.SUPPLY_SHIPMENT, EventTypes.SHIPMENT_DEPARTED, "이벤트 발생", "출하 출발 시", KafkaRuleImportance.LOW),
                 rule("SHP-003", "출하 도착", KafkaTopics.SUPPLY_SHIPMENT, EventTypes.SHIPMENT_ARRIVED, "이벤트 발생", "출하 도착 시", KafkaRuleImportance.LOW),

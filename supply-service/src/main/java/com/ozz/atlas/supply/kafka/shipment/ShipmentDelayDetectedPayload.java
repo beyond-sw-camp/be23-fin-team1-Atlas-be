@@ -18,6 +18,12 @@ public record ShipmentDelayDetectedPayload(
         @Schema(description = "추정 도착 시각", example = "2026-04-21T02:45:00", nullable = true)
         LocalDateTime estimatedArrivalAt,
         @Schema(description = "현재 물류 노드 공개 식별자", example = "node_01HS6Q1M4F4BCJ0YV7Z5X8W9KG", nullable = true)
-        String currentNodePublicId
+        String currentNodePublicId,
+        String rootPurchaseOrderPublicId,
+        String rootBuyerOrganizationPublicId,
+        String directBuyerOrganizationPublicId,
+        String directSupplierOrganizationPublicId,
+        String parentPurchaseOrderPublicId,
+        String subPurchaseOrderPublicId
 ) {
 }

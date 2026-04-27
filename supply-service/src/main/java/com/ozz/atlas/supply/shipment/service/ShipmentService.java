@@ -1,6 +1,11 @@
 package com.ozz.atlas.supply.shipment.service;
 
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
 import com.ozz.atlas.supply.kafka.shipment.ShipmentFactory;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
@@ -56,6 +61,8 @@ public class ShipmentService {
     private final EtaProjectionRepository etaProjectionRepository;
     private final OutboxEventAppender outboxEventAppender;
     private final ShipmentFactory shipmentFactory;
+    private final SupplyChainContextResolver supplyChainContextResolver;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -66,7 +73,9 @@ public class ShipmentService {
             ShipmentSearchService shipmentSearchService,
             EtaProjectionRepository etaProjectionRepository,
             OutboxEventAppender outboxEventAppender,
-            ShipmentFactory shipmentFactory
+            ShipmentFactory shipmentFactory,
+            SupplyChainContextResolver supplyChainContextResolver,
+            SupplyDomainEventFactory supplyDomainEventFactory
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
@@ -77,6 +86,8 @@ public class ShipmentService {
         this.etaProjectionRepository = etaProjectionRepository;
         this.outboxEventAppender = outboxEventAppender;
         this.shipmentFactory = shipmentFactory;
+        this.supplyChainContextResolver = supplyChainContextResolver;
+        this.supplyDomainEventFactory = supplyDomainEventFactory;
     }
 
     // 출하 생성
@@ -138,6 +149,7 @@ public class ShipmentService {
                         savedShipment,
                         originNode.getPublicId(),
                         destinationNode.getPublicId(),
+                        supplyChainContextResolver.fromShipment(savedShipment),
                         actorUserPublicId,
                         organizationPublicId
                 )
@@ -237,6 +249,7 @@ public class ShipmentService {
                     shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(savedShipment.getId());
 
             saveEtaProjectionIfChanged(savedShipment, previousEtaResult, updatedCheckpoints);
+            appendShipmentTrackingEvent(savedShipment, dto, actorUserPublicId, organizationPublicId);
         }
 
         return toShipmentResponseDto(savedShipment);
@@ -647,5 +660,62 @@ public class ShipmentService {
                 .build();
 
         etaProjectionRepository.save(etaProjection);
+    }
+
+    private void appendShipmentTrackingEvent(
+            Shipment shipment,
+            TrackShipmentRequestDto dto,
+            String actorUserPublicId,
+            String organizationPublicId
+    ) {
+        String eventType = resolveShipmentTrackingEventType(dto);
+        if (eventType == null) {
+            return;
+        }
+
+        outboxEventAppender.append(
+                supplyDomainEventFactory.create(
+                        KafkaTopics.SUPPLY_SHIPMENT,
+                        eventType,
+                        AggregateType.SHIPMENT,
+                        shipment.getPublicId(),
+                        actorUserPublicId,
+                        organizationPublicId,
+                        supplyChainContextResolver.fromShipment(shipment),
+                        supplyDomainEventFactory.payload(
+                                shipment.getPublicId(),
+                                shipment.getShipmentNumber(),
+                                shipment.getStatus().name(),
+                                resolveShipmentTrackingEventName(eventType),
+                                resolveShipmentTrackingDescription(eventType),
+                                null
+                        )
+                )
+        );
+    }
+
+    private String resolveShipmentTrackingEventType(TrackShipmentRequestDto dto) {
+        if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
+            return EventTypes.SHIPMENT_DEPARTED;
+        }
+        if (dto.getCheckpointType() == CheckpointType.ARRIVAL
+                || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
+            return EventTypes.SHIPMENT_ARRIVED;
+        }
+        return null;
+    }
+
+    private String resolveShipmentTrackingEventName(String eventType) {
+        if (EventTypes.SHIPMENT_DEPARTED.equals(eventType)) {
+            return "출하 출발";
+        }
+        return "출하 도착";
+    }
+
+    private String resolveShipmentTrackingDescription(String eventType) {
+        if (EventTypes.SHIPMENT_DEPARTED.equals(eventType)) {
+            return "출하 출발 시";
+        }
+        return "출하 도착 시";
     }
 }
