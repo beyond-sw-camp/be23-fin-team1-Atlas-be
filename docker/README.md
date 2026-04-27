@@ -25,8 +25,10 @@ docker compose -f docker/docker-compose.infra.yml down -v
 - MariaDB (`3306`)
 - PostgreSQL (`5432`)
 - Redis (`6379`)
-- Kafka (`9092`)
 - Elasticsearch (`9200`)
+
+Kafka는 로컬 컨테이너로 띄우지 않고 팀 서버 Kafka를 그대로 사용한다.
+`application-local.yml`의 `spring.kafka.bootstrap-servers` 값은 서버 Kafka 주소 기준으로 유지한다.
 
 ## 데이터베이스
 
