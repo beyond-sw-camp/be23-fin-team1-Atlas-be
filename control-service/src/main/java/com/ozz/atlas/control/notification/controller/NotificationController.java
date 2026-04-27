@@ -1,6 +1,9 @@
 package com.ozz.atlas.control.notification.controller;
 
 import com.ozz.atlas.control.notification.dto.NotificationDto;
+import com.ozz.atlas.control.notification.dto.NotificationPreferenceResponse;
+import com.ozz.atlas.control.notification.dto.NotificationPreferenceUpdateRequest;
+import com.ozz.atlas.control.notification.service.NotificationPreferenceService;
 import com.ozz.atlas.control.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -8,6 +11,8 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     /**
      * 내 알림 목록 조회 (페이징)
@@ -51,6 +57,34 @@ public class NotificationController {
     )
     public ResponseEntity<Long> getUnreadCount(@RequestHeader("X-User-Public-Id") String userPublicId) {
         return ResponseEntity.ok(notificationService.getUnreadCount(userPublicId));
+    }
+
+    @GetMapping("/preferences")
+    @Operation(
+            summary = "내 알림 수신 설정 조회",
+            description = "사용자가 설정할 수 있는 알림 카테고리 메타데이터와 현재 수신 여부를 조회한다."
+    )
+    public ResponseEntity<List<NotificationPreferenceResponse>> getMyNotificationPreferences(
+            @RequestHeader("X-User-Public-Id") String userPublicId
+    ) {
+        return ResponseEntity.ok(notificationPreferenceService.getPreferences(userPublicId));
+    }
+
+    @PatchMapping("/preferences/{category}")
+    @Operation(
+            summary = "내 알림 수신 설정 변경",
+            description = "카테고리별 개인 알림 수신 여부를 변경한다. 전체 플랫폼 이벤트 ON/OFF는 Kafka 모니터링 규칙에서 관리한다."
+    )
+    public ResponseEntity<NotificationPreferenceResponse> updateMyNotificationPreference(
+            @RequestHeader("X-User-Public-Id") String userPublicId,
+            @PathVariable String category,
+            @Valid @RequestBody NotificationPreferenceUpdateRequest request
+    ) {
+        return ResponseEntity.ok(notificationPreferenceService.updatePreference(
+                userPublicId,
+                category,
+                request.enabled()
+        ));
     }
 
     /**
