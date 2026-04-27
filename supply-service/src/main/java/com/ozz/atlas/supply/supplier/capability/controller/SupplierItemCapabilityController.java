@@ -23,10 +23,11 @@ public class SupplierItemCapabilityController {
     @PostMapping
     public ResponseEntity<?> createCapability(
             @PathVariable String supplierPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody CreateSupplierItemCapabilityRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(supplierItemCapabilityService.createCapability(supplierPublicId, request));
+                .body(supplierItemCapabilityService.createCapability(supplierPublicId, request, actorUserPublicId));
     }
 
     @Operation(summary = "협력사 품목 공급 역량 목록 조회")
@@ -49,10 +50,16 @@ public class SupplierItemCapabilityController {
     public ResponseEntity<?> updateCapability(
             @PathVariable String supplierPublicId,
             @PathVariable String itemPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody UpdateSupplierItemCapabilityRequest request
     ) {
         return ResponseEntity.ok(
-                supplierItemCapabilityService.updateCapability(supplierPublicId, itemPublicId, request)
+                supplierItemCapabilityService.updateCapability(
+                        supplierPublicId,
+                        itemPublicId,
+                        request,
+                        actorUserPublicId
+                )
         );
     }
 }
