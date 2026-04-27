@@ -8,5 +8,23 @@ import java.util.Optional;
 
 @Repository
 public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, Long> {
+
     Optional<ReturnRequest> findByPublicId(String publicId);
+
+    Optional<ReturnRequest> findByPublicIdAndRequestOrganizationPublicIdOrPublicIdAndTargetOrganizationPublicId(
+            String publicId,
+            String requestOrganizationPublicId,
+            String samePublicId,
+            String targetOrganizationPublicId
+    );
+
+    org.springframework.data.domain.Page<ReturnRequest> findByRequestOrganizationPublicIdOrTargetOrganizationPublicId(
+            String requestOrganizationPublicId,
+            String targetOrganizationPublicId,
+            org.springframework.data.domain.Pageable pageable
+    );
+    boolean existsBySourceShipmentPublicId(String sourceShipmentPublicId);
+
+    Optional<ReturnRequest> findByReturnShipmentPublicId(String returnShipmentPublicId);
+
 }

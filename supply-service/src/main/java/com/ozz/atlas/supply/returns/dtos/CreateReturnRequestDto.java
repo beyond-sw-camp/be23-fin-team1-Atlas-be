@@ -17,20 +17,10 @@ import java.util.List;
 @AllArgsConstructor
 @Schema(description = "반품 생성 요청")
 public class CreateReturnRequestDto {
-    @NotBlank(message = "업무 번호는 필수입니다.")
-    @Schema(description = "반품 번호", example = "RET-2026-0007")
-    private String returnNumber;
 
-    @Schema(description = "원본 출하 공개 식별자", example = "ship_01HZY1SHIPMENT123456789", nullable = true)
+    @NotBlank(message = "원본 출하 식별자는 필수입니다.")
+    @Schema(description = "원본 출하 공개 식별자", example = "ship_01HZY1SHIPMENT123456789")
     private String sourceShipmentPublicId;
-
-    @NotBlank(message = "요청 조직 식별자는 필수입니다.")
-    @Schema(description = "반품 요청 조직 공개 식별자", example = "org_req_01HZY2ORGREQ123456")
-    private String requestOrganizationPublicId;
-
-    @NotBlank(message = "대상 조직 식별자는 필수입니다.")
-    @Schema(description = "반품 대상 조직 공개 식별자", example = "org_tgt_01HZY2ORGTGT123456")
-    private String targetOrganizationPublicId;
 
     @NotNull(message = "반품 유형은 필수입니다.")
     @Schema(description = "반품 유형", example = "QUALITY_ISSUE")

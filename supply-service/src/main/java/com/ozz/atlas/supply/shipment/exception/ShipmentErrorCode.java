@@ -17,6 +17,8 @@ public enum ShipmentErrorCode implements ErrorCode {
     INVALID_SHIPMENT_STATUS_TRANSITION(400, "SHIPMENT_006", "출하 상태 변경 요청이 올바르지 않습니다."),
     ACCESS_DENIED(403, "SHIPMENT_007", "출하 정보에 접근할 권한이 없습니다."),
     INACTIVE_LOGISTICS_NODE(400, "SHIPMENT_008", "비활성 물류거점은 출하에 사용할 수 없습니다."),
+    SHIPMENT_CREATION_NOT_ALLOWED(403, "SHIPMENT_009", "공급사만 출하를 생성할 수 있습니다."),
+    SHIPMENT_ORDER_STATUS_NOT_ALLOWED(400, "SHIPMENT_010", "수락 완료된 발주만 출하를 생성할 수 있습니다."),
     INTERNAL_SERVER_ERROR(500, "SHIPMENT_999", "서버 내부 오류가 발생했습니다.");
 
     private final int status;

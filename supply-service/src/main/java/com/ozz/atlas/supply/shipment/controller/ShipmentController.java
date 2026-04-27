@@ -17,6 +17,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.ozz.atlas.supply.shipment.dtos.UpdateShipmentRequestDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentMapResponseDto;
+import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
+import com.ozz.atlas.supply.shipment.exception.ShipmentException;
 
 import java.net.URI;
 import java.util.List;
@@ -84,6 +88,35 @@ public class ShipmentController {
                 pageable
         );
     }
+    @PostMapping("/reindex")
+    public ResponseEntity<Void> reindexShipments(
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        if (!"ADMIN".equalsIgnoreCase(organizationType)
+                && !"ADMIN".equalsIgnoreCase(userRole)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        }
+
+        shipmentSearchService.reindexAllShipments();
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/map")
+    public ResponseEntity<List<ShipmentMapResponseDto>> getShipmentMapData(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.getShipmentMapData(
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
+    }
 
     // 출하 상세 조회
     @GetMapping("/{publicId}")
@@ -96,6 +129,24 @@ public class ShipmentController {
         return ResponseEntity.ok(
                 shipmentService.getShipmentByPublicId(
                         publicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
+    }
+    @PatchMapping("/{publicId}")
+    public ResponseEntity<ShipmentResponseDto> updateShipment(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PathVariable String publicId,
+            @RequestBody UpdateShipmentRequestDto dto
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.updateShipment(
+                        publicId,
+                        dto,
                         organizationPublicId,
                         organizationType,
                         userRole

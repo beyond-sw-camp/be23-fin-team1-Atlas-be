@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.returns.service;
 
+import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
@@ -29,6 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
+import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -48,16 +52,43 @@ public class ReturnService {
     private final ReturnSearchService returnSearchService;
     private final SupplierRepository supplierRepository;
     private final SupplyItemRepository supplyItemRepository;
+    private final LogisticsNodeRepository logisticsNodeRepository;
+    private final ShipmentSearchService shipmentSearchService;
 
     @Transactional
-    public ReturnRequestResponseDto createReturn(CreateReturnRequestDto request, String actorPublicId) {
-        String masterAttachments = request.getAttachmentPublicIds() != null ? String.join(",", request.getAttachmentPublicIds()) : null;
+    public ReturnRequestResponseDto createReturn(
+            CreateReturnRequestDto request,
+            String actorPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateReturnCreateActor(actorPublicId, organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = shipmentRepository.findByPublicId(request.getSourceShipmentPublicId())
+                .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+
+        validateReturnSourceShipment(shipment);
+
+        LogisticsNode originNode = getShipmentNode(shipment.getOriginNodeId());
+        LogisticsNode destinationNode = getShipmentNode(shipment.getDestinationNodeId());
+
+        String requestOrganizationPublicId = destinationNode.getOrganizationPublicId();
+        String targetOrganizationPublicId = originNode.getOrganizationPublicId();
+
+        if (!requestOrganizationPublicId.equals(organizationPublicId)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+
+        String masterAttachments = request.getAttachmentPublicIds() != null
+                ? String.join(",", request.getAttachmentPublicIds())
+                : null;
 
         ReturnRequest returnRequest = ReturnRequest.builder()
-                .returnNumber(request.getReturnNumber())
+                .returnNumber(generateReturnNumber(shipment))
                 .sourceShipmentPublicId(request.getSourceShipmentPublicId())
-                .requestOrganizationPublicId(request.getRequestOrganizationPublicId())
-                .targetOrganizationPublicId(request.getTargetOrganizationPublicId())
+                .requestOrganizationPublicId(requestOrganizationPublicId)
+                .targetOrganizationPublicId(targetOrganizationPublicId)
                 .returnType(request.getReturnType())
                 .returnReason(request.getReturnReason())
                 .createdByUserPublicId(actorPublicId)
@@ -77,29 +108,24 @@ public class ReturnService {
             returnRequest.addItem(returnItem);
         });
 
-        if (request.getSourceShipmentPublicId() != null && !request.getSourceShipmentPublicId().isBlank()) {
-            Shipment shipment = shipmentRepository.findByPublicId(request.getSourceShipmentPublicId())
-                    .orElseThrow(() -> new IllegalStateException("출하 정보를 찾을 수 없습니다."));
+        if (shipment.getPoId() != null) {
+            SupplyPurchaseOrder po = purchaseOrderRepository.findById(shipment.getPoId())
+                    .orElseThrow(() -> new IllegalStateException("발주 정보를 찾을 수 없습니다."));
 
-            if (shipment.getPoId() != null) {
-                SupplyPurchaseOrder po = purchaseOrderRepository.findById(shipment.getPoId())
-                        .orElseThrow(() -> new IllegalStateException("발주 정보를 찾을 수 없습니다."));
+            for (CreateReturnItemDto itemDto : request.getItems()) {
+                SupplyPurchaseOrderItem poItem = po.getPurchaseOrderItems().stream()
+                        .filter(pi -> pi.getItem().getPublicId().equals(itemDto.getItemPublicId()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalStateException("발주에 해당 품목이 존재하지 않습니다: " + itemDto.getItemPublicId()));
 
-                for (CreateReturnItemDto itemDto : request.getItems()) {
-                    SupplyPurchaseOrderItem poItem = po.getPurchaseOrderItems().stream()
-                            .filter(pi -> pi.getItem().getPublicId().equals(itemDto.getItemPublicId()))
-                            .findFirst()
-                            .orElseThrow(() -> new IllegalStateException("발주에 해당 품목이 존재하지 않습니다: " + itemDto.getItemPublicId()));
+                Long maxQtyValue = poItem.getConfirmedQty() != null
+                        ? poItem.getConfirmedQty()
+                        : poItem.getOrderedQty();
 
-                    Long maxQtyValue = poItem.getConfirmedQty() != null
-                            ? poItem.getConfirmedQty()
-                            : poItem.getOrderedQty();
+                BigDecimal maxQty = BigDecimal.valueOf(maxQtyValue);
 
-                    BigDecimal maxQty = BigDecimal.valueOf(maxQtyValue);
-
-                    if (itemDto.getReturnQty().compareTo(maxQty) > 0) {
-                        throw new ReturnException(ReturnErrorCode.INVALID_RETURN_QUANTITY);
-                    }
+                if (itemDto.getReturnQty().compareTo(maxQty) > 0) {
+                    throw new ReturnException(ReturnErrorCode.INVALID_RETURN_QUANTITY);
                 }
             }
         }
@@ -114,21 +140,67 @@ public class ReturnService {
         return toResponseDto(savedReturn);
     }
 
-    public Page<ReturnRequestResponseDto> getAllReturns(Pageable pageable) {
-        return returnRequestRepository.findAll(pageable)
+    public Page<ReturnRequestResponseDto> getAllReturns(
+            Pageable pageable,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateReturnReadableActor(organizationPublicId, organizationType, userRole);
+
+        return returnRequestRepository
+                .findByRequestOrganizationPublicIdOrTargetOrganizationPublicId(
+                        organizationPublicId,
+                        organizationPublicId,
+                        pageable
+                )
                 .map(this::toResponseDto);
     }
 
-    public ReturnRequestResponseDto getReturnByPublicId(String publicId) {
-        ReturnRequest returnRequest = returnRequestRepository.findByPublicId(publicId)
+    public ReturnRequestResponseDto getReturnByPublicId(
+            String publicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateReturnReadableActor(organizationPublicId, organizationType, userRole);
+
+        ReturnRequest returnRequest = returnRequestRepository
+                .findByPublicIdAndRequestOrganizationPublicIdOrPublicIdAndTargetOrganizationPublicId(
+                        publicId,
+                        organizationPublicId,
+                        publicId,
+                        organizationPublicId
+                )
                 .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+
         return toResponseDto(returnRequest);
     }
 
     @Transactional
-    public ReturnRequestResponseDto updateReturn(String publicId, UpdateReturnRequestDto request, String actorPublicId) {
-        ReturnRequest returnRequest = returnRequestRepository.findByPublicId(publicId)
+    public ReturnRequestResponseDto updateReturn(
+            String publicId,
+            UpdateReturnRequestDto request,
+            String actorPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateReturnWritableActor(actorPublicId, organizationPublicId, organizationType, userRole);
+
+        ReturnRequest returnRequest = returnRequestRepository
+                .findByPublicIdAndRequestOrganizationPublicIdOrPublicIdAndTargetOrganizationPublicId(
+                        publicId,
+                        organizationPublicId,
+                        publicId,
+                        organizationPublicId
+                )
                 .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+
+        if (!organizationPublicId.equals(returnRequest.getRequestOrganizationPublicId())) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+        validateReturnUpdatable(returnRequest);
 
         String attachments = request.getAttachmentPublicIds() != null ? String.join(",", request.getAttachmentPublicIds()) : null;
         returnRequest.update(request.getReturnType(), request.getReturnReason(), attachments);
@@ -140,12 +212,33 @@ public class ReturnService {
     }
 
     @Transactional
-    public ReturnRequestResponseDto changeStatus(String publicId, UpdateReturnStatusDto request, String actorPublicId) {
-        ReturnRequest returnRequest = returnRequestRepository.findByPublicId(publicId)
+    public ReturnRequestResponseDto changeStatus(
+            String publicId,
+            UpdateReturnStatusDto request,
+            String actorPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateReturnStatusActor(actorPublicId, organizationPublicId, organizationType, userRole);
+
+        ReturnRequest returnRequest = returnRequestRepository
+                .findByPublicIdAndRequestOrganizationPublicIdOrPublicIdAndTargetOrganizationPublicId(
+                        publicId,
+                        organizationPublicId,
+                        publicId,
+                        organizationPublicId
+                )
                 .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+
+        validateReturnStatusTransition(returnRequest, request.getReturnStatus(), organizationPublicId);
 
         ReturnStatus beforeStatus = returnRequest.getReturnStatus();
         returnRequest.changeStatus(request.getReturnStatus());
+
+        if (beforeStatus != ReturnStatus.APPROVED && request.getReturnStatus() == ReturnStatus.APPROVED) {
+            createReturnShipment(returnRequest);
+        }
 
         saveHistory(returnRequest.getId(), beforeStatus, returnRequest.getReturnStatus(), request.getReason(), actorPublicId);
 
@@ -155,8 +248,21 @@ public class ReturnService {
         return toResponseDto(returnRequest);
     }
 
-    public List<ReturnStatusHistoryResponseDto> getReturnHistories(String publicId) {
-        ReturnRequest returnRequest = returnRequestRepository.findByPublicId(publicId)
+    public List<ReturnStatusHistoryResponseDto> getReturnHistories(
+            String publicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateReturnReadableActor(organizationPublicId, organizationType, userRole);
+
+        ReturnRequest returnRequest = returnRequestRepository
+                .findByPublicIdAndRequestOrganizationPublicIdOrPublicIdAndTargetOrganizationPublicId(
+                        publicId,
+                        organizationPublicId,
+                        publicId,
+                        organizationPublicId
+                )
                 .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
         return returnStatusHistoryRepository.findByReturnRequestIdOrderByRecordedAtDesc(returnRequest.getId())
                 .stream()
@@ -206,4 +312,212 @@ public class ReturnService {
 
         return ReturnRequestResponseDto.from(returnRequest, reqOrgName, tgtOrgName, itemNames);
     }
+    private LogisticsNode getShipmentNode(Long nodeId) {
+        return logisticsNodeRepository.findById(nodeId)
+                .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+    }
+    private void validateReturnCreateActor(
+            String actorPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (actorPublicId == null || actorPublicId.isBlank()
+                || organizationPublicId == null || organizationPublicId.isBlank()
+                || organizationType == null || organizationType.isBlank()) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
+        }
+
+        if ("ADMIN".equalsIgnoreCase(organizationType) || "ADMIN".equalsIgnoreCase(userRole)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+
+        if (!"BUYER".equalsIgnoreCase(organizationType)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+    }
+    private void validateReturnReadableActor(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()
+                || organizationType == null || organizationType.isBlank()) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
+        }
+
+        if ("ADMIN".equalsIgnoreCase(organizationType) || "ADMIN".equalsIgnoreCase(userRole)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+
+        if (!"BUYER".equalsIgnoreCase(organizationType)
+                && !"SUPPLIER".equalsIgnoreCase(organizationType)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+    }
+    private void validateReturnWritableActor(
+            String actorPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (actorPublicId == null || actorPublicId.isBlank()
+                || organizationPublicId == null || organizationPublicId.isBlank()
+                || organizationType == null || organizationType.isBlank()) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
+        }
+
+        if ("ADMIN".equalsIgnoreCase(organizationType) || "ADMIN".equalsIgnoreCase(userRole)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+
+        if (!"BUYER".equalsIgnoreCase(organizationType)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+    }
+
+    private void validateReturnStatusActor(
+            String actorPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (actorPublicId == null || actorPublicId.isBlank()
+                || organizationPublicId == null || organizationPublicId.isBlank()
+                || organizationType == null || organizationType.isBlank()) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
+        }
+
+        if ("ADMIN".equalsIgnoreCase(organizationType) || "ADMIN".equalsIgnoreCase(userRole)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+
+        if (!"BUYER".equalsIgnoreCase(organizationType)
+                && !"SUPPLIER".equalsIgnoreCase(organizationType)) {
+            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+    }
+
+    private void validateReturnStatusTransition(
+            ReturnRequest returnRequest,
+            ReturnStatus nextStatus,
+            String organizationPublicId
+    ) {
+        ReturnStatus currentStatus = returnRequest.getReturnStatus();
+
+        if (currentStatus == ReturnStatus.REQUESTED) {
+            if (nextStatus != ReturnStatus.APPROVED && nextStatus != ReturnStatus.REJECTED) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
+
+            if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
+                throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+            }
+
+            return;
+        }
+
+        if (currentStatus == ReturnStatus.APPROVED) {
+            if (nextStatus != ReturnStatus.IN_TRANSIT) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
+
+            if (!organizationPublicId.equals(returnRequest.getRequestOrganizationPublicId())) {
+                throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+            }
+
+            return;
+        }
+
+        if (currentStatus == ReturnStatus.IN_TRANSIT) {
+            if (nextStatus != ReturnStatus.RECEIVED) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
+
+            if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
+                throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+            }
+
+            return;
+        }
+
+        if (currentStatus == ReturnStatus.RECEIVED) {
+            if (nextStatus != ReturnStatus.COMPLETED) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
+
+            if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
+                throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+            }
+
+            return;
+        }
+
+        throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+    }
+    private void validateReturnUpdatable(ReturnRequest returnRequest) {
+        if (returnRequest.getReturnStatus() != ReturnStatus.REQUESTED) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+        }
+    }
+
+    private void validateReturnSourceShipment(Shipment shipment) {
+        if (shipment.getStatus() != ShipmentStatus.ARRIVED) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_SOURCE_SHIPMENT);
+        }
+
+        if (returnRequestRepository.existsBySourceShipmentPublicId(shipment.getPublicId())) {
+            throw new ReturnException(ReturnErrorCode.DUPLICATE_RETURN_REQUEST);
+        }
+    }
+
+    private String generateReturnNumber(Shipment shipment) {
+        String baseNumber = shipment.getPublicId();
+        long sequence = returnRequestRepository.count() + 1;
+
+        return "RTN-" + baseNumber + "-" + String.format("%03d", sequence);
+    }
+    private void createReturnShipment(ReturnRequest returnRequest) {
+        if (returnRequest.getReturnShipmentPublicId() != null
+                && !returnRequest.getReturnShipmentPublicId().isBlank()) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
+        }
+
+        Shipment sourceShipment = shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId())
+                .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+
+        String returnShipmentNumber = generateReturnShipmentNumber(returnRequest);
+
+        if (shipmentRepository.existsByShipmentNumber(returnShipmentNumber)) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
+        }
+
+        Shipment returnShipment = Shipment.builder()
+                .shipmentNumber(returnShipmentNumber)
+                .poId(sourceShipment.getPoId())
+                .subPoId(sourceShipment.getSubPoId())
+                .purchaseOrderPublicId(sourceShipment.getPurchaseOrderPublicId())
+                .subPurchaseOrderPublicId(sourceShipment.getSubPurchaseOrderPublicId())
+                .carrierName(null)
+                .vehicleNo(null)
+                .trackingNo(null)
+                .originNodeId(sourceShipment.getDestinationNodeId())
+                .destinationNodeId(sourceShipment.getOriginNodeId())
+                .currentNodeId(sourceShipment.getDestinationNodeId())
+                .departureEta(null)
+                .arrivalEta(null)
+                .status(ShipmentStatus.READY)
+                .temperatureRequired(sourceShipment.isTemperatureRequired())
+                .build();
+
+        Shipment savedReturnShipment = shipmentRepository.save(returnShipment);
+        shipmentSearchService.saveShipmentDocument(savedReturnShipment);
+
+        returnRequest.assignReturnShipmentPublicId(savedReturnShipment.getPublicId());
+    }
+
+    private String generateReturnShipmentNumber(ReturnRequest returnRequest) {
+        return "RS-" + returnRequest.getPublicId();
+    }
+
 }

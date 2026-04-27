@@ -14,10 +14,6 @@ import java.time.LocalDateTime;
 @Schema(description = "출하 생성 요청")
 public class CreateShipmentRequestDto {
 
-    @NotBlank
-    @Schema(description = "출하 번호", example = "SHIP-2026-0001")
-    private String shipmentNumber;
-
     @NotNull
     @Schema(description = "상위 발주 ID", example = "101")
     private Long poId;
@@ -31,16 +27,13 @@ public class CreateShipmentRequestDto {
     @Schema(description = "하위 발주 공개 식별자", example = "subpo_01HZY1SUBPO123456789", nullable = true)
     private String subPurchaseOrderPublicId;
 
-    @NotBlank
-    @Schema(description = "운송사명", example = "CJ Logistics")
+    @Schema(description = "운송사명", example = "CJ Logistics", nullable = true)
     private String carrierName;
 
-    @NotBlank
-    @Schema(description = "차량 번호", example = "12가3456")
+    @Schema(description = "차량 번호", example = "12가3456", nullable = true)
     private String vehicleNo;
 
-    @NotBlank
-    @Schema(description = "운송 추적 번호", example = "TRK-ATLAS-20260417")
+    @Schema(description = "운송 추적 번호", example = "TRK-ATLAS-20260417", nullable = true)
     private String trackingNo;
 
     @NotBlank

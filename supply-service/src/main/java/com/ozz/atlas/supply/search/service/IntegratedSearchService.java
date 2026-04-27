@@ -93,7 +93,15 @@ public class IntegratedSearchService {
         addShipmentSection(sections, pageable, keyword, organizationPublicId, organizationType, userRole, size);
 
         // 반품 섹션을 추가
-        addReturnSection(sections, pageable, keyword, size);
+        addReturnSection(
+                sections,
+                pageable,
+                keyword,
+                organizationPublicId,
+                organizationType,
+                userRole,
+                size
+        );
 
         // LOT 섹션을 추가
         addLotSection(sections, pageable, keyword, size);
@@ -289,13 +297,20 @@ public class IntegratedSearchService {
             List<IntegratedSearchSectionDto> sections,
             PageRequest pageable,
             String keyword,
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
             int size
     ) {
+
         Page<ReturnRequestResponseDto> page = returnSearchService.search(
                 pageable,
                 ReturnSearchDto.builder()
                         .keyword(keyword)
-                        .build()
+                        .build(),
+                organizationPublicId,
+                organizationType,
+                userRole
         );
 
         if (page.isEmpty()) {

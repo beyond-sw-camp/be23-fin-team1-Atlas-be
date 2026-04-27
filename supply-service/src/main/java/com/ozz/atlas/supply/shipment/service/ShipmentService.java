@@ -5,6 +5,7 @@ import com.ozz.atlas.supply.kafka.shipment.ShipmentFactory;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
+import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
 import com.ozz.atlas.supply.shipment.domain.CheckpointStatus;
 import com.ozz.atlas.supply.shipment.domain.CheckpointType;
 import com.ozz.atlas.supply.shipment.domain.EtaBasis;
@@ -33,6 +34,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
+import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
+import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
+import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
+import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrder;
+import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
+import com.ozz.atlas.supply.shipment.dtos.UpdateShipmentRequestDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentMapCheckpointDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentMapResponseDto;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -56,6 +66,9 @@ public class ShipmentService {
     private final EtaProjectionRepository etaProjectionRepository;
     private final OutboxEventAppender outboxEventAppender;
     private final ShipmentFactory shipmentFactory;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final SubPurchaseOrderRepository subPurchaseOrderRepository;
+    private final ReturnRequestRepository returnRequestRepository;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -66,7 +79,7 @@ public class ShipmentService {
             ShipmentSearchService shipmentSearchService,
             EtaProjectionRepository etaProjectionRepository,
             OutboxEventAppender outboxEventAppender,
-            ShipmentFactory shipmentFactory
+            ShipmentFactory shipmentFactory, PurchaseOrderRepository purchaseOrderRepository, SubPurchaseOrderRepository subPurchaseOrderRepository, ReturnRequestRepository returnRequestRepository
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
@@ -77,6 +90,9 @@ public class ShipmentService {
         this.etaProjectionRepository = etaProjectionRepository;
         this.outboxEventAppender = outboxEventAppender;
         this.shipmentFactory = shipmentFactory;
+        this.purchaseOrderRepository = purchaseOrderRepository;
+        this.subPurchaseOrderRepository = subPurchaseOrderRepository;
+        this.returnRequestRepository = returnRequestRepository;
     }
 
     // 출하 생성
@@ -87,7 +103,8 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
+        validateShippableOrder(dto, organizationPublicId);
 
         if (!dto.getDepartureEta().isBefore(dto.getArrivalEta())) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
@@ -96,13 +113,12 @@ public class ShipmentService {
         LogisticsNode originNode = getActiveNode(dto.getOriginNodePublicId());
         LogisticsNode destinationNode = getActiveNode(dto.getDestinationNodePublicId());
 
-        if (!originNode.getOrganizationPublicId().equals(organizationPublicId)
-                && !destinationNode.getOrganizationPublicId().equals(organizationPublicId)) {
-            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        if (!originNode.getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
         }
 
         Shipment shipment = Shipment.builder()
-                .shipmentNumber(dto.getShipmentNumber())
+                .shipmentNumber(generateShipmentNumber(dto))
                 .poId(dto.getPoId())
                 .purchaseOrderPublicId(dto.getPurchaseOrderPublicId())
                 .subPoId(dto.getSubPoId())
@@ -172,6 +188,49 @@ public class ShipmentService {
 
         return shipmentPage.map(shipment -> toShipmentListResponseDto(shipment, nodeMap));
     }
+    @Transactional(readOnly = true)
+    public List<ShipmentMapResponseDto> getShipmentMapData(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Set<Long> myNodeIds = getOrganizationNodeIds(organizationPublicId);
+        if (myNodeIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<ShipmentStatus> activeStatuses = List.of(
+                ShipmentStatus.READY,
+                ShipmentStatus.IN_TRANSIT,
+                ShipmentStatus.DELAYED
+        );
+
+        List<Shipment> shipments =
+                shipmentRepository.findByStatusInAndOriginNodeIdInOrStatusInAndDestinationNodeIdInOrderByIdDesc(
+                        activeStatuses,
+                        myNodeIds,
+                        activeStatuses,
+                        myNodeIds
+                );
+
+        if (shipments.isEmpty()) {
+            return List.of();
+        }
+
+        List<ShipmentCheckpoint> allCheckpoints = shipments.stream()
+                .flatMap(shipment -> shipmentCheckpointRepository
+                        .findByShipmentIdOrderByActualAtAsc(shipment.getId())
+                        .stream())
+                .toList();
+
+        Map<Long, LogisticsNode> nodeMap = getShipmentMapNodeMap(shipments, allCheckpoints);
+
+        return shipments.stream()
+                .map(shipment -> toShipmentMapResponseDto(shipment, nodeMap))
+                .toList();
+    }
 
     // 출하 상세 조회
     @Transactional(readOnly = true)
@@ -186,6 +245,137 @@ public class ShipmentService {
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
         return toShipmentResponseDto(shipment);
+    }
+    public ShipmentResponseDto updateShipment(
+            String publicId,
+            UpdateShipmentRequestDto dto,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
+        validateShipmentUpdateAuthority(shipment, organizationPublicId, organizationType, userRole);
+
+        validateShipmentUpdatable(shipment);
+        validateShipmentUpdateFields(shipment, dto);
+
+        LogisticsNode originNode = resolveUpdatedOriginNode(shipment, dto, organizationPublicId);
+        LogisticsNode destinationNode = resolveUpdatedDestinationNode(shipment, dto);
+
+        validateUpdatedShipmentSchedule(dto, shipment);
+
+        Long currentNodeId = shipment.getCurrentNodeId();
+        if (!Objects.equals(shipment.getOriginNodeId(), originNode.getId())
+                && Objects.equals(shipment.getCurrentNodeId(), shipment.getOriginNodeId())) {
+            currentNodeId = originNode.getId();
+        }
+
+        shipment.updateShipmentInfo(
+                dto.getCarrierName() != null ? dto.getCarrierName() : shipment.getCarrierName(),
+                dto.getVehicleNo() != null ? dto.getVehicleNo() : shipment.getVehicleNo(),
+                dto.getTrackingNo() != null ? dto.getTrackingNo() : shipment.getTrackingNo(),
+                originNode.getId(),
+                destinationNode.getId(),
+                currentNodeId,
+                dto.getDepartureEta() != null ? dto.getDepartureEta() : shipment.getDepartureEta(),
+                dto.getArrivalEta() != null ? dto.getArrivalEta() : shipment.getArrivalEta()
+        );
+
+        Shipment savedShipment = shipmentRepository.save(shipment);
+        shipmentSearchService.saveShipmentDocument(savedShipment);
+
+        return toShipmentResponseDto(savedShipment);
+    }
+    private void validateShipmentUpdatable(Shipment shipment) {
+        if (shipment.getStatus() == ShipmentStatus.ARRIVED
+                || shipment.getStatus() == ShipmentStatus.CANCELLED) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
+        }
+    }
+    private void validateShipmentUpdateAuthority(
+            Shipment shipment,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        boolean isReturnShipment = returnRequestRepository.findByReturnShipmentPublicId(shipment.getPublicId()).isPresent();
+
+        if (isReturnShipment) {
+            LogisticsNode originNode = getNode(shipment.getOriginNodeId());
+
+            if (!originNode.getOrganizationPublicId().equals(organizationPublicId)) {
+                throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+            }
+
+            if (!"BUYER".equalsIgnoreCase(organizationType)) {
+                throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+            }
+
+            return;
+        }
+
+        validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
+    }
+
+    private void validateShipmentUpdateFields(Shipment shipment, UpdateShipmentRequestDto dto) {
+        if (shipment.getStatus() != ShipmentStatus.IN_TRANSIT) {
+            return;
+        }
+
+        boolean hasNodeChangeRequest =
+                (dto.getOriginNodePublicId() != null && !dto.getOriginNodePublicId().isBlank())
+                        || (dto.getDestinationNodePublicId() != null && !dto.getDestinationNodePublicId().isBlank());
+
+        boolean hasScheduleChangeRequest =
+                dto.getDepartureEta() != null || dto.getArrivalEta() != null;
+
+        if (hasNodeChangeRequest || hasScheduleChangeRequest) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
+        }
+    }
+
+    private LogisticsNode resolveUpdatedOriginNode(
+            Shipment shipment,
+            UpdateShipmentRequestDto dto,
+            String organizationPublicId
+    ) {
+        if (dto.getOriginNodePublicId() == null || dto.getOriginNodePublicId().isBlank()) {
+            return getNode(shipment.getOriginNodeId());
+        }
+
+        LogisticsNode originNode = getActiveNode(dto.getOriginNodePublicId());
+        if (!originNode.getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
+        }
+
+        return originNode;
+    }
+
+    private LogisticsNode resolveUpdatedDestinationNode(
+            Shipment shipment,
+            UpdateShipmentRequestDto dto
+    ) {
+        if (dto.getDestinationNodePublicId() == null || dto.getDestinationNodePublicId().isBlank()) {
+            return getNode(shipment.getDestinationNodeId());
+        }
+
+        return getActiveNode(dto.getDestinationNodePublicId());
+    }
+
+    private void validateUpdatedShipmentSchedule(UpdateShipmentRequestDto dto, Shipment shipment) {
+        LocalDateTime departureEta = dto.getDepartureEta() != null
+                ? dto.getDepartureEta()
+                : shipment.getDepartureEta();
+
+        LocalDateTime arrivalEta = dto.getArrivalEta() != null
+                ? dto.getArrivalEta()
+                : shipment.getArrivalEta();
+
+        if (departureEta != null && arrivalEta != null && !departureEta.isBefore(arrivalEta)) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 
     // 출하 위치/상태 추적
@@ -202,6 +392,7 @@ public class ShipmentService {
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
         validateTrackRequest(dto);
+        validateCheckpointAuthority(shipment, dto, organizationPublicId);
 
         LogisticsNode node = getActiveNode(dto.getNodePublicId());
 
@@ -335,6 +526,32 @@ public class ShipmentService {
             throw new ShipmentException(ShipmentErrorCode.INVALID_TRACK_REQUEST);
         }
     }
+    private void validateCheckpointAuthority(
+            Shipment shipment,
+            TrackShipmentRequestDto dto,
+            String organizationPublicId
+    ) {
+        LogisticsNode originNode = getNode(shipment.getOriginNodeId());
+        LogisticsNode destinationNode = getNode(shipment.getDestinationNodeId());
+
+        String originOrganizationPublicId = originNode.getOrganizationPublicId();
+        String destinationOrganizationPublicId = destinationNode.getOrganizationPublicId();
+
+        if (dto.getCheckpointType() == CheckpointType.DEPARTURE
+                || dto.getCheckpointType() == CheckpointType.TRANSIT) {
+            if (!originOrganizationPublicId.equals(organizationPublicId)) {
+                throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+            }
+            return;
+        }
+
+        if (dto.getCheckpointType() == CheckpointType.ARRIVAL
+                || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
+            if (!destinationOrganizationPublicId.equals(organizationPublicId)) {
+                throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+            }
+        }
+    }
 
     private void applyCheckpointToShipment(Shipment shipment, TrackShipmentRequestDto dto, Long nodeId) {
         if (dto.getCheckpointStatus() != CheckpointStatus.PASSED) {
@@ -427,6 +644,37 @@ public class ShipmentService {
         return logisticsNodeRepository.findByIdIn(nodeIds).stream()
                 .collect(Collectors.toMap(LogisticsNode::getId, node -> node));
     }
+    private Map<Long, LogisticsNode> getShipmentMapNodeMap(
+            Collection<Shipment> shipments,
+            Collection<ShipmentCheckpoint> checkpoints
+    ) {
+        Set<Long> nodeIds = new HashSet<>();
+
+        if (shipments != null) {
+            shipments.stream()
+                    .flatMap(shipment -> Stream.of(
+                            shipment.getOriginNodeId(),
+                            shipment.getDestinationNodeId(),
+                            shipment.getCurrentNodeId()
+                    ))
+                    .filter(Objects::nonNull)
+                    .forEach(nodeIds::add);
+        }
+
+        if (checkpoints != null) {
+            checkpoints.stream()
+                    .map(ShipmentCheckpoint::getNodeId)
+                    .filter(Objects::nonNull)
+                    .forEach(nodeIds::add);
+        }
+
+        if (nodeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return logisticsNodeRepository.findByIdIn(nodeIds).stream()
+                .collect(Collectors.toMap(LogisticsNode::getId, node -> node));
+    }
 
     private String getNodePublicId(Long nodeId) {
         if (nodeId == null) {
@@ -499,14 +747,17 @@ public class ShipmentService {
                 .trackingNo(shipment.getTrackingNo())
                 .originNodePublicId(originNode != null ? originNode.getPublicId() : null)
                 .originNodeName(originNode != null ? originNode.getNodeName() : null)
+                .originNodeCode(originNode != null ? originNode.getNodeCode() : null)
                 .originLatitude(originNode != null ? originNode.getLatitude() : null)
                 .originLongitude(originNode != null ? originNode.getLongitude() : null)
                 .destinationNodePublicId(destinationNode != null ? destinationNode.getPublicId() : null)
                 .destinationNodeName(destinationNode != null ? destinationNode.getNodeName() : null)
+                .destinationNodeCode(destinationNode != null ? destinationNode.getNodeCode() : null)
                 .destinationLatitude(destinationNode != null ? destinationNode.getLatitude() : null)
                 .destinationLongitude(destinationNode != null ? destinationNode.getLongitude() : null)
                 .currentNodePublicId(currentNode != null ? currentNode.getPublicId() : null)
                 .currentNodeName(currentNode != null ? currentNode.getNodeName() : null)
+                .currentNodeCode(currentNode != null ? currentNode.getNodeCode() : null)
                 .currentLatitude(currentNode != null ? currentNode.getLatitude() : null)
                 .currentLongitude(currentNode != null ? currentNode.getLongitude() : null)
                 .departureEta(shipment.getDepartureEta())
@@ -534,12 +785,94 @@ public class ShipmentService {
                 .carrierName(shipment.getCarrierName())
                 .originNodePublicId(originNode != null ? originNode.getPublicId() : null)
                 .originNodeName(originNode != null ? originNode.getNodeName() : null)
+                .originNodeCode(originNode != null ? originNode.getNodeCode() : null)
                 .destinationNodePublicId(destinationNode != null ? destinationNode.getPublicId() : null)
                 .destinationNodeName(destinationNode != null ? destinationNode.getNodeName() : null)
+                .destinationNodeCode(destinationNode != null ? destinationNode.getNodeCode() : null)
                 .currentNodePublicId(currentNode != null ? currentNode.getPublicId() : null)
                 .currentNodeName(currentNode != null ? currentNode.getNodeName() : null)
+                .currentNodeCode(currentNode != null ? currentNode.getNodeCode() : null)
                 .arrivalEta(shipment.getArrivalEta())
                 .status(shipment.getStatus())
+                .build();
+    }
+    private ShipmentMapResponseDto toShipmentMapResponseDto(
+            Shipment shipment,
+            Map<Long, LogisticsNode> nodeMap
+    ) {
+        LogisticsNode originNode = nodeMap.get(shipment.getOriginNodeId());
+        LogisticsNode destinationNode = nodeMap.get(shipment.getDestinationNodeId());
+        LogisticsNode currentNode = nodeMap.get(shipment.getCurrentNodeId());
+
+        List<ShipmentCheckpoint> checkpoints =
+                shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(shipment.getId());
+
+        EtaCalculationResult etaResult = calculateEta(shipment, checkpoints);
+
+        List<ShipmentMapCheckpointDto> checkpointDtos = checkpoints.stream()
+                .map(checkpoint -> toShipmentMapCheckpointDto(checkpoint, nodeMap.get(checkpoint.getNodeId())))
+                .toList();
+
+        return ShipmentMapResponseDto.builder()
+                .publicId(shipment.getPublicId())
+                .shipmentNumber(shipment.getShipmentNumber())
+                .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
+                .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
+                .carrierName(shipment.getCarrierName())
+                .vehicleNo(shipment.getVehicleNo())
+                .trackingNo(shipment.getTrackingNo())
+                .status(shipment.getStatus())
+                .originNodePublicId(originNode != null ? originNode.getPublicId() : null)
+                .originNodeName(originNode != null ? originNode.getNodeName() : null)
+                .originNodeCode(originNode != null ? originNode.getNodeCode() : null)
+                .originLatitude(originNode != null ? originNode.getLatitude() : null)
+                .originLongitude(originNode != null ? originNode.getLongitude() : null)
+                .destinationNodePublicId(destinationNode != null ? destinationNode.getPublicId() : null)
+                .destinationNodeName(destinationNode != null ? destinationNode.getNodeName() : null)
+                .destinationNodeCode(destinationNode != null ? destinationNode.getNodeCode() : null)
+                .destinationLatitude(destinationNode != null ? destinationNode.getLatitude() : null)
+                .destinationLongitude(destinationNode != null ? destinationNode.getLongitude() : null)
+                .currentNodePublicId(currentNode != null ? currentNode.getPublicId() : null)
+                .currentNodeName(currentNode != null ? currentNode.getNodeName() : null)
+                .currentNodeCode(currentNode != null ? currentNode.getNodeCode() : null)
+                .currentLatitude(currentNode != null ? currentNode.getLatitude() : null)
+                .currentLongitude(currentNode != null ? currentNode.getLongitude() : null)
+                .departureEta(shipment.getDepartureEta())
+                .arrivalEta(shipment.getArrivalEta())
+                .actualDepartedAt(shipment.getActualDepartedAt())
+                .actualArrivedAt(shipment.getActualArrivedAt())
+                .estimatedArrivalAt(etaResult.getEstimatedArrivalAt())
+                .delayed(etaResult.isDelayed())
+                .delayMinutes(etaResult.getDelayMinutes())
+                .etaBasis(etaResult.getEtaBasis())
+                .lastCheckpointType(
+                        etaResult.getLatestPassedCheckpoint() != null
+                                ? etaResult.getLatestPassedCheckpoint().getCheckpointType()
+                                : null
+                )
+                .lastCheckpointAt(
+                        etaResult.getLatestPassedCheckpoint() != null
+                                ? etaResult.getLatestPassedCheckpoint().getActualAt()
+                                : null
+                )
+                .checkpoints(checkpointDtos)
+                .build();
+    }
+    private ShipmentMapCheckpointDto toShipmentMapCheckpointDto(
+            ShipmentCheckpoint checkpoint,
+            LogisticsNode node
+    ) {
+        return ShipmentMapCheckpointDto.builder()
+                .nodePublicId(node != null ? node.getPublicId() : null)
+                .nodeName(node != null ? node.getNodeName() : null)
+                .nodeCode(node != null ? node.getNodeCode() : null)
+                .checkpointType(checkpoint.getCheckpointType())
+                .checkpointStatus(checkpoint.getCheckpointStatus())
+                .plannedAt(checkpoint.getPlannedAt())
+                .actualAt(checkpoint.getActualAt())
+                .latitude(node != null ? node.getLatitude() : null)
+                .longitude(node != null ? node.getLongitude() : null)
+                .note(checkpoint.getNote())
                 .build();
     }
 
@@ -556,6 +889,119 @@ public class ShipmentService {
         if (ADMIN_ORGANIZATION_TYPE.equals(organizationType) || ADMIN_ROLE.equals(userRole)) {
             throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
         }
+    }
+
+    private void validateCreateShipmentActor(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        if (!"SUPPLIER".equalsIgnoreCase(organizationType)) {
+            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
+        }
+    }
+    private void validateShippableOrder(CreateShipmentRequestDto dto, String organizationPublicId) {
+        if (dto.getSubPoId() != null) {
+            validateSubPurchaseOrderForShipment(dto.getSubPoId(), organizationPublicId);
+            return;
+        }
+
+        if (dto.getPoId() == null) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        validatePurchaseOrderForShipment(dto.getPoId(), organizationPublicId);
+    }
+
+    private void validatePurchaseOrderForShipment(Long poId, String organizationPublicId) {
+        SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findById(poId)
+                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+
+        if (!purchaseOrder.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        }
+
+        if (!isShippablePurchaseOrderStatus(purchaseOrder.getPoStatus())) {
+            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_ORDER_STATUS_NOT_ALLOWED);
+        }
+    }
+    private String generateShipmentNumber(CreateShipmentRequestDto dto) {
+        String orderNumber = resolveShipmentOrderNumber(dto);
+        String prefix = "SHIP-" + orderNumber + "-";
+
+        String lastShipmentNumber = shipmentRepository
+                .findTopByShipmentNumberStartingWithOrderByShipmentNumberDesc(prefix)
+                .map(Shipment::getShipmentNumber)
+                .orElse(null);
+
+        int nextSequence = extractNextShipmentSequence(lastShipmentNumber);
+
+        String candidate = prefix + String.format("%03d", nextSequence);
+        while (shipmentRepository.existsByShipmentNumber(candidate)) {
+            nextSequence++;
+            candidate = prefix + String.format("%03d", nextSequence);
+        }
+
+        return candidate;
+    }
+
+    private String resolveShipmentOrderNumber(CreateShipmentRequestDto dto) {
+        if (dto.getSubPoId() != null) {
+            SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository.findById(dto.getSubPoId())
+                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+            return subPurchaseOrder.getSubPoNumber();
+        }
+
+        if (dto.getPoId() != null) {
+            SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findById(dto.getPoId())
+                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+            return purchaseOrder.getPoNumber();
+        }
+
+        throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    private int extractNextShipmentSequence(String lastShipmentNumber) {
+        if (lastShipmentNumber == null || lastShipmentNumber.isBlank()) {
+            return 1;
+        }
+
+        int lastHyphenIndex = lastShipmentNumber.lastIndexOf('-');
+        if (lastHyphenIndex < 0 || lastHyphenIndex == lastShipmentNumber.length() - 1) {
+            return 1;
+        }
+
+        String lastSequenceText = lastShipmentNumber.substring(lastHyphenIndex + 1);
+        try {
+            return Integer.parseInt(lastSequenceText) + 1;
+        } catch (NumberFormatException e) {
+            return 1;
+        }
+    }
+
+    private void validateSubPurchaseOrderForShipment(Long subPoId, String organizationPublicId) {
+        SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository.findById(subPoId)
+                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+
+        if (!subPurchaseOrder.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        }
+
+        if (!isShippableSubPurchaseOrderStatus(subPurchaseOrder.getSubPoStatus())) {
+            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_ORDER_STATUS_NOT_ALLOWED);
+        }
+    }
+
+    private boolean isShippablePurchaseOrderStatus(PoStatus poStatus) {
+        return poStatus == PoStatus.PARTIALLY_CONFIRMED
+                || poStatus == PoStatus.CONFIRMED;
+    }
+
+    private boolean isShippableSubPurchaseOrderStatus(SubPoStatus subPoStatus) {
+        return subPoStatus == SubPoStatus.PARTIALLY_CONFIRMED
+                || subPoStatus == SubPoStatus.CONFIRMED;
     }
 
     @Getter

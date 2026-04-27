@@ -26,6 +26,8 @@ public class ReturnRequestResponseDto {
     private String returnNumber;
     @Schema(description = "원본 출하 공개 식별자", example = "ship_01HZY1SHIPMENT123456789", nullable = true)
     private String sourceShipmentPublicId;
+    @Schema(description = "반품출하 공개 식별자", example = "ship_01HZY1RETURNSHIP123456", nullable = true)
+    private String returnShipmentPublicId;
     @Schema(description = "반품 요청 조직 공개 식별자", example = "org_req_01HZY2ORGREQ123456")
     private String requestOrganizationPublicId;
     @Schema(description = "반품 대상 조직 공개 식별자", example = "org_tgt_01HZY2ORGTGT123456")
@@ -63,6 +65,7 @@ public class ReturnRequestResponseDto {
                 .publicId(entity.getPublicId())
                 .returnNumber(entity.getReturnNumber())
                 .sourceShipmentPublicId(entity.getSourceShipmentPublicId())
+                .returnShipmentPublicId(entity.getReturnShipmentPublicId())
                 .requestOrganizationPublicId(entity.getRequestOrganizationPublicId())
                 .targetOrganizationPublicId(entity.getTargetOrganizationPublicId())
                 .requestOrganizationName(requestOrganizationName)
