@@ -1,6 +1,13 @@
 package com.ozz.atlas.supply.subpurchaseorder.service;
 
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.common.code.SequenceCodeType;
 import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
@@ -62,6 +69,9 @@ public class SubPurchaseOrderService {
     private final SupplierItemCapabilityRepository capabilityRepository;
     private final SupplyItemRepository supplyItemRepository;
     private final SupplierRelationService supplierRelationService;
+    private final OutboxEventAppender outboxEventAppender;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SupplyChainContextResolver supplyChainContextResolver;
 
 
     public SubPurchaseOrderResponse createSubPurchaseOrder(
@@ -117,6 +127,14 @@ public class SubPurchaseOrderService {
 
         SupplySubPurchaseOrder savedSubPurchaseOrder = subPurchaseOrderRepository.save(subPurchaseOrder);
         syncRelationStatus(savedSubPurchaseOrder);
+        appendSubPurchaseOrderEvent(
+                EventTypes.SUB_PURCHASE_ORDER_CREATED,
+                savedSubPurchaseOrder,
+                createdByUserPublicId,
+                issuerOrganizationPublicId,
+                "하위 발주 생성",
+                "하위 발주 생성 시"
+        );
         return SubPurchaseOrderResponse.fromEntity(savedSubPurchaseOrder, true);
     }
 
@@ -213,7 +231,8 @@ public class SubPurchaseOrderService {
     public SubPurchaseOrderResponse rejectSubPurchaseOrder(
             String receiverOrganizationPublicId,
             String organizationType,
-            String subPoPublicId
+            String subPoPublicId,
+            String actorUserPublicId
     ) {
         validateSupplierActor(receiverOrganizationPublicId, organizationType);
 
@@ -222,6 +241,14 @@ public class SubPurchaseOrderService {
 
         subPurchaseOrder.reject();
         syncRelationStatus(subPurchaseOrder);
+        appendSubPurchaseOrderEvent(
+                EventTypes.SUB_PURCHASE_ORDER_REJECTED,
+                subPurchaseOrder,
+                actorUserPublicId,
+                receiverOrganizationPublicId,
+                "하위 발주 거절",
+                "하위 발주 거절 시"
+        );
         return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
     }
 
@@ -231,6 +258,7 @@ public class SubPurchaseOrderService {
             String subPoPublicId,
             String parentPoItemPublicId,
             String itemPublicId,
+            String actorUserPublicId,
             ConfirmSubPurchaseOrderItemRequest request
     ) {
         validateSupplierActor(receiverOrganizationPublicId, organizationType);
@@ -250,8 +278,46 @@ public class SubPurchaseOrderService {
         item.confirm(request.getConfirmedQty());
         subPurchaseOrder.refreshConfirmationStatus();
         syncRelationStatus(subPurchaseOrder);
+        appendSubPurchaseOrderEvent(
+                EventTypes.SUB_PURCHASE_ORDER_CONFIRMED,
+                subPurchaseOrder,
+                actorUserPublicId,
+                receiverOrganizationPublicId,
+                "하위 발주 확정",
+                "하위 발주 확정 시"
+        );
 
         return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
+    }
+
+    private void appendSubPurchaseOrderEvent(
+            String eventType,
+            SupplySubPurchaseOrder subPurchaseOrder,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String eventName,
+            String description
+    ) {
+        SupplyChainContext context = supplyChainContextResolver.fromSubPurchaseOrder(subPurchaseOrder);
+        outboxEventAppender.append(
+                supplyDomainEventFactory.create(
+                        KafkaTopics.SUPPLY_SUB_PURCHASE_ORDER,
+                        eventType,
+                        AggregateType.SUB_PURCHASE_ORDER,
+                        subPurchaseOrder.getPublicId(),
+                        actorUserPublicId,
+                        organizationPublicId,
+                        context,
+                        supplyDomainEventFactory.payload(
+                                subPurchaseOrder.getPublicId(),
+                                subPurchaseOrder.getSubPoNumber(),
+                                subPurchaseOrder.getSubPoStatus().name(),
+                                eventName,
+                                description,
+                                null
+                        )
+                )
+        );
     }
 
     private void validateCreateRequest(CreateSubPurchaseOrderRequest request) {

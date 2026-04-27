@@ -50,6 +50,7 @@ public class SecutityConfig {
                         ).permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/auth/users/public/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/internal/users/recipients").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/organizations/public/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/swagger-ui.html",

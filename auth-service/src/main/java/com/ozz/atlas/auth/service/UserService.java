@@ -350,6 +350,36 @@ public class UserService {
         return UserDetailDto.fromEntity(user);
     }
 
+    @Transactional(readOnly = true)
+    public List<UserRecipientDto> getNotificationRecipients(String organizationPublicId, String departmentCode) {
+        if (!hasText(organizationPublicId)) {
+            return List.of();
+        }
+
+        if (hasText(departmentCode)) {
+            List<User> departmentUsers = userRepository
+                    .findAllByOrganization_PublicIdAndDepartment_DepartmentCodeAndStatus(
+                            organizationPublicId,
+                            departmentCode,
+                            Status.ACTIVE
+                    );
+            if (!departmentUsers.isEmpty()) {
+                return departmentUsers.stream()
+                        .map(UserRecipientDto::fromEntity)
+                        .toList();
+            }
+        }
+
+        return userRepository.findAllByOrganization_PublicIdAndUserRoleAndStatus(
+                        organizationPublicId,
+                        UserRole.ORG_ADMIN,
+                        Status.ACTIVE
+                )
+                .stream()
+                .map(UserRecipientDto::fromEntity)
+                .toList();
+    }
+
     // 임시 비밀번호를 간단히 생성
     // 나중에 규칙이 필요하면 별도 유틸로 분리할 수 있음
     private String createTemporaryPassword() {

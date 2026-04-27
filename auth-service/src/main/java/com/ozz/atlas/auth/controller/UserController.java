@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -341,6 +342,19 @@ public class UserController {
     public ResponseEntity<UserDetailDto> userDetailByPublicId(@PathVariable String userPublicId) {
         UserDetailDto response = userService.userDetailByPublicId(userPublicId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/internal/users/recipients")
+    @SecurityRequirements
+    @Operation(
+            summary = "내부 알림 수신자 조회",
+            description = "control-service가 조직과 부서 기준으로 알림 수신자를 조회한다. 부서 담당자가 없으면 조직 대표자를 반환한다."
+    )
+    public ResponseEntity<List<UserRecipientDto>> getNotificationRecipients(
+            @RequestParam String organizationPublicId,
+            @RequestParam(required = false) String departmentCode
+    ) {
+        return ResponseEntity.ok(userService.getNotificationRecipients(organizationPublicId, departmentCode));
     }
 
     // 현재 로그인한 사용자의 보안 이력을 조회

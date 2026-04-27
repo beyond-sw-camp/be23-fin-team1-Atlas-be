@@ -36,9 +36,15 @@ import org.springframework.context.i18n.LocaleContextHolder;
 public class KafkaMonitoringService {
 
     private static final List<String> MONITORED_TOPICS = List.of(
+            KafkaTopics.SUPPLY_PURCHASE_ORDER,
+            KafkaTopics.SUPPLY_SUB_PURCHASE_ORDER,
             KafkaTopics.SUPPLY_SHIPMENT,
+            KafkaTopics.SUPPLY_DELIVERY_EXCEPTION,
             KafkaTopics.SUPPLY_LOGISTICS_NODE,
             KafkaTopics.SUPPLY_INVENTORY,
+            KafkaTopics.SUPPLY_LOT,
+            KafkaTopics.SUPPLY_RETURN_REQUEST,
+            KafkaTopics.SUPPLY_SUPPLIER_CERTIFICATE,
             KafkaTopics.CONTROL_RECOMMENDATION_REQUESTED,
             KafkaTopics.CONTROL_RECOMMENDATION_GENERATED,
             KafkaTopics.CONTROL_RECOMMENDATION_FAILED,

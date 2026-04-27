@@ -7,6 +7,7 @@ import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.control.kafka.processed.ProcessedEventService;
 import com.ozz.atlas.control.kafka.outbox.OutboxEventAppender;
+import com.ozz.atlas.control.kafka.notification.KafkaNotificationOrchestrator;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationFactory;
 import com.ozz.atlas.control.kafka.rule.service.KafkaEventRuleService;
 import com.ozz.atlas.control.kafka.shipment.ShipmentCreatedPayload;
@@ -28,12 +29,19 @@ public class SupplyConsumer {
     private final OutboxEventAppender outboxEventAppender;
     private final RecommendationFactory recommendationFactory;
     private final KafkaEventRuleService kafkaEventRuleService;
+    private final KafkaNotificationOrchestrator kafkaNotificationOrchestrator;
 
     @KafkaListener(
             topics = {
+                    KafkaTopics.SUPPLY_PURCHASE_ORDER,
+                    KafkaTopics.SUPPLY_SUB_PURCHASE_ORDER,
                     KafkaTopics.SUPPLY_SHIPMENT,
+                    KafkaTopics.SUPPLY_DELIVERY_EXCEPTION,
                     KafkaTopics.SUPPLY_LOGISTICS_NODE,
                     KafkaTopics.SUPPLY_INVENTORY,
+                    KafkaTopics.SUPPLY_LOT,
+                    KafkaTopics.SUPPLY_RETURN_REQUEST,
+                    KafkaTopics.SUPPLY_SUPPLIER_CERTIFICATE,
                     KafkaTopics.SUPPLY_SUPPLIER_RISK
             },
             containerFactory = "kafkaListenerContainerFactory"
@@ -70,8 +78,7 @@ public class SupplyConsumer {
         switch (eventEnvelope.eventType()) {
             case EventTypes.SHIPMENT_CREATED -> handleShipmentCreated(eventEnvelope);
             case EventTypes.SHIPMENT_DELAY_DETECTED -> handleShipmentDelayDetected(eventEnvelope);
-            default -> log.info("아직 처리 로직이 없는 supply 이벤트입니다. eventId={}, eventType={}",
-                    eventEnvelope.eventId(), eventEnvelope.eventType());
+            default -> kafkaNotificationOrchestrator.dispatch(eventEnvelope);
         }
     }
 
@@ -79,6 +86,7 @@ public class SupplyConsumer {
         ShipmentCreatedPayload payload = objectMapper.convertValue(eventEnvelope.payload(), ShipmentCreatedPayload.class);
         log.info("출하 생성 이벤트 수신. shipmentPublicId={}, purchaseOrderPublicId={}",
                 payload.shipmentPublicId(), payload.purchaseOrderPublicId());
+        kafkaNotificationOrchestrator.dispatch(eventEnvelope);
     }
 
     private void handleShipmentDelayDetected(EventEnvelope<JsonNode> eventEnvelope) {
@@ -91,8 +99,8 @@ public class SupplyConsumer {
             return;
         }
 
-        kafkaEventRuleService.markTriggered(EventTypes.SHIPMENT_DELAY_DETECTED);
         // 지연 이벤트는 control-service 내부 recommendation.requested 이벤트로 한 번 더 변환한다.
         outboxEventAppender.append(recommendationFactory.shipmentDelayRequested(eventEnvelope, payload));
+        kafkaNotificationOrchestrator.dispatch(eventEnvelope);
     }
 }

@@ -1,6 +1,13 @@
 package com.ozz.atlas.supply.logistics.service;
 
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNodeCapacityStatus;
 import com.ozz.atlas.supply.logistics.dtos.CreateLogisticsNodeRequestDto;
 import com.ozz.atlas.supply.logistics.dtos.GeocodingPointDto;
 import com.ozz.atlas.supply.logistics.dtos.LogisticsNodeResponseDto;
@@ -28,15 +35,21 @@ public class LogisticsNodeService {
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final OrganizationAliasClient organizationAliasClient;
     private final AddressGeocodingClient addressGeocodingClient;
+    private final OutboxEventAppender outboxEventAppender;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
 
     public LogisticsNodeService(
             LogisticsNodeRepository logisticsNodeRepository,
             OrganizationAliasClient organizationAliasClient,
-            AddressGeocodingClient addressGeocodingClient
+            AddressGeocodingClient addressGeocodingClient,
+            OutboxEventAppender outboxEventAppender,
+            SupplyDomainEventFactory supplyDomainEventFactory
     ) {
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.organizationAliasClient = organizationAliasClient;
         this.addressGeocodingClient = addressGeocodingClient;
+        this.outboxEventAppender = outboxEventAppender;
+        this.supplyDomainEventFactory = supplyDomainEventFactory;
     }
 
     // 물류거점 생성
@@ -125,11 +138,13 @@ public class LogisticsNodeService {
             String organizationType,
             String userRole,
             String publicId,
+            String actorUserPublicId,
             UpdateLogisticsNodeRequestDto dto
     ) {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
 
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
+        LogisticsNodeCapacityStatus beforeCapacityStatus = node.getCapacityStatus();
         GeocodingPointDto point = geocodeRequiredAddress(dto.getAddress());
 
         node.update(
@@ -140,6 +155,10 @@ public class LogisticsNodeService {
                 point.getLongitude(),
                 dto.getCapacityStatus()
         );
+
+        if (dto.getCapacityStatus() != null && dto.getCapacityStatus() != beforeCapacityStatus) {
+            appendCapacityStatusChangedEvent(node, actorUserPublicId, organizationPublicId);
+        }
 
         return LogisticsNodeResponseDto.from(node);
     }
@@ -230,5 +249,31 @@ public class LogisticsNodeService {
         }
 
         return addressGeocodingClient.geocode(address);
+    }
+
+    private void appendCapacityStatusChangedEvent(
+            LogisticsNode node,
+            String actorUserPublicId,
+            String organizationPublicId
+    ) {
+        outboxEventAppender.append(
+                supplyDomainEventFactory.create(
+                        KafkaTopics.SUPPLY_LOGISTICS_NODE,
+                        EventTypes.LOGISTICS_NODE_CAPACITY_STATUS_CHANGED,
+                        AggregateType.LOGISTICS_NODE,
+                        node.getPublicId(),
+                        actorUserPublicId,
+                        organizationPublicId,
+                        SupplyChainContext.empty(),
+                        supplyDomainEventFactory.payload(
+                                node.getPublicId(),
+                                node.getNodeCode(),
+                                node.getCapacityStatus().name(),
+                                "물류 거점 용량 상태 변경",
+                                "물류 거점 용량 상태 변경 시",
+                                null
+                        )
+                )
+        );
     }
 }

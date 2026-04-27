@@ -86,11 +86,12 @@ public class PurchaseOrderController {
     @PatchMapping("/{poPublicId}")
     public ResponseEntity<?> updatePurchaseOrder(
                 @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+                @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
                 @PathVariable String poPublicId,
                 @Valid @RequestBody UpdatePurchaseOrderRequest request
     ) {
             return ResponseEntity.ok(
-                    purchaseOrderService.updatePurchaseOrder(buyerOrganizationPublicId, poPublicId, request)
+                    purchaseOrderService.updatePurchaseOrder(buyerOrganizationPublicId, poPublicId, actorUserPublicId, request)
             );
     }
 
@@ -108,17 +109,19 @@ public class PurchaseOrderController {
     @PostMapping("/{poPublicId}/items")
     public ResponseEntity<?> addPurchaseOrderItem(
             @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String poPublicId,
             @Valid @RequestBody CreatePurchaseOrderItemRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(purchaseOrderService.addPurchaseOrderItem(buyerOrganizationPublicId, poPublicId, request));
+                .body(purchaseOrderService.addPurchaseOrderItem(buyerOrganizationPublicId, poPublicId, actorUserPublicId, request));
     }
 
     @Operation(summary = "발주 품목 수정")
     @PatchMapping("/{poPublicId}/items/{poItemPublicId}")
     public ResponseEntity<?> updatePurchaseOrderItem(
             @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String poPublicId,
             @PathVariable String poItemPublicId,
             @Valid @RequestBody UpdatePurchaseOrderItemRequest request
@@ -128,6 +131,7 @@ public class PurchaseOrderController {
                         buyerOrganizationPublicId,
                         poPublicId,
                         poItemPublicId,
+                        actorUserPublicId,
                         request
                 )
         );
@@ -137,10 +141,11 @@ public class PurchaseOrderController {
     @DeleteMapping("/{poPublicId}/items/{poItemPublicId}")
     public ResponseEntity<?> deletePurchaseOrderItem(
             @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String poPublicId,
             @PathVariable String poItemPublicId
     ) {
-        purchaseOrderService.deletePurchaseOrderItem(buyerOrganizationPublicId, poPublicId, poItemPublicId);
+        purchaseOrderService.deletePurchaseOrderItem(buyerOrganizationPublicId, poPublicId, poItemPublicId, actorUserPublicId);
         return ResponseEntity.noContent().build();
     }
 
@@ -148,10 +153,11 @@ public class PurchaseOrderController {
     @PostMapping("/{poPublicId}/reject")
     public ResponseEntity<?> rejectPurchaseOrder(
             @RequestHeader("X-Organization-Public-Id") String supplierOrganizationPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String poPublicId
     ) {
         return ResponseEntity.ok(
-                purchaseOrderService.rejectPurchaseOrder(supplierOrganizationPublicId, poPublicId)
+                purchaseOrderService.rejectPurchaseOrder(supplierOrganizationPublicId, poPublicId, actorUserPublicId)
         );
     }
 
@@ -159,6 +165,7 @@ public class PurchaseOrderController {
     @PatchMapping("/{poPublicId}/items/{poItemPublicId}/confirm")
     public ResponseEntity<?> confirmPurchaseOrderItem(
             @RequestHeader("X-Organization-Public-Id") String supplierOrganizationPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String poPublicId,
             @PathVariable String poItemPublicId,
             @Valid @RequestBody ConfirmPurchaseOrderItemRequest request
@@ -168,6 +175,7 @@ public class PurchaseOrderController {
                         supplierOrganizationPublicId,
                         poPublicId,
                         poItemPublicId,
+                        actorUserPublicId,
                         request
                 )
         );
@@ -177,11 +185,12 @@ public class PurchaseOrderController {
     @PatchMapping("/{poPublicId}/status")
     public ResponseEntity<?> changePurchaseOrderStatus(
             @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String poPublicId,
             @Valid @RequestBody ChangePurchaseOrderStatusRequest request
     ) {
         return ResponseEntity.ok(
-                purchaseOrderService.changePurchaseOrderStatus(buyerOrganizationPublicId, poPublicId, request)
+                purchaseOrderService.changePurchaseOrderStatus(buyerOrganizationPublicId, poPublicId, actorUserPublicId, request)
         );
     }
 

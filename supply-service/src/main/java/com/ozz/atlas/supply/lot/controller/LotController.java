@@ -27,8 +27,11 @@ public class LotController {
 
     @Operation(summary = "LOT 생성")
     @PostMapping
-    public ResponseEntity<LotResponseDto> createLot(@Valid @RequestBody CreateLotRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(lotService.createLot(request));
+    public ResponseEntity<LotResponseDto> createLot(
+            @Valid @RequestBody CreateLotRequestDto request,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(lotService.createLot(request, actorUserPublicId));
     }
 
     @Operation(summary = "LOT 목록 조회")
@@ -88,15 +91,17 @@ public class LotController {
     @PatchMapping("/{publicId}/status")
     public ResponseEntity<LotResponseDto> updateLotStatus(
             @PathVariable String publicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody UpdateLotStatusRequestDto request) {
-        return ResponseEntity.ok(lotService.updateLotStatus(publicId, request.getLotStatus(), request.getReason()));
+        return ResponseEntity.ok(lotService.updateLotStatus(publicId, request.getLotStatus(), request.getReason(), actorUserPublicId));
     }
 
     @Operation(summary = "LOT 품질 상태 변경")
     @PatchMapping("/{publicId}/quality")
     public ResponseEntity<LotResponseDto> updateQualityStatus(
             @PathVariable String publicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody UpdateQualityStatusRequestDto request) {
-        return ResponseEntity.ok(lotService.updateQualityStatus(publicId, request.getQualityStatus(), request.getReason()));
+        return ResponseEntity.ok(lotService.updateQualityStatus(publicId, request.getQualityStatus(), request.getReason(), actorUserPublicId));
     }
 }
