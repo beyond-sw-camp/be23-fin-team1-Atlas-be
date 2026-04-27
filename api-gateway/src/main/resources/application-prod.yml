@@ -13,6 +13,34 @@ spring:
           uri: http://supply-service:8080
           predicates:
             - Path=/api/supply/**
+        - id: control-service-ws
+          uri: ws://control-service:8080
+          predicates:
+            - Path=/ws-control/**
+        - id: control-service-ws-root
+          uri: ws://control-service:8080
+          predicates:
+            - Path=/ws-control
+        - id: control-service-ws-api
+          uri: ws://control-service:8080
+          predicates:
+            - Path=/api/control/ws-control/**
+          filters:
+            - StripPrefix=2
+        - id: control-service-ws-chat
+          uri: ws://control-service:8080
+          predicates:
+            - Path=/ws-chat/**
+        - id: control-service-ws-chat-root
+          uri: ws://control-service:8080
+          predicates:
+            - Path=/ws-chat
+        - id: control-service-ws-chat-api
+          uri: ws://control-service:8080
+          predicates:
+            - Path=/api/control/ws-chat/**
+          filters:
+            - StripPrefix=2
         - id: control-service
           uri: http://control-service:8080
           predicates:
