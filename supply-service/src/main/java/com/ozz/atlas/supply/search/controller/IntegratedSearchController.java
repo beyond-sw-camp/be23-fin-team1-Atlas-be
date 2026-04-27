@@ -10,14 +10,18 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/supply/search")
+@Tag(name = "IntegratedSearch")
 public class IntegratedSearchController {
 
     private final IntegratedSearchService integratedSearchService;
 
+    @Operation(summary = "통합 검색")
     @GetMapping
     public ResponseEntity<IntegratedSearchResponseDto> search(
             @RequestParam("keyword") String keyword,

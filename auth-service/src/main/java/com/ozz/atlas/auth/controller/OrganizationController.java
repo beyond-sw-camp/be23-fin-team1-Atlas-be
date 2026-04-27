@@ -99,6 +99,10 @@ public class OrganizationController {
     }
     // 관리자가 조직의 최초 ORG_ADMIN 계정을 생성
     @PostMapping("/organizations/{organizationPublicId}/org-admin")
+    @Operation(
+            summary = "조직 대표자 계정 생성",
+            description = "플랫폼 관리자가 조직의 최초 ORG_ADMIN 계정을 생성한다."
+    )
     public ResponseEntity<ProvisionedUserResponseDto> createInitialOrgAdmin(
             @PathVariable String organizationPublicId,
             @RequestBody @Valid OrganizationUserCreateDto dto,
@@ -117,6 +121,10 @@ public class OrganizationController {
 
     //    조직 목록 조회
     @GetMapping("/organizations")
+    @Operation(
+            summary = "조직 목록 조회",
+            description = "조직 목록을 페이지 단위로 조회하고 검색 조건이 있으면 통합검색을 적용한다."
+    )
     public ResponseEntity<Page<OrganizationListDto>> organizationList(
             @PageableDefault(size = 10, sort = "organizationId", direction = Sort.Direction.DESC) Pageable pageable,
             @ModelAttribute OrganizationSearchDto organizationSearchDto) {
@@ -127,6 +135,10 @@ public class OrganizationController {
 
     //    조직 상세 조회
     @GetMapping("/organizations/{organizationId}")
+    @Operation(
+            summary = "조직 상세 조회",
+            description = "조직 내부 ID 기준으로 상세 정보를 조회한다."
+    )
     public ResponseEntity<OrganizationDetailDto> organizationDetail(@PathVariable Long organizationId) {
         OrganizationDetailDto response = organizationService.organizationDetail(organizationId);
         return ResponseEntity.ok(response);
@@ -134,6 +146,10 @@ public class OrganizationController {
 
     // supply-service에서 물류거점 코드 생성을 위해 organization alias만 조회할 때 사용한다.
     @GetMapping("/organizations/public/{organizationPublicId}/alias")
+    @Operation(
+            summary = "조직 별칭 조회",
+            description = "내부 연동용으로 조직 공개 ID 기준 조직 별칭을 조회한다."
+    )
     public ResponseEntity<OrganizationAliasLookupDto> organizationAliasByPublicId(
             @PathVariable String organizationPublicId
     ) {
@@ -143,6 +159,10 @@ public class OrganizationController {
 
     //    조직 정보 수정
     @PatchMapping("/organizations/{organizationId}")
+    @Operation(
+            summary = "조직 정보 수정",
+            description = "플랫폼 관리자 또는 해당 조직 대표자가 조직 정보를 수정한다."
+    )
     public ResponseEntity<OrganizationDetailDto> organizationUpdate(
             @PathVariable Long organizationId,
             @RequestBody @Valid OrganizationUpdateDto dto,
@@ -164,6 +184,10 @@ public class OrganizationController {
 
     // 조직 상태를 활성화, 비활성화, 삭제 중 하나로 변경
     @PatchMapping("/organizations/{organizationId}/status")
+    @Operation(
+            summary = "조직 상태 변경",
+            description = "조직 상태를 활성화, 비활성화, 삭제 중 하나로 변경한다."
+    )
     public ResponseEntity<OrganizationDetailDto> organizationStatusUpdate(
             @PathVariable Long organizationId,
             @RequestBody @Valid OrganizationStatusUpdateDto dto,
@@ -176,6 +200,10 @@ public class OrganizationController {
 
     // 현재 로그인한 사용자의 조직 상세를 조회
     @GetMapping("/organizations/me")
+    @Operation(
+            summary = "내 조직 상세 조회",
+            description = "현재 로그인한 사용자의 소속 조직 상세 정보를 조회한다."
+    )
     public ResponseEntity<OrganizationDetailDto> myOrganizationDetail(
             @AuthenticationPrincipal AuthPrincipal principal
     ) {

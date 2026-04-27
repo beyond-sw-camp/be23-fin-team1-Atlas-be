@@ -27,10 +27,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/control/monitoring/kafka")
 @RequiredArgsConstructor
+@Tag(name = "KafkaMonitoring")
 public class KafkaMonitoringController {
 
     private final KafkaMonitoringService kafkaMonitoringService;

@@ -115,6 +115,7 @@ public class ReturnController {
         return ResponseEntity.status(HttpStatus.CREATED).body(returnService.createReturn(request, actorPublicId));
     }
 
+    @Operation(summary = "반품 요청 목록 조회")
     @GetMapping
     public ResponseEntity<?> getAllReturns(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -148,16 +149,19 @@ public class ReturnController {
         return ResponseEntity.ok(returnService.getAllReturns(pageable));
     }
 
+    @Operation(summary = "반품 요청 상세 조회")
     @GetMapping("/{publicId}")
     public ResponseEntity<ReturnRequestResponseDto> getReturn(@PathVariable String publicId) {
         return ResponseEntity.ok(returnService.getReturnByPublicId(publicId));
     }
 
+    @Operation(summary = "반품 상태 이력 조회")
     @GetMapping("/{publicId}/histories")
     public ResponseEntity<List<ReturnStatusHistoryResponseDto>> getReturnHistories(@PathVariable String publicId) {
         return ResponseEntity.ok(returnService.getReturnHistories(publicId));
     }
 
+    @Operation(summary = "반품 요청 수정")
     @PutMapping("/{publicId}")
     public ResponseEntity<ReturnRequestResponseDto> updateReturn(
             @PathVariable String publicId,
@@ -166,6 +170,7 @@ public class ReturnController {
         return ResponseEntity.ok(returnService.updateReturn(publicId, request, actorPublicId));
     }
 
+    @Operation(summary = "상태 변경")
     @PatchMapping("/{publicId}/status")
     public ResponseEntity<ReturnRequestResponseDto> changeStatus(
             @PathVariable String publicId,

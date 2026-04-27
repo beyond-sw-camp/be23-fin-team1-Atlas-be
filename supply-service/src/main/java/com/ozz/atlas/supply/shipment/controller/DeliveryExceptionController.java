@@ -10,9 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/supply")
+@Tag(name = "DeliveryException")
 public class DeliveryExceptionController {
 
     private final DeliveryExceptionService deliveryExceptionService;
@@ -21,6 +24,7 @@ public class DeliveryExceptionController {
         this.deliveryExceptionService = deliveryExceptionService;
     }
 
+    @Operation(summary = "배송 예외 생성")
     @PostMapping("/delivery-exceptions")
     public ResponseEntity<DeliveryExceptionResponseDto> createDeliveryException(
             @Parameter(description = "요청 사용자 공개 식별자", example = "usr_01HZXA1B2C3D4E5F6G7H8J9K0")
@@ -33,6 +37,7 @@ public class DeliveryExceptionController {
                 .body(deliveryExceptionService.createDeliveryException(dto, actorUserPublicId, organizationPublicId));
     }
 
+    @Operation(summary = "출하 배송 예외 목록 조회")
     @GetMapping("/shipments/{publicId}/delivery-exceptions")
     public ResponseEntity<List<DeliveryExceptionResponseDto>> getDeliveryExceptions(
             @PathVariable String publicId

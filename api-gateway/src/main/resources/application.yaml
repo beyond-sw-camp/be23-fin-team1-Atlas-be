@@ -4,6 +4,13 @@ spring:
   application:
     name: api-gateway
 
+springdoc:
+  api-docs:
+    path: /api/gateway/v3/api-docs
+  swagger-ui:
+    path: /api/gateway/swagger-ui.html
+    url: /api/gateway/v3/api-docs
+
 management:
   endpoints:
     web:

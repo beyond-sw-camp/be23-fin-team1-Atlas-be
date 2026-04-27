@@ -20,9 +20,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/supply/shipments")
+@Tag(name = "Shipment")
 public class ShipmentController {
 
     private final ShipmentService shipmentService;
@@ -37,6 +40,7 @@ public class ShipmentController {
     }
 
     // 출하 생성
+    @Operation(summary = "출하 생성")
     @PostMapping
     public ResponseEntity<ShipmentResponseDto> createShipment(
             @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
@@ -59,6 +63,7 @@ public class ShipmentController {
     }
 
     // 출하 목록 조회
+    @Operation(summary = "출하 목록 조회")
     @GetMapping
     public Page<ShipmentListResponseDto> getShipments(
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
@@ -86,6 +91,7 @@ public class ShipmentController {
     }
 
     // 출하 상세 조회
+    @Operation(summary = "출하 상세 조회")
     @GetMapping("/{publicId}")
     public ResponseEntity<ShipmentResponseDto> getShipment(
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
@@ -104,6 +110,7 @@ public class ShipmentController {
     }
 
     // 출하 위치/상태 추적
+    @Operation(summary = "출하 추적 정보 등록")
     @PostMapping("/{publicId}/track")
     public ResponseEntity<ShipmentResponseDto> trackShipment(
             @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
@@ -126,6 +133,7 @@ public class ShipmentController {
     }
 
     // ETA 조회
+    @Operation(summary = "출하 ETA 조회")
     @GetMapping("/{publicId}/eta")
     public ResponseEntity<ShipmentEtaResponseDto> getShipmentEta(
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
@@ -144,6 +152,7 @@ public class ShipmentController {
     }
 
     // ETA projection 조회
+    @Operation(summary = "출하 ETA 예측 목록 조회")
     @GetMapping("/{publicId}/eta-projections")
     public ResponseEntity<List<EtaProjectionResponseDto>> getEtaProjections(
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
@@ -162,6 +171,7 @@ public class ShipmentController {
     }
 
     // 출하 상태 이력 조회
+    @Operation(summary = "출하 상태 이력 조회")
     @GetMapping("/{publicId}/status-history")
     public ResponseEntity<List<ShipmentStatusHistoryResponseDto>> getShipmentStatusHistories(
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,

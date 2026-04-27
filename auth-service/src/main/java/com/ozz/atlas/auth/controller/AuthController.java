@@ -117,6 +117,10 @@ public class AuthController {
 
     //    사용자 로그아웃
     @PostMapping("/logout")
+    @Operation(
+            summary = "로그아웃",
+            description = "현재 로그인한 사용자의 Refresh Token을 폐기한다."
+    )
     public ResponseEntity<Void> logout(@AuthenticationPrincipal AuthPrincipal principal) {
         authService.logout(principal);
         return ResponseEntity.noContent().build();
@@ -173,6 +177,10 @@ public class AuthController {
 
     //    사용자 로그인 이력 조회
     @GetMapping("/users/{userId}/login-histories")
+    @Operation(
+            summary = "사용자 로그인 이력 조회",
+            description = "플랫폼 관리자가 특정 사용자의 로그인 이력을 조회한다."
+    )
     public ResponseEntity<Page<LoginHistoryListDto>> userLoginHistories(
             @PathVariable Long userId,
             @AuthenticationPrincipal AuthPrincipal principal,
