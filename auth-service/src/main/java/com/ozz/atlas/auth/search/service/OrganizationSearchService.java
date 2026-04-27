@@ -2,8 +2,8 @@ package com.ozz.atlas.auth.search.service;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.ozz.atlas.auth.domain.Organization;
-import com.ozz.atlas.auth.dtos.OrganizationListDto;
-import com.ozz.atlas.auth.dtos.OrganizationSearchDto;
+import com.ozz.atlas.auth.dtos.organization.OrganizationListDto;
+import com.ozz.atlas.auth.search.dtos.OrganizationSearchDto;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
 import com.ozz.atlas.auth.search.document.OrganizationDocument;
 import com.ozz.atlas.auth.search.repository.OrganizationSearchRepository;

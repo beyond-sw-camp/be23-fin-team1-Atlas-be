@@ -129,4 +129,27 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
             @Param("deletedStatus") SubPoStatus deletedStatus
     );
 
+    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    Page<SupplySubPurchaseOrder> findAllByParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
+            String issuerOrganizationPublicId,
+            SubPoStatus subPoStatus,
+            Pageable pageable
+    );
+
+    long countByParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
+            String issuerOrganizationPublicId,
+            SubPoStatus subPoStatus
+    );
+
+    @Query("""
+    select coalesce(sum(subPo.totalAmount), 0)
+    from SupplySubPurchaseOrder subPo
+    where subPo.parentPurchaseOrder.supplier.organizationPublicId = :issuerOrganizationPublicId
+      and subPo.subPoStatus <> :deletedStatus
+    """)
+    BigDecimal sumIssuedAmountBySupplierOrganizationPublicIdAndSubPoStatusNot(
+            @Param("issuerOrganizationPublicId") String issuerOrganizationPublicId,
+            @Param("deletedStatus") SubPoStatus deletedStatus
+    );
+
 }

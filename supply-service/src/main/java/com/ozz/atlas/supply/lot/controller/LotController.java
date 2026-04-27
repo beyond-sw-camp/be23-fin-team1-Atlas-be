@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import java.util.List;
+import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,11 +25,16 @@ public class LotController {
     private final LotService lotService;
     private final LotSearchService lotSearchService;
 
+    @Operation(summary = "LOT 생성")
     @PostMapping
-    public ResponseEntity<LotResponseDto> createLot(@Valid @RequestBody CreateLotRequestDto request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(lotService.createLot(request));
+    public ResponseEntity<LotResponseDto> createLot(
+            @Valid @RequestBody CreateLotRequestDto request,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(lotService.createLot(request, actorUserPublicId));
     }
 
+    @Operation(summary = "LOT 목록 조회")
     @GetMapping
     public ResponseEntity<?> getAllLots(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -61,16 +67,19 @@ public class LotController {
     }
 
 
+    @Operation(summary = "LOT 상세 조회")
     @GetMapping("/{publicId}")
     public ResponseEntity<LotResponseDto> getLot(@PathVariable String publicId) {
         return ResponseEntity.ok(lotService.getLotByPublicId(publicId));
     }
 
+    @Operation(summary = "LOT 이력 조회")
     @GetMapping("/{publicId}/histories")
     public ResponseEntity<List<LotHistoryResponseDto>> getLotHistories(@PathVariable String publicId) {
         return ResponseEntity.ok(lotService.getLotHistories(publicId));
     }
 
+    @Operation(summary = "LOT 수정")
     @PutMapping("/{publicId}")
     public ResponseEntity<LotResponseDto> updateLot(
             @PathVariable String publicId,
@@ -78,17 +87,21 @@ public class LotController {
         return ResponseEntity.ok(lotService.updateLot(publicId, request));
     }
 
+    @Operation(summary = "LOT 상태 변경")
     @PatchMapping("/{publicId}/status")
     public ResponseEntity<LotResponseDto> updateLotStatus(
             @PathVariable String publicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody UpdateLotStatusRequestDto request) {
-        return ResponseEntity.ok(lotService.updateLotStatus(publicId, request.getLotStatus(), request.getReason()));
+        return ResponseEntity.ok(lotService.updateLotStatus(publicId, request.getLotStatus(), request.getReason(), actorUserPublicId));
     }
 
+    @Operation(summary = "LOT 품질 상태 변경")
     @PatchMapping("/{publicId}/quality")
     public ResponseEntity<LotResponseDto> updateQualityStatus(
             @PathVariable String publicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody UpdateQualityStatusRequestDto request) {
-        return ResponseEntity.ok(lotService.updateQualityStatus(publicId, request.getQualityStatus(), request.getReason()));
+        return ResponseEntity.ok(lotService.updateQualityStatus(publicId, request.getQualityStatus(), request.getReason(), actorUserPublicId));
     }
 }

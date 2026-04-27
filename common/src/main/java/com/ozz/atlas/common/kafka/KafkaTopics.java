@@ -3,6 +3,7 @@ package com.ozz.atlas.common.kafka;
 public final class KafkaTopics {
 
     public static final String SUPPLY_PURCHASE_ORDER = "atlas.supply.purchase-order";
+    public static final String SUPPLY_SUB_PURCHASE_ORDER = "atlas.supply.sub-purchase-order";
     public static final String SUPPLY_SHIPMENT = "atlas.supply.shipment";
     public static final String SUPPLY_DELIVERY_EXCEPTION = "atlas.supply.delivery-exception";
     public static final String SUPPLY_LOGISTICS_NODE = "atlas.supply.logistics-node";

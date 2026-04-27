@@ -2,6 +2,7 @@ package com.ozz.atlas.auth.common.init;
 
 import com.ozz.atlas.auth.domain.*;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
+import com.ozz.atlas.auth.repository.DepartmentRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.common.jpa.Status;
 import org.springframework.boot.CommandLineRunner;
@@ -14,19 +15,26 @@ import org.springframework.transaction.annotation.Transactional;
 public class InitialDataLoad implements CommandLineRunner {
 
     private final OrganizationRepository organizationRepository;
+    private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     public InitialDataLoad(OrganizationRepository organizationRepository,
+                           DepartmentRepository departmentRepository,
                            UserRepository userRepository,
                            PasswordEncoder passwordEncoder) {
         this.organizationRepository = organizationRepository;
+        this.departmentRepository = departmentRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) {
+        createDepartmentIfAbsent("LOGISTICS_DEPARTMENT", "물류 부서");
+        createDepartmentIfAbsent("QUALITY_DEPARTMENT", "품질 부서");
+        createDepartmentIfAbsent("PURCHASE_DEPARTMENT", "구매 부서");
+
         if (userRepository.findByLoginId("admin").isPresent()) {
             return;
         }
@@ -128,6 +136,14 @@ public class InitialDataLoad implements CommandLineRunner {
         );
 
 
+    }
+
+    private void createDepartmentIfAbsent(String departmentCode, String departmentName) {
+        if (departmentRepository.existsByDepartmentCode(departmentCode)) {
+            return;
+        }
+
+        departmentRepository.save(Department.create(departmentCode, departmentName));
     }
 
     private void createTestUserIfAbsent(

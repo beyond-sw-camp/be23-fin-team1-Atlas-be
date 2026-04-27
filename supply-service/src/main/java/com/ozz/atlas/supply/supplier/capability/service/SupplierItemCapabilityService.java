@@ -1,8 +1,16 @@
 package com.ozz.atlas.supply.supplier.capability.service;
 
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventPayload;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
 import com.ozz.atlas.supply.supplier.capability.dtos.CreateSupplierItemCapabilityRequest;
 import com.ozz.atlas.supply.supplier.capability.dtos.SupplierItemCapabilityResponse;
@@ -27,10 +35,14 @@ public class SupplierItemCapabilityService {
     private final SupplierItemCapabilityRepository capabilityRepository;
     private final SupplierRepository supplierRepository;
     private final SupplyItemRepository supplyItemRepository;
+    private final OutboxEventAppender outboxEventAppender;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SupplyChainContextResolver supplyChainContextResolver;
 
     public SupplierItemCapabilityResponse createCapability(
             String supplierPublicId,
-            CreateSupplierItemCapabilityRequest request
+            CreateSupplierItemCapabilityRequest request,
+            String actorUserPublicId
     ) {
         SupplySupplier supplier = getSupplierOrThrow(supplierPublicId);
         SupplyItem item = getActiveItem(request.getItemPublicId());
@@ -54,7 +66,10 @@ public class SupplierItemCapabilityService {
         );
 
 
-        return SupplierItemCapabilityResponse.fromEntity(capabilityRepository.save(capability));
+        SupplySupplierItemCapability savedCapability = capabilityRepository.save(capability);
+        appendInventoryShortageEventIfNeeded(savedCapability, actorUserPublicId);
+
+        return SupplierItemCapabilityResponse.fromEntity(savedCapability);
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +99,8 @@ public class SupplierItemCapabilityService {
     public SupplierItemCapabilityResponse updateCapability(
             String supplierPublicId,
             String itemPublicId,
-            UpdateSupplierItemCapabilityRequest request
+            UpdateSupplierItemCapabilityRequest request,
+            String actorUserPublicId
     ) {
         if (isEmptyPatch(request)) {
             throw new SupplierItemCapabilityException(SupplierItemCapabilityErrorCode.EMPTY_PATCH_NOT_ALLOWED);
@@ -99,6 +115,8 @@ public class SupplierItemCapabilityService {
                 )
                 .orElseThrow(() -> new SupplierItemCapabilityException(SupplierItemCapabilityErrorCode.CAPABILITY_NOT_FOUND));
 
+        boolean wasShortage = isInventoryShortage(capability);
+
         capability.update(
                 request.getLeadTimeDays(),
                 request.getMonthlyCapacity(),
@@ -110,6 +128,10 @@ public class SupplierItemCapabilityService {
                 request.getPartialConfirmationAllowed()
         );
 
+
+        if (!wasShortage) {
+            appendInventoryShortageEventIfNeeded(capability, actorUserPublicId);
+        }
 
         return SupplierItemCapabilityResponse.fromEntity(capability);
     }
@@ -136,5 +158,47 @@ public class SupplierItemCapabilityService {
                 && request.getUnitPriceHint() == null
                 && request.getValidFrom() == null
                 && request.getPartialConfirmationAllowed() == null;
+    }
+
+    private void appendInventoryShortageEventIfNeeded(
+            SupplySupplierItemCapability capability,
+            String actorUserPublicId
+    ) {
+        if (!isInventoryShortage(capability)) {
+            return;
+        }
+
+        SupplySupplier supplier = capability.getSupplier();
+        SupplyItem item = capability.getItem();
+        SupplyChainContext context = supplyChainContextResolver.fromSupplier(supplier);
+        SupplyDomainEventPayload payload = supplyDomainEventFactory.payload(
+                item.getPublicId(),
+                item.getItemCode(),
+                "SHORTAGE",
+                "재고 부족 감지",
+                "%s 현재 공급 가능 수량 %d개가 최소 주문 수량 %d개 이하입니다.".formatted(
+                        item.getItemName(),
+                        capability.getAvailableQty(),
+                        capability.getMoq()
+                ),
+                null
+        );
+
+        outboxEventAppender.append(supplyDomainEventFactory.create(
+                KafkaTopics.SUPPLY_INVENTORY,
+                EventTypes.INVENTORY_SHORTAGE_DETECTED,
+                AggregateType.INVENTORY,
+                item.getPublicId(),
+                actorUserPublicId,
+                supplier.getOrganizationPublicId(),
+                context,
+                payload
+        ));
+    }
+
+    private boolean isInventoryShortage(SupplySupplierItemCapability capability) {
+        return capability.getAvailableQty() != null
+                && capability.getMoq() != null
+                && capability.getAvailableQty() <= capability.getMoq();
     }
 }

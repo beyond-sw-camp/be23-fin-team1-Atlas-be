@@ -102,4 +102,32 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
             PoStatus poStatus
     );
 
+    long countByBuyerOrganizationPublicIdAndPoStatusNot(String buyerOrganizationPublicId, PoStatus poStatus);
+
+    long countByBuyerOrganizationPublicIdAndPoStatus(String buyerOrganizationPublicId, PoStatus poStatus);
+
+    @Query("""
+    select coalesce(sum(po.totalAmount), 0)
+    from SupplyPurchaseOrder po
+    where po.buyerOrganizationPublicId = :buyerOrganizationPublicId
+      and po.poStatus <> :deletedStatus
+    """)
+    BigDecimal sumAmountByBuyerOrganizationPublicIdAndPoStatusNot(
+            @Param("buyerOrganizationPublicId") String buyerOrganizationPublicId,
+            @Param("deletedStatus") PoStatus deletedStatus
+    );
+
+    long countBySupplier_OrganizationPublicIdAndPoStatusNot(String organizationPublicId, PoStatus poStatus);
+
+    @Query("""
+    select coalesce(sum(po.totalAmount), 0)
+    from SupplyPurchaseOrder po
+    where po.supplier.organizationPublicId = :organizationPublicId
+      and po.poStatus <> :deletedStatus
+    """)
+    BigDecimal sumAmountBySupplierOrganizationPublicIdAndPoStatusNot(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("deletedStatus") PoStatus deletedStatus
+    );
+
 }

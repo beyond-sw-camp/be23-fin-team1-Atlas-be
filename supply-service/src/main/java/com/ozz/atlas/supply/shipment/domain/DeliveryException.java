@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.shipment.domain;
 
+import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,6 +20,9 @@ public class DeliveryException extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, updatable = false, length = 26)
+    private String publicId;
 
     @Column(nullable = false)
     private Long shipmentId;
@@ -47,6 +51,9 @@ public class DeliveryException extends BaseTimeEntity {
 
     @PrePersist
     public void prePersist() {
+        if (this.publicId == null) {
+            this.publicId = PublicIdGenerator.next();
+        }
         if (this.detectedAt == null) {
             this.detectedAt = LocalDateTime.now();
         }

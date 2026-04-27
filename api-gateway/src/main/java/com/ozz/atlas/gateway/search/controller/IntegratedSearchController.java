@@ -3,6 +3,8 @@ package com.ozz.atlas.gateway.search.controller;
 import com.ozz.atlas.gateway.search.dtos.IntegratedSearchRequestDto;
 import com.ozz.atlas.gateway.search.dtos.IntegratedSearchResponseDto;
 import com.ozz.atlas.gateway.search.service.IntegratedSearchService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -28,10 +30,12 @@ import reactor.core.publisher.Mono;
         methods = {RequestMethod.GET, RequestMethod.OPTIONS},
         allowCredentials = "true"
 )
+@Tag(name = "IntegratedSearch")
 public class IntegratedSearchController {
 
     private final IntegratedSearchService integratedSearchService;
 
+    @Operation(summary = "통합 검색", description = "Gateway에서 인증/조직 헤더를 전달해 서비스별 검색 결과를 통합 조회한다.")
     @GetMapping
     public Mono<ResponseEntity<IntegratedSearchResponseDto>> search(
             @RequestParam("keyword") String keyword,

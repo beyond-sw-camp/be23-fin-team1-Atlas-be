@@ -4,7 +4,8 @@ import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
-import com.ozz.atlas.auth.dtos.*;
+import com.ozz.atlas.auth.dtos.auth.*;
+import com.ozz.atlas.auth.dtos.history.LoginHistoryListDto;
 import com.ozz.atlas.auth.service.AuthService;
 import com.ozz.atlas.auth.service.LoginHistoryService;
 import com.ozz.atlas.auth.common.exception.LoginFailedException;
@@ -30,6 +31,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import com.ozz.atlas.auth.domain.LoginVerification;
 import com.ozz.atlas.auth.service.LoginVerificationService;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 
 
 @RestController
@@ -116,6 +121,10 @@ public class AuthController {
 
     //    사용자 로그아웃
     @PostMapping("/logout")
+    @Operation(
+            summary = "로그아웃",
+            description = "현재 로그인한 사용자의 Refresh Token을 폐기한다."
+    )
     public ResponseEntity<Void> logout(@AuthenticationPrincipal AuthPrincipal principal) {
         authService.logout(principal);
         return ResponseEntity.noContent().build();
@@ -172,6 +181,10 @@ public class AuthController {
 
     //    사용자 로그인 이력 조회
     @GetMapping("/users/{userId}/login-histories")
+    @Operation(
+            summary = "사용자 로그인 이력 조회",
+            description = "플랫폼 관리자가 특정 사용자의 로그인 이력을 조회한다."
+    )
     public ResponseEntity<Page<LoginHistoryListDto>> userLoginHistories(
             @PathVariable Long userId,
             @AuthenticationPrincipal AuthPrincipal principal,
@@ -232,15 +245,33 @@ public class AuthController {
 
     }
 
-    // 로그인 성공 시 공통 토큰 응답을 만듬
+
+    // 로그인 성공 시 공통 토큰 응답을 만듭니다.
     private TokenDto buildTokenResponse(User user) {
+        // access token 에 넣을 발급 시각을 딱 한 번만 만듭니다.
+        // 이 시각을 DB 저장과 JWT 발급에 같이 씁니다.
+        Date issuedAt = new Date();
+
+        // JWT 발급 시각과 완전히 같은 순간을 DB 에도 저장하기 위해
+        // Date 를 LocalDateTime 으로 바꿉니다.
+        LocalDateTime loginAt = LocalDateTime.ofInstant(
+                issuedAt.toInstant(),
+                ZoneId.systemDefault()
+        );
+
+        // 마지막 로그인 성공 시각을 저장합니다.
+        authService.markLoginSuccess(user.getUserId(), loginAt);
+
+        // 방금 저장한 시각과 동일한 issuedAt 으로 access token 을 만듭니다.
         String accessToken = jwtTokenProvider.createAccessToken(
                 user.getUserId(),
                 user.getPublicId(),
                 user.getOrganization().getPublicId(),
                 user.getOrganization().getOrganizationType().name(),
-                user.getUserRole().name()
+                user.getUserRole().name(),
+                issuedAt
         );
+
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
 
         return TokenDto.builder()
@@ -250,5 +281,7 @@ public class AuthController {
                 .ipVerificationRequired(false)
                 .build();
     }
+
+
 
 }

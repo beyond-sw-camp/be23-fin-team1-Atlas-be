@@ -32,6 +32,25 @@ public class UserDocument {
     // 조직 구분 필터링에 사용하는 조직 publicId
     private String organizationPublicId;
 
+    private String departmentPublicId;
+
+    @Field(type = FieldType.Keyword)
+    private String departmentCode;
+
+    @MultiField(
+            mainField = @Field(type = FieldType.Text),
+            otherFields = {
+                    @InnerField(suffix = "keyword", type = FieldType.Keyword),
+                    @InnerField(
+                            suffix = "ngram",
+                            type = FieldType.Text,
+                            analyzer = "user_ngram_analyzer",
+                            searchAnalyzer = "user_search_analyzer"
+                    )
+            }
+    )
+    private String departmentName;
+
     // 로그인 아이디는 정확 검색과 부분검색을 함께 지원한다.
     @MultiField(
             mainField = @Field(type = FieldType.Text),
@@ -143,6 +162,9 @@ public class UserDocument {
                 .userId(user.getUserId())
                 .publicId(user.getPublicId())
                 .organizationPublicId(user.getOrganization().getPublicId())
+                .departmentPublicId(user.getDepartment() != null ? user.getDepartment().getPublicId() : null)
+                .departmentCode(user.getDepartment() != null ? user.getDepartment().getDepartmentCode() : null)
+                .departmentName(user.getDepartment() != null ? user.getDepartment().getDepartmentName() : null)
                 .loginId(user.getLoginId())
                 .firstName(user.getFirstName())
                 .middleName(user.getMiddleName())

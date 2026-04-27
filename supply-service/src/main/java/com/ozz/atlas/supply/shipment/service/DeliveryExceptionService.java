@@ -1,5 +1,11 @@
 package com.ozz.atlas.supply.shipment.service;
 
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.kafka.shipment.ShipmentFactory;
 import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
@@ -29,6 +35,8 @@ public class DeliveryExceptionService {
     private final LogisticsNodeService logisticsNodeService;
     private final OutboxEventAppender outboxEventAppender;
     private final ShipmentFactory shipmentFactory;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SupplyChainContextResolver supplyChainContextResolver;
 
     public DeliveryExceptionService(
             DeliveryExceptionRepository deliveryExceptionRepository,
@@ -36,7 +44,9 @@ public class DeliveryExceptionService {
             ShipmentSearchService shipmentSearchService,
             LogisticsNodeService logisticsNodeService,
             OutboxEventAppender outboxEventAppender,
-            ShipmentFactory shipmentFactory
+            ShipmentFactory shipmentFactory,
+            SupplyDomainEventFactory supplyDomainEventFactory,
+            SupplyChainContextResolver supplyChainContextResolver
     ) {
         this.deliveryExceptionRepository = deliveryExceptionRepository;
         this.shipmentRepository = shipmentRepository;
@@ -44,6 +54,8 @@ public class DeliveryExceptionService {
         this.logisticsNodeService = logisticsNodeService;
         this.outboxEventAppender = outboxEventAppender;
         this.shipmentFactory = shipmentFactory;
+        this.supplyDomainEventFactory = supplyDomainEventFactory;
+        this.supplyChainContextResolver = supplyChainContextResolver;
     }
 
     public DeliveryExceptionResponseDto createDeliveryException(
@@ -65,6 +77,27 @@ public class DeliveryExceptionService {
                 .build();
 
         DeliveryException savedException = deliveryExceptionRepository.save(deliveryException);
+        SupplyChainContext context = supplyChainContextResolver.fromShipment(shipment);
+
+        outboxEventAppender.append(
+                supplyDomainEventFactory.create(
+                        KafkaTopics.SUPPLY_DELIVERY_EXCEPTION,
+                        resolveDeliveryExceptionEventType(dto.getExceptionType()),
+                        AggregateType.DELIVERY_EXCEPTION,
+                        savedException.getPublicId(),
+                        actorUserPublicId,
+                        organizationPublicId,
+                        context,
+                        supplyDomainEventFactory.payload(
+                                savedException.getPublicId(),
+                                shipment.getShipmentNumber(),
+                                dto.getExceptionType().name(),
+                                "배송 예외 발생",
+                                dto.getExceptionType().name() + " 예외 발생 시",
+                                null
+                        )
+                )
+        );
 
         if (dto.getExceptionType() == DeliveryExceptionType.DELAY) {
             shipment.markDelayed();
@@ -74,6 +107,7 @@ public class DeliveryExceptionService {
                             calculateDelayMinutes(shipment, dto.getDetectedAt()),
                             dto.getDetectedAt(),
                             getCurrentNodePublicId(shipment),
+                            context,
                             actorUserPublicId,
                             organizationPublicId
                     )
@@ -108,5 +142,18 @@ public class DeliveryExceptionService {
             return null;
         }
         return logisticsNodeService.getLogisticsNodeEntity(shipment.getCurrentNodeId()).getPublicId();
+    }
+
+    private String resolveDeliveryExceptionEventType(DeliveryExceptionType exceptionType) {
+        if (exceptionType == DeliveryExceptionType.DELAY) {
+            return EventTypes.DELIVERY_EXCEPTION_DELAY;
+        }
+        if (exceptionType == DeliveryExceptionType.TEMPERATURE_DEVIATION) {
+            return EventTypes.DELIVERY_EXCEPTION_TEMPERATURE_DEVIATION;
+        }
+        if (exceptionType == DeliveryExceptionType.DAMAGE) {
+            return EventTypes.DELIVERY_EXCEPTION_DAMAGED;
+        }
+        return EventTypes.DELIVERY_EXCEPTION_CREATED;
     }
 }

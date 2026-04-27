@@ -45,24 +45,43 @@ public class JwtTokenProvider {
         accessKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(accessTokenSecret));
         refreshKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(refreshTokenSecret));
     }
+    // 로그인 성공 시 access token 을 생성합니다.
+    // 기본 버전은 현재 시각을 발급 시각으로 씁니다.
+    public String createAccessToken(
+            Long userId,
+            String userPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String role
+    ) {
+        return createAccessToken(
+                userId,
+                userPublicId,
+                organizationPublicId,
+                organizationType,
+                role,
+                new Date()
+        );
+    }
 
-    // 로그인 성공 시 access token 생성
-    public String createAccessToken(Long userId, String userPublicId, String organizationPublicId, String organizationType, String role) {
-        Date now = new Date();
-
+    // 발급 시각을 외부에서 받아 access token 을 생성
+    // DB 에 저장한 lastLoginAt 과 JWT issuedAt 을 정확히 같게 맞출 때 사용
+    public String createAccessToken(
+            Long userId,
+            String userPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String role,
+            Date issuedAt
+    ) {
         return Jwts.builder()
-                // subject에는 userId 저장
                 .subject(String.valueOf(userId))
-                // role,publicId claim으로 저장
                 .claim("role", role)
                 .claim("userPublicId", userPublicId)
                 .claim("organizationPublicId", organizationPublicId)
                 .claim("organizationType", organizationType)
-                // 발급 시간
-                .issuedAt(now)
-                // 만료 시간
-                .expiration(new Date(now.getTime() + accessTokenExpirationMs))
-                // accessKey로 서명
+                .issuedAt(issuedAt)
+                .expiration(new Date(issuedAt.getTime() + accessTokenExpirationMs))
                 .signWith(accessKey)
                 .compact();
     }
@@ -162,8 +181,5 @@ public class JwtTokenProvider {
     public void revokeRefreshToken(Long userId) {
         redisTemplate.delete(String.valueOf(userId));
     }
-
-
-
 
 }

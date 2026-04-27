@@ -2,7 +2,10 @@ package com.ozz.atlas.auth.controller;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.UserRole;
-import com.ozz.atlas.auth.dtos.*;
+import com.ozz.atlas.auth.dtos.organization.*;
+import com.ozz.atlas.auth.dtos.user.OrganizationUserCreateDto;
+import com.ozz.atlas.auth.dtos.user.ProvisionedUserResponseDto;
+import com.ozz.atlas.auth.search.dtos.OrganizationSearchDto;
 import com.ozz.atlas.auth.service.OrganizationService;
 import com.ozz.atlas.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,8 +25,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import com.ozz.atlas.auth.dtos.OrganizationAliasLookupDto;
-
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Organizations")
@@ -98,16 +99,20 @@ public class OrganizationController {
     }
     // 관리자가 조직의 최초 ORG_ADMIN 계정을 생성
     @PostMapping("/organizations/{organizationPublicId}/org-admin")
-    public ResponseEntity<InitialOrgAdminCreateResponseDto> createInitialOrgAdmin(
+    @Operation(
+            summary = "조직 대표자 계정 생성",
+            description = "플랫폼 관리자가 조직의 최초 ORG_ADMIN 계정을 생성한다."
+    )
+    public ResponseEntity<ProvisionedUserResponseDto> createInitialOrgAdmin(
             @PathVariable String organizationPublicId,
-            @RequestBody @Valid InitialOrgAdminCreateDto dto,
+            @RequestBody @Valid OrganizationUserCreateDto dto,
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
         if (principal.role() != UserRole.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        InitialOrgAdminCreateResponseDto response =
+        ProvisionedUserResponseDto response =
                 userService.createInitialOrgAdmin(organizationPublicId, dto);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -116,6 +121,10 @@ public class OrganizationController {
 
     //    조직 목록 조회
     @GetMapping("/organizations")
+    @Operation(
+            summary = "조직 목록 조회",
+            description = "조직 목록을 페이지 단위로 조회하고 검색 조건이 있으면 통합검색을 적용한다."
+    )
     public ResponseEntity<Page<OrganizationListDto>> organizationList(
             @PageableDefault(size = 10, sort = "organizationId", direction = Sort.Direction.DESC) Pageable pageable,
             @ModelAttribute OrganizationSearchDto organizationSearchDto) {
@@ -126,6 +135,10 @@ public class OrganizationController {
 
     //    조직 상세 조회
     @GetMapping("/organizations/{organizationId}")
+    @Operation(
+            summary = "조직 상세 조회",
+            description = "조직 내부 ID 기준으로 상세 정보를 조회한다."
+    )
     public ResponseEntity<OrganizationDetailDto> organizationDetail(@PathVariable Long organizationId) {
         OrganizationDetailDto response = organizationService.organizationDetail(organizationId);
         return ResponseEntity.ok(response);
@@ -133,6 +146,10 @@ public class OrganizationController {
 
     // supply-service에서 물류거점 코드 생성을 위해 organization alias만 조회할 때 사용한다.
     @GetMapping("/organizations/public/{organizationPublicId}/alias")
+    @Operation(
+            summary = "조직 별칭 조회",
+            description = "내부 연동용으로 조직 공개 ID 기준 조직 별칭을 조회한다."
+    )
     public ResponseEntity<OrganizationAliasLookupDto> organizationAliasByPublicId(
             @PathVariable String organizationPublicId
     ) {
@@ -142,6 +159,10 @@ public class OrganizationController {
 
     //    조직 정보 수정
     @PatchMapping("/organizations/{organizationId}")
+    @Operation(
+            summary = "조직 정보 수정",
+            description = "플랫폼 관리자 또는 해당 조직 대표자가 조직 정보를 수정한다."
+    )
     public ResponseEntity<OrganizationDetailDto> organizationUpdate(
             @PathVariable Long organizationId,
             @RequestBody @Valid OrganizationUpdateDto dto,
@@ -161,28 +182,28 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
-    //    조직 삭제
-    @DeleteMapping("/organizations/{organizationId}")
-    public ResponseEntity<Void> organizationDelete(
+    // 조직 상태를 활성화, 비활성화, 삭제 중 하나로 변경
+    @PatchMapping("/organizations/{organizationId}/status")
+    @Operation(
+            summary = "조직 상태 변경",
+            description = "조직 상태를 활성화, 비활성화, 삭제 중 하나로 변경한다."
+    )
+    public ResponseEntity<OrganizationDetailDto> organizationStatusUpdate(
             @PathVariable Long organizationId,
+            @RequestBody @Valid OrganizationStatusUpdateDto dto,
             @AuthenticationPrincipal AuthPrincipal principal) {
 
-        OrganizationDetailDto organization = organizationService.organizationDetail(organizationId);
-
-        boolean isAdmin = principal.role() == UserRole.ADMIN;
-        boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
-                && principal.organizationPublicId().equals(organization.getOrganizationPublicId());
-
-        if (!isAdmin && !isOrgAdmin) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        organizationService.organizationDelete(organizationId, principal);
-        return ResponseEntity.noContent().build();
+        OrganizationDetailDto response =
+                organizationService.organizationStatusUpdate(organizationId, dto, principal);
+        return ResponseEntity.ok(response);
     }
 
     // 현재 로그인한 사용자의 조직 상세를 조회
     @GetMapping("/organizations/me")
+    @Operation(
+            summary = "내 조직 상세 조회",
+            description = "현재 로그인한 사용자의 소속 조직 상세 정보를 조회한다."
+    )
     public ResponseEntity<OrganizationDetailDto> myOrganizationDetail(
             @AuthenticationPrincipal AuthPrincipal principal
     ) {

@@ -124,6 +124,7 @@ public class ReturnController {
         );
     }
 
+    @Operation(summary = "반품 요청 목록 조회")
     @GetMapping
     public ResponseEntity<?> getAllReturns(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -175,6 +176,7 @@ public class ReturnController {
         );
     }
 
+    @Operation(summary = "반품 요청 상세 조회")
     @GetMapping("/{publicId}")
     public ResponseEntity<ReturnRequestResponseDto> getReturn(
             @PathVariable String publicId,
@@ -192,6 +194,7 @@ public class ReturnController {
         );
     }
 
+    @Operation(summary = "반품 상태 이력 조회")
     @GetMapping("/{publicId}/histories")
     public ResponseEntity<List<ReturnStatusHistoryResponseDto>> getReturnHistories(
             @PathVariable String publicId,
@@ -209,6 +212,7 @@ public class ReturnController {
         );
     }
 
+    @Operation(summary = "반품 요청 수정")
     @PutMapping("/{publicId}")
     public ResponseEntity<ReturnRequestResponseDto> updateReturn(
             @PathVariable String publicId,
@@ -230,6 +234,7 @@ public class ReturnController {
         );
     }
 
+    @Operation(summary = "상태 변경")
     @PatchMapping("/{publicId}/status")
     public ResponseEntity<ReturnRequestResponseDto> changeStatus(
             @PathVariable String publicId,

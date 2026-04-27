@@ -1,6 +1,6 @@
 package com.ozz.atlas.auth.domain;
 
-import com.ozz.atlas.auth.dtos.OrganizationUpdateDto;
+import com.ozz.atlas.auth.dtos.organization.OrganizationUpdateDto;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.Status;
@@ -86,11 +86,7 @@ public class Organization extends BaseTimeEntity {
         }
     }
 
-    public void deleteOrganization() {
-        this.status = Status.DELETE;
+    public void changeStatus(Status status) {
+        this.status = status;
     }
-
-
-
-
 }

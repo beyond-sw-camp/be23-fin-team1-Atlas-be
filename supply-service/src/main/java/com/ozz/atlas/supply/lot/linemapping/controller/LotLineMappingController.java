@@ -11,9 +11,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/supply/mapping")
+@Tag(name = "LotLineMapping")
 public class LotLineMappingController {
 
     private final LotLineMappingService lotLineMappingService;
@@ -23,6 +26,7 @@ public class LotLineMappingController {
     }
 
     // LOT에 생산라인 매핑 등록
+    @Operation(summary = "LOT 생산 라인 매핑 생성")
     @PostMapping("/lots/{lotPublicId}/line-mappings")
     public ResponseEntity<LotLineMappingResponseDto> createLotLineMapping(
             @PathVariable String lotPublicId,
@@ -33,6 +37,7 @@ public class LotLineMappingController {
     }
 
     // LOT별 생산라인 매핑 목록 조회
+    @Operation(summary = "LOT 생산 라인 매핑 목록 조회")
     @GetMapping("/lots/{lotPublicId}/line-mappings")
     public ResponseEntity<List<LotLineMappingResponseDto>> getLotLineMappings(
             @PathVariable String lotPublicId
@@ -41,6 +46,7 @@ public class LotLineMappingController {
     }
 
     // 단일 생산라인 매핑 상세 조회
+    @Operation(summary = "LOT 생산 라인 매핑 상세 조회")
     @GetMapping("/lot-line-mappings/{lotLineMappingId}")
     public ResponseEntity<LotLineMappingResponseDto> getLotLineMapping(
             @PathVariable Long lotLineMappingId
@@ -49,6 +55,7 @@ public class LotLineMappingController {
     }
 
     // 작업 시작 처리
+    @Operation(summary = "LOT 생산 시작 처리")
     @PostMapping("/lot-line-mappings/{lotLineMappingId}/start")
     public ResponseEntity<LotLineMappingResponseDto> startLotLineMapping(
             @PathVariable Long lotLineMappingId
@@ -57,6 +64,7 @@ public class LotLineMappingController {
     }
 
     // 작업 종료 처리
+    @Operation(summary = "LOT 생산 완료 처리")
     @PostMapping("/lot-line-mappings/{lotLineMappingId}/complete")
     public ResponseEntity<LotLineMappingResponseDto> completeLotLineMapping(
             @PathVariable Long lotLineMappingId
@@ -65,6 +73,7 @@ public class LotLineMappingController {
     }
 
     // 단일 생산라인 매핑 수정
+    @Operation(summary = "LOT 생산 라인 매핑 수정")
     @PatchMapping("/lot-line-mappings/{lotLineMappingId}")
     public ResponseEntity<LotLineMappingResponseDto> updateLotLineMapping(
             @PathVariable Long lotLineMappingId,
@@ -74,6 +83,7 @@ public class LotLineMappingController {
     }
 
     // 단일 생산라인 매핑 삭제
+    @Operation(summary = "LOT 생산 라인 매핑 삭제")
     @DeleteMapping("/lot-line-mappings/{lotLineMappingId}")
     public ResponseEntity<Void> deleteLotLineMapping(
             @PathVariable Long lotLineMappingId

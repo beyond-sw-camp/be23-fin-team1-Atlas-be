@@ -17,17 +17,21 @@ import com.ozz.atlas.supply.settlement.domain.SettlementStatus;
 import com.ozz.atlas.supply.settlement.domain.SettlementTargetType;
 import com.ozz.atlas.supply.settlement.search.dtos.SettlementSearchDto;
 import com.ozz.atlas.supply.settlement.search.service.SettlementSearchService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 
 @RestController
 @RequestMapping("/api/supply/settlements")
 @RequiredArgsConstructor
+@Tag(name = "Settlement")
 public class SettlementController {
 
     private final SettlementService settlementService;
     private final SettlementSearchService settlementSearchService;
 
 //    정산 생성
+    @Operation(summary = "정산 생성")
     @PostMapping
     public ResponseEntity<SettlementResponseDto> createSettlement(
             @Valid @RequestBody CreateSettlementRequestDto request
@@ -37,6 +41,7 @@ public class SettlementController {
     }
 
 //    정산 목록 조회
+    @Operation(summary = "정산 목록 조회")
     @GetMapping
     public Page<SettlementResponseDto> getSettlements(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -63,6 +68,7 @@ public class SettlementController {
 
 
     //    정산 상세 조회
+    @Operation(summary = "정산 상세 조회")
     @GetMapping("/{settlementId}")
     public ResponseEntity<SettlementResponseDto> getSettlement(
             @PathVariable Long settlementId
@@ -71,6 +77,7 @@ public class SettlementController {
     }
 
 //    정산 승인
+    @Operation(summary = "정산 승인")
     @PatchMapping("/{settlementId}/approve")
     public ResponseEntity<SettlementResponseDto> approveSettlement(
             @PathVariable Long settlementId,
@@ -83,6 +90,7 @@ public class SettlementController {
     }
 
 //    정산 취소
+    @Operation(summary = "정산 취소")
     @PatchMapping("/{settlementId}/cancel")
     public ResponseEntity<SettlementResponseDto> cancelSettlement(
             @PathVariable Long settlementId,

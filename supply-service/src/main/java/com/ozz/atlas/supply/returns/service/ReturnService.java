@@ -1,6 +1,13 @@
 package com.ozz.atlas.supply.returns.service;
 
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
@@ -54,6 +61,9 @@ public class ReturnService {
     private final SupplyItemRepository supplyItemRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ShipmentSearchService shipmentSearchService;
+    private final OutboxEventAppender outboxEventAppender;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SupplyChainContextResolver supplyChainContextResolver;
 
     @Transactional
     public ReturnRequestResponseDto createReturn(
@@ -136,6 +146,15 @@ public class ReturnService {
 
         // DB 저장이 끝난 반품 데이터를 ES에도 같이 저장
         returnSearchService.saveReturnDocument(savedReturn);
+        appendReturnEvent(
+                EventTypes.RETURN_REQUEST_CREATED,
+                savedReturn,
+                resolveSourceShipment(savedReturn),
+                actorPublicId,
+                savedReturn.getRequestOrganizationPublicId(),
+                "반품 요청 생성",
+                "반품 요청 생성 시"
+        );
 
         return toResponseDto(savedReturn);
     }
@@ -244,6 +263,15 @@ public class ReturnService {
 
         // 상태가 바뀌었으니 ES 문서도 다시 저장
         returnSearchService.saveReturnDocument(returnRequest);
+        appendReturnEvent(
+                resolveReturnStatusEventType(returnRequest.getReturnStatus()),
+                returnRequest,
+                resolveSourceShipment(returnRequest),
+                actorPublicId,
+                returnRequest.getRequestOrganizationPublicId(),
+                "반품 상태 변경",
+                request.getReason() != null && !request.getReason().isBlank() ? request.getReason() : "반품 상태 변경 시"
+        );
 
         return toResponseDto(returnRequest);
     }
@@ -520,4 +548,55 @@ public class ReturnService {
         return "RS-" + returnRequest.getPublicId();
     }
 
+
+    private void appendReturnEvent(
+            String eventType,
+            ReturnRequest returnRequest,
+            Shipment shipment,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String eventName,
+            String description
+    ) {
+        SupplyChainContext context = supplyChainContextResolver.fromReturn(returnRequest, shipment);
+        outboxEventAppender.append(
+                supplyDomainEventFactory.create(
+                        KafkaTopics.SUPPLY_RETURN_REQUEST,
+                        eventType,
+                        AggregateType.RETURN_REQUEST,
+                        returnRequest.getPublicId(),
+                        actorUserPublicId,
+                        organizationPublicId,
+                        context,
+                        supplyDomainEventFactory.payload(
+                                returnRequest.getPublicId(),
+                                returnRequest.getReturnNumber(),
+                                returnRequest.getReturnStatus().name(),
+                                eventName,
+                                description,
+                                returnRequest.getReturnType().name()
+                        )
+                )
+        );
+    }
+
+    private Shipment resolveSourceShipment(ReturnRequest returnRequest) {
+        if (returnRequest.getSourceShipmentPublicId() == null || returnRequest.getSourceShipmentPublicId().isBlank()) {
+            return null;
+        }
+        return shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId()).orElse(null);
+    }
+
+    private String resolveReturnStatusEventType(ReturnStatus returnStatus) {
+        if (returnStatus == ReturnStatus.APPROVED) {
+            return EventTypes.RETURN_REQUEST_APPROVED;
+        }
+        if (returnStatus == ReturnStatus.REJECTED) {
+            return EventTypes.RETURN_REQUEST_REJECTED;
+        }
+        if (returnStatus == ReturnStatus.COMPLETED) {
+            return EventTypes.RETURN_REQUEST_COMPLETED;
+        }
+        return EventTypes.RETURN_REQUEST_CREATED;
+    }
 }

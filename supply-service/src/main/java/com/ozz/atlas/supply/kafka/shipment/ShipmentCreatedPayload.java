@@ -24,6 +24,11 @@ public record ShipmentCreatedPayload(
         @Schema(description = "초기 출하 상태", example = "READY")
         String status,
         @Schema(description = "온도 관리 필요 여부", example = "true")
-        boolean temperatureRequired
+        boolean temperatureRequired,
+        String rootPurchaseOrderPublicId,
+        String rootBuyerOrganizationPublicId,
+        String directBuyerOrganizationPublicId,
+        String directSupplierOrganizationPublicId,
+        String parentPurchaseOrderPublicId
 ) {
 }

@@ -1,6 +1,13 @@
 package com.ozz.atlas.supply.purchaseorder.service;
 
+import com.ozz.atlas.common.kafka.AggregateType;
+import com.ozz.atlas.common.kafka.EventTypes;
+import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
+import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
+import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.common.code.SequenceCodeType;
 import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
@@ -9,20 +16,15 @@ import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderViewType;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
-import com.ozz.atlas.supply.purchaseorder.dtos.ChangePurchaseOrderStatusRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.ConfirmPurchaseOrderItemRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.CreatePurchaseOrderItemRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.CreatePurchaseOrderRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.PurchaseOrderDetailResponse;
-import com.ozz.atlas.supply.purchaseorder.dtos.PurchaseOrderSummaryResponse;
-import com.ozz.atlas.supply.purchaseorder.dtos.UpdatePurchaseOrderItemRequest;
-import com.ozz.atlas.supply.purchaseorder.dtos.UpdatePurchaseOrderRequest;
+import com.ozz.atlas.supply.purchaseorder.dtos.*;
 import com.ozz.atlas.supply.purchaseorder.exception.PurchaseOrderErrorCode;
 import com.ozz.atlas.supply.purchaseorder.exception.PurchaseOrderException;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
+import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus;
 import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderItemRepository;
 import com.ozz.atlas.supply.purchaseorder.search.service.PurchaseOrderSearchService;
+import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
@@ -34,6 +36,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +60,10 @@ public class PurchaseOrderService {
     private final SubPurchaseOrderItemRepository subPurchaseOrderItemRepository;
     private final PurchaseOrderSearchService purchaseOrderSearchService;
     private final SupplierItemCapabilityRepository supplierItemCapabilityRepository;
+    private final SubPurchaseOrderRepository subPurchaseOrderRepository;
+    private final OutboxEventAppender outboxEventAppender;
+    private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SupplyChainContextResolver supplyChainContextResolver;
 
 
     public PurchaseOrderDetailResponse createPurchaseOrder(
@@ -117,6 +124,14 @@ public class PurchaseOrderService {
 
         SupplyPurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
         purchaseOrderSearchService.savePurchaseOrderDocument(savedPurchaseOrder);
+        appendPurchaseOrderEvent(
+                EventTypes.PURCHASE_ORDER_CREATED,
+                savedPurchaseOrder,
+                createdByUserPublicId,
+                buyerOrganizationPublicId,
+                "발주 생성",
+                "발주 생성 시"
+        );
         return PurchaseOrderDetailResponse.fromEntity(savedPurchaseOrder);
     }
 
@@ -180,6 +195,7 @@ public class PurchaseOrderService {
     public PurchaseOrderDetailResponse updatePurchaseOrder(
             String buyerOrganizationPublicId,
             String poPublicId,
+            String actorUserPublicId,
             UpdatePurchaseOrderRequest request
     ) {
         // 발주 조회 (발주사 맞지 않으면 예외)
@@ -199,24 +215,42 @@ public class PurchaseOrderService {
         purchaseOrder.updateHeader(request.getMemo());
 
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+        appendPurchaseOrderEvent(
+                EventTypes.PURCHASE_ORDER_UPDATED,
+                purchaseOrder,
+                actorUserPublicId,
+                buyerOrganizationPublicId,
+                "발주 수정",
+                "발주 수정 시"
+        );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
     public PurchaseOrderDetailResponse rejectPurchaseOrder(
             String supplierOrganizationPublicId,
-            String poPublicId
+            String poPublicId,
+            String actorUserPublicId
     ) {
         SupplyPurchaseOrder purchaseOrder = getSupplierOwnedPurchaseOrder(supplierOrganizationPublicId, poPublicId);
         validateSupplierActionable(purchaseOrder);
 
         purchaseOrder.reject();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+        appendPurchaseOrderEvent(
+                EventTypes.PURCHASE_ORDER_REJECTED,
+                purchaseOrder,
+                actorUserPublicId,
+                supplierOrganizationPublicId,
+                "발주 거절",
+                "발주 거절 시"
+        );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
     public PurchaseOrderDetailResponse changePurchaseOrderStatus(
             String buyerOrganizationPublicId,
             String poPublicId,
+            String actorUserPublicId,
             ChangePurchaseOrderStatusRequest request
     ) {
         SupplyPurchaseOrder purchaseOrder = getBuyerOwnedPurchaseOrder(buyerOrganizationPublicId, poPublicId);
@@ -225,6 +259,14 @@ public class PurchaseOrderService {
             validateNoActiveSubOrdersForPurchaseOrder(purchaseOrder.getId());
             purchaseOrder.cancel();
             purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+            appendPurchaseOrderEvent(
+                    EventTypes.PURCHASE_ORDER_CANCELLED,
+                    purchaseOrder,
+                    actorUserPublicId,
+                    buyerOrganizationPublicId,
+                    "발주 취소",
+                    "발주 취소 시"
+            );
             return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
         }
 
@@ -251,6 +293,7 @@ public class PurchaseOrderService {
     public PurchaseOrderDetailResponse addPurchaseOrderItem(
             String buyerOrganizationPublicId,
             String poPublicId,
+            String actorUserPublicId,
             CreatePurchaseOrderItemRequest request
     ) {
         SupplyPurchaseOrder purchaseOrder = getBuyerOwnedPurchaseOrder(buyerOrganizationPublicId, poPublicId);
@@ -279,6 +322,14 @@ public class PurchaseOrderService {
                 )
         );
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+        appendPurchaseOrderEvent(
+                EventTypes.PURCHASE_ORDER_UPDATED,
+                purchaseOrder,
+                actorUserPublicId,
+                buyerOrganizationPublicId,
+                "발주 품목 추가",
+                "발주 수정 시"
+        );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
@@ -286,6 +337,7 @@ public class PurchaseOrderService {
             String buyerOrganizationPublicId,
             String poPublicId,
             String poItemPublicId,
+            String actorUserPublicId,
             UpdatePurchaseOrderItemRequest request
     ) {
         SupplyPurchaseOrder purchaseOrder = getBuyerOwnedPurchaseOrder(buyerOrganizationPublicId, poPublicId);
@@ -332,13 +384,22 @@ public class PurchaseOrderService {
 
         purchaseOrder.refreshAfterItemChanged();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+        appendPurchaseOrderEvent(
+                EventTypes.PURCHASE_ORDER_UPDATED,
+                purchaseOrder,
+                actorUserPublicId,
+                buyerOrganizationPublicId,
+                "발주 품목 수정",
+                "발주 수정 시"
+        );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
     public void deletePurchaseOrderItem(
             String buyerOrganizationPublicId,
             String poPublicId,
-            String poItemPublicId
+            String poItemPublicId,
+            String actorUserPublicId
     ) {
         SupplyPurchaseOrder purchaseOrder = getBuyerOwnedPurchaseOrder(buyerOrganizationPublicId, poPublicId);
         SupplyPurchaseOrderItem purchaseOrderItem = findActivePurchaseOrderItem(purchaseOrder, poItemPublicId);
@@ -353,12 +414,21 @@ public class PurchaseOrderService {
         purchaseOrderItem.delete();
         purchaseOrder.refreshAfterItemChanged();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+        appendPurchaseOrderEvent(
+                EventTypes.PURCHASE_ORDER_UPDATED,
+                purchaseOrder,
+                actorUserPublicId,
+                buyerOrganizationPublicId,
+                "발주 품목 삭제",
+                "발주 수정 시"
+        );
     }
 
     public PurchaseOrderDetailResponse confirmPurchaseOrderItem(
             String supplierOrganizationPublicId,
             String poPublicId,
             String poItemPublicId,
+            String actorUserPublicId,
             ConfirmPurchaseOrderItemRequest request
     ) {
         SupplyPurchaseOrder purchaseOrder = getSupplierOwnedPurchaseOrder(supplierOrganizationPublicId, poPublicId);
@@ -373,7 +443,45 @@ public class PurchaseOrderService {
         purchaseOrderItem.confirm(request.getConfirmedQty());
         purchaseOrder.refreshConfirmationStatus();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+        appendPurchaseOrderEvent(
+                EventTypes.PURCHASE_ORDER_CONFIRMED,
+                purchaseOrder,
+                actorUserPublicId,
+                supplierOrganizationPublicId,
+                "발주 확정",
+                "발주 확정 시"
+        );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
+    }
+
+    private void appendPurchaseOrderEvent(
+            String eventType,
+            SupplyPurchaseOrder purchaseOrder,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String eventName,
+            String description
+    ) {
+        SupplyChainContext context = supplyChainContextResolver.fromPurchaseOrder(purchaseOrder);
+        outboxEventAppender.append(
+                supplyDomainEventFactory.create(
+                        KafkaTopics.SUPPLY_PURCHASE_ORDER,
+                        eventType,
+                        AggregateType.PURCHASE_ORDER,
+                        purchaseOrder.getPublicId(),
+                        actorUserPublicId,
+                        organizationPublicId,
+                        context,
+                        supplyDomainEventFactory.payload(
+                                purchaseOrder.getPublicId(),
+                                purchaseOrder.getPoNumber(),
+                                purchaseOrder.getPoStatus().name(),
+                                eventName,
+                                description,
+                                null
+                        )
+                )
+        );
     }
 
     // 발주 생성 요청 검증
@@ -522,6 +630,106 @@ public class PurchaseOrderService {
         }
         return candidate;
     }
+    @Transactional(readOnly = true)
+    public OrderDashboardSummaryResponse getOrderDashboardSummary(
+            String organizationPublicId,
+            String organizationType
+    ) {
+        if ("BUYER".equals(organizationType)) {
+            long totalOrderCount = purchaseOrderRepository.countByBuyerOrganizationPublicIdAndPoStatusNot(
+                    organizationPublicId,
+                    PoStatus.DELETED
+            );
+            long pendingOrderCount = purchaseOrderRepository.countByBuyerOrganizationPublicIdAndPoStatus(
+                    organizationPublicId,
+                    PoStatus.CREATED
+            );
+            long completedOrderCount = purchaseOrderRepository.countByBuyerOrganizationPublicIdAndPoStatus(
+                    organizationPublicId,
+                    PoStatus.COMPLETED
+            );
+            BigDecimal totalAmount = purchaseOrderRepository.sumAmountByBuyerOrganizationPublicIdAndPoStatusNot(
+                    organizationPublicId,
+                    PoStatus.DELETED
+            );
+
+            return OrderDashboardSummaryResponse.of(
+                    totalOrderCount,
+                    pendingOrderCount,
+                    completedOrderCount,
+                    totalOrderCount,
+                    0L,
+                    totalAmount
+            );
+        }
+
+        if ("SUPPLIER".equals(organizationType)) {
+            long receivedOrderCount = purchaseOrderRepository.countBySupplier_OrganizationPublicIdAndPoStatusNot(
+                    organizationPublicId,
+                    PoStatus.DELETED
+            );
+            long issuedOrderCount = subPurchaseOrderRepository.countByParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
+                    organizationPublicId,
+                    SubPoStatus.DELETED
+            );
+
+            BigDecimal receivedAmount = purchaseOrderRepository.sumAmountBySupplierOrganizationPublicIdAndPoStatusNot(
+                    organizationPublicId,
+                    PoStatus.DELETED
+            );
+            BigDecimal issuedAmount = subPurchaseOrderRepository.sumIssuedAmountBySupplierOrganizationPublicIdAndSubPoStatusNot(
+                    organizationPublicId,
+                    SubPoStatus.DELETED
+            );
+
+            return OrderDashboardSummaryResponse.of(
+                    receivedOrderCount + issuedOrderCount,
+                    0L,
+                    0L,
+                    issuedOrderCount,
+                    receivedOrderCount,
+                    receivedAmount.add(issuedAmount)
+            );
+        }
+
+        throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    public List<PurchaseOrderDetailResponse> createPurchaseOrdersBatch(
+            String buyerOrganizationPublicId,
+            String createdByUserPublicId,
+            CreatePurchaseOrderBatchRequest request
+    ) {
+        Map<String, List<CreatePurchaseOrderBatchLineRequest>> linesBySupplier = request.getLines().stream()
+                .collect(Collectors.groupingBy(
+                        CreatePurchaseOrderBatchLineRequest::getSupplierPublicId,
+                        java.util.LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        return linesBySupplier.entrySet().stream()
+                .map(entry -> {
+                    CreatePurchaseOrderRequest singleRequest = CreatePurchaseOrderRequest.builder()
+                            .supplierPublicId(entry.getKey())
+                            .currencyCode(request.getCurrencyCode())
+                            .memo(request.getMemo())
+                            .items(entry.getValue().stream()
+                                    .map(line -> CreatePurchaseOrderItemRequest.builder()
+                                            .itemPublicId(line.getItemPublicId())
+                                            .orderedQty(line.getOrderedQty())
+                                            .build())
+                                    .toList())
+                            .build();
+
+                    return createPurchaseOrder(
+                            buyerOrganizationPublicId,
+                            createdByUserPublicId,
+                            singleRequest
+                    );
+                })
+                .toList();
+    }
+
 
 
 

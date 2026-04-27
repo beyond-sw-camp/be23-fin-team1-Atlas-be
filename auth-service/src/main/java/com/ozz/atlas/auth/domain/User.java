@@ -1,15 +1,28 @@
 package com.ozz.atlas.auth.domain;
-import com.ozz.atlas.auth.dtos.UserUpdateDto;
+
+import com.ozz.atlas.auth.dtos.user.UserUpdateDto;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
-import jakarta.persistence.*;
-import lombok.*;
 import com.ozz.atlas.common.jpa.Status;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-
-@Getter @ToString
+@Getter
+@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -26,6 +39,10 @@ public class User extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
 
     @Column(nullable = false, unique = true, length = 50)
     private String loginId;
@@ -50,6 +67,12 @@ public class User extends BaseTimeEntity {
     @Column(length = 50)
     private String jobTitle;
 
+    @Column(length = 26)
+    private String profileAttachmentPublicId;
+
+    @Column(length = 255)
+    private String profileImageThumbPath;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role_code", nullable = false, length = 40)
     private UserRole userRole;
@@ -62,23 +85,61 @@ public class User extends BaseTimeEntity {
     @Column
     private LocalDateTime passwordChangedAt;
 
+
+    // 마지막 로그인 성공 시각
+    // 다른 기기에서 새로 로그인했는지 비교할 기준값
+    @Column
+    private LocalDateTime lastLoginAt;
+
     // 임시 비밀번호로 만든 계정인지 표시
-    // true 면 첫 로그인 후 비밀번호를 꼭 수정해야함
+    // true면 첫 로그인 뒤 비밀번호를 다시 설정
     @Builder.Default
     @Column(nullable = false)
     private boolean passwordChangeRequired = false;
 
     public void updateUser(UserUpdateDto dto) {
-        if (dto.getFirstName() != null && !dto.getFirstName().isBlank()) this.firstName = dto.getFirstName();
-        if (dto.getMiddleName() != null) this.middleName = dto.getMiddleName();
-        if (dto.getLastName() != null && !dto.getLastName().isBlank()) this.lastName = dto.getLastName();
-        if (dto.getEmail() != null && !dto.getEmail().isBlank()) this.email = dto.getEmail();
-        if (dto.getPhone() != null && !dto.getPhone().isBlank()) this.phone = dto.getPhone();
-        if (dto.getJobTitle() != null) this.jobTitle = dto.getJobTitle();
+        if (dto.getFirstName() != null && !dto.getFirstName().isBlank()) {
+            this.firstName = dto.getFirstName();
+        }
+        if (dto.getMiddleName() != null) {
+            this.middleName = dto.getMiddleName();
+        }
+        if (dto.getLastName() != null && !dto.getLastName().isBlank()) {
+            this.lastName = dto.getLastName();
+        }
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            this.email = dto.getEmail();
+        }
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
+            this.phone = dto.getPhone();
+        }
+        if (dto.getJobTitle() != null) {
+            this.jobTitle = dto.getJobTitle();
+        }
+        if (dto.getProfileAttachmentPublicId() != null) {
+            this.profileAttachmentPublicId = dto.getProfileAttachmentPublicId();
+        }
+        if (dto.getProfileImageThumbPath() != null) {
+            this.profileImageThumbPath = dto.getProfileImageThumbPath();
+        }
     }
 
-    public void deleteUser() {
-        this.status = Status.DELETE;
+    public void updateDepartment(Department department) {
+        this.department = department;
+    }
+
+    public String getProfileAttachmentPublicId() {
+        return profileAttachmentPublicId;
+    }
+
+    public String getProfileImageThumbPath() {
+        return profileImageThumbPath;
+    }
+
+    // 사용자의 상태를 원하는 값으로 변경
+    // 삭제도 별도 메서드 대신 이 메서드로 통일해서 처리
+    public void changeStatus(Status status) {
+        this.status = status;
     }
 
     public void updateUserRole(UserRole userRole) {
@@ -89,6 +150,7 @@ public class User extends BaseTimeEntity {
         this.password = encodedPassword;
         this.passwordChangedAt = LocalDateTime.now();
     }
+
     // 최초 생성 계정처럼 비밀번호 변경을 강제해야 할 때 호출
     public void requirePasswordChange() {
         this.passwordChangeRequired = true;
@@ -99,6 +161,17 @@ public class User extends BaseTimeEntity {
         this.passwordChangeRequired = false;
     }
 
+    // 로그인에 성공한 시각을 현재 시각으로 기록
+    // 나중에 JWT 필터에서 "이 토큰이 최신 로그인보다 먼저 발급됐는지" 비교할 때 사용
+    public void markLoggedInNow() {
+        this.lastLoginAt = LocalDateTime.now();
+    }
+
+    // 로그인 성공 시각을 외부에서 받은 값으로 정확히 기록
+    // JWT 발급 시각과 DB 저장 시각을 완전히 같게 맞출 때 사용
+    public void markLoggedInAt(LocalDateTime loginAt) {
+        this.lastLoginAt = loginAt;
+    }
 
 
 }

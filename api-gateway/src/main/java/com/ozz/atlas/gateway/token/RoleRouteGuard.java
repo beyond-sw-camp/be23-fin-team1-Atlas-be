@@ -26,7 +26,8 @@ public class RoleRouteGuard {
             "/api/supply/settlements",
             "/api/supply/certificates",
             "/api/supply/certificate-types",
-            "/api/supply/suppliers",
+            // ADMIN 협력사 생성을 위한 주석
+            // "/api/supply/suppliers",
             "/api/supply/items",
             // ADMIN 카테고리 생성을 위한 주석
             // "/api/supply/item-category",

@@ -12,6 +12,11 @@ public record ShipmentCreatedPayload(
         LocalDateTime departureEta,
         LocalDateTime arrivalEta,
         String status,
-        boolean temperatureRequired
+        boolean temperatureRequired,
+        String rootPurchaseOrderPublicId,
+        String rootBuyerOrganizationPublicId,
+        String directBuyerOrganizationPublicId,
+        String directSupplierOrganizationPublicId,
+        String parentPurchaseOrderPublicId
 ) {
 }

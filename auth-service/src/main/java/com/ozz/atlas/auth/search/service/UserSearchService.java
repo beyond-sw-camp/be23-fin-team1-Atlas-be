@@ -2,8 +2,8 @@ package com.ozz.atlas.auth.search.service;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.ozz.atlas.auth.domain.User;
-import com.ozz.atlas.auth.dtos.UserListDto;
-import com.ozz.atlas.auth.dtos.UserSearchDto;
+import com.ozz.atlas.auth.dtos.user.UserListDto;
+import com.ozz.atlas.auth.search.dtos.UserSearchDto;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.auth.search.document.UserDocument;
 import com.ozz.atlas.auth.search.repository.UserSearchRepository;
@@ -96,7 +96,9 @@ public class UserSearchService {
                             "phone",
                             "phone.ngram^2.0",
                             "jobTitle",
-                            "jobTitle.ngram"
+                            "jobTitle.ngram",
+                            "departmentName",
+                            "departmentName.ngram"
                     ))
             )));
         }

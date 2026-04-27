@@ -1,7 +1,7 @@
 package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.domain.User;
-import com.ozz.atlas.auth.dtos.AccessTokenResponseDto;
+import com.ozz.atlas.auth.dtos.auth.AccessTokenResponseDto;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ozz.atlas.auth.common.exception.LoginFailedException;
+import java.time.LocalDateTime;
+
 
 
 
@@ -57,6 +59,15 @@ public class AuthService {
                     user
             );
         }
+        // 사용자 계정이 활성이어도 소속 조직이 비활성이면 로그인할 수 없음
+        if (user.getOrganization().getStatus() != Status.ACTIVE) {
+            throw new LoginFailedException(
+                    "비활성화 또는 삭제된 조직입니다.",
+                    "INACTIVE_ORGANIZATION",
+                    user
+            );
+        }
+
 
         user.getOrganization().getPublicId();
 
@@ -83,6 +94,11 @@ public class AuthService {
         if (user.getStatus() != Status.ACTIVE) {
             throw new IllegalArgumentException("비활성화 또는 삭제된 사용자입니다.");
         }
+        // 사용자가 살아 있어도 소속 조직이 비활성이면 토큰 재발급을 막음
+        if (user.getOrganization().getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("비활성화 또는 삭제된 조직입니다.");
+        }
+
 
         String newAccessToken = jwtTokenProvider.createAccessToken(
                 user.getUserId(),
@@ -96,6 +112,21 @@ public class AuthService {
                 .accessToken(newAccessToken)
                 .build();
     }
+
+    // 로그인 최종 성공 시각을 기록
+    // user 객체 자체를 믿지 않고, 현재 트랜잭션 안에서 다시 조회한 엔티티를 수정
+    public void markLoginSuccess(Long userId, LocalDateTime loginAt) {
+        User managedUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // JWT 에 넣을 발급 시각과 똑같은 시각을 DB에도 저장합니다.
+        managedUser.markLoggedInAt(loginAt);
+
+        // 명시적으로 저장해 두면 의도가 더 분명합니다.
+        userRepository.save(managedUser);
+    }
+
+
 
 
 }

@@ -6,6 +6,7 @@ import com.ozz.atlas.common.kafka.EventSchemaVersions;
 import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.common.id.PublicIdGenerator;
+import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -20,9 +21,11 @@ public class ShipmentFactory {
             Shipment shipment,
             String originNodePublicId,
             String destinationNodePublicId,
+            SupplyChainContext context,
             String actorUserPublicId,
             String organizationPublicId
     ) {
+        SupplyChainContext safeContext = context != null ? context : SupplyChainContext.empty();
         // Kafka 계약에는 내부 PK 대신 publicId
         ShipmentCreatedPayload payload = new ShipmentCreatedPayload(
                 shipment.getPublicId(),
@@ -34,7 +37,12 @@ public class ShipmentFactory {
                 shipment.getDepartureEta(),
                 shipment.getArrivalEta(),
                 shipment.getStatus().name(),
-                shipment.isTemperatureRequired()
+                shipment.isTemperatureRequired(),
+                safeContext.rootPurchaseOrderPublicId(),
+                safeContext.rootBuyerOrganizationPublicId(),
+                safeContext.directBuyerOrganizationPublicId(),
+                safeContext.directSupplierOrganizationPublicId(),
+                safeContext.parentPurchaseOrderPublicId()
         );
 
         return buildEnvelope(
@@ -51,9 +59,11 @@ public class ShipmentFactory {
             long delayMinutes,
             LocalDateTime estimatedArrivalAt,
             String currentNodePublicId,
+            SupplyChainContext context,
             String actorUserPublicId,
             String organizationPublicId
     ) {
+        SupplyChainContext safeContext = context != null ? context : SupplyChainContext.empty();
         ShipmentDelayDetectedPayload payload = new ShipmentDelayDetectedPayload(
                 shipment.getPublicId(),
                 shipment.getShipmentNumber(),
@@ -61,7 +71,13 @@ public class ShipmentFactory {
                 delayMinutes,
                 shipment.getArrivalEta(),
                 estimatedArrivalAt,
-                currentNodePublicId
+                currentNodePublicId,
+                safeContext.rootPurchaseOrderPublicId(),
+                safeContext.rootBuyerOrganizationPublicId(),
+                safeContext.directBuyerOrganizationPublicId(),
+                safeContext.directSupplierOrganizationPublicId(),
+                safeContext.parentPurchaseOrderPublicId(),
+                safeContext.subPurchaseOrderPublicId()
         );
 
         return buildEnvelope(

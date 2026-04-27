@@ -2,31 +2,40 @@ package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.domain.Organization;
+import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
-import com.ozz.atlas.auth.dtos.*;
+import com.ozz.atlas.auth.dtos.organization.*;
 import com.ozz.atlas.auth.repository.OrganizationRepository;
+import com.ozz.atlas.auth.repository.UserRepository;
+import com.ozz.atlas.auth.search.dtos.OrganizationSearchDto;
 import com.ozz.atlas.auth.search.service.OrganizationSearchService;
+import com.ozz.atlas.auth.search.service.UserSearchService;
 import com.ozz.atlas.common.jpa.Status;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.regex.Pattern;
-import com.ozz.atlas.auth.dtos.OrganizationAliasLookupDto;
 
+import java.util.List;
+import java.util.regex.Pattern;
 @Service
 @Transactional
 public class OrganizationService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationSearchService organizationSearchService;
     private static final Pattern ORGANIZATION_ALIAS_PATTERN = Pattern.compile("^[A-Z0-9]{2,10}$");
+    private final UserRepository userRepository;
+    private final UserSearchService userSearchService;
+
 
     @Autowired
     public OrganizationService(OrganizationRepository organizationRepository,
-                               OrganizationSearchService organizationSearchService) {
+                               OrganizationSearchService organizationSearchService, UserRepository userRepository, UserSearchService userSearchService) {
         this.organizationRepository = organizationRepository;
         this.organizationSearchService = organizationSearchService;
+        this.userRepository = userRepository;
+        this.userSearchService = userSearchService;
     }
 
     // 조직 생성
@@ -94,11 +103,10 @@ public class OrganizationService {
             throw new IllegalArgumentException("존재하지 않는 조직입니다.");
         }
 
-        boolean isAdmin = principal.role() == UserRole.ADMIN;
         boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
                 && principal.organizationPublicId().equals(organization.getPublicId());
 
-        if (!isAdmin && !isOrgAdmin) {
+        if (!isOrgAdmin) {
             throw new IllegalArgumentException("수정 권한이 없습니다.");
         }
 
@@ -120,26 +128,61 @@ public class OrganizationService {
         return OrganizationDetailDto.fromEntity(organization);
     }
 
-    // 조직 삭제
-    public void organizationDelete(Long organizationId, AuthPrincipal principal) {
+    // 조직 상태를 ACTIVE, DEACTIVE, DELETE 중 하나로 변경
+    public OrganizationDetailDto organizationStatusUpdate(Long organizationId,
+                                                          OrganizationStatusUpdateDto dto,
+                                                          AuthPrincipal principal) {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 조직입니다."));
 
         boolean isAdmin = principal.role() == UserRole.ADMIN;
-        boolean isOrgAdmin = principal.role() == UserRole.ORG_ADMIN
+        boolean isOwnedOrgAdmin = principal.role() == UserRole.ORG_ADMIN
                 && principal.organizationPublicId().equals(organization.getPublicId());
+        Status targetStatus = dto.getStatus();
 
-        if (!isAdmin && !isOrgAdmin) {
-            throw new IllegalArgumentException("삭제 권한이 없습니다.");
+        // 삭제는 관리자만 할 수 있게 제한합니다.
+        if (targetStatus == Status.DELETE) {
+            if (!isAdmin) {
+                throw new IllegalArgumentException("조직 삭제 권한이 없습니다.");
+            }
+        } else if (!isAdmin && !isOwnedOrgAdmin) {
+            // 활성화와 비활성화는 관리자 또는 자기 조직 대표자만 허용합니다.
+            throw new IllegalArgumentException("조직 상태 변경 권한이 없습니다.");
         }
 
-        if (organization.getStatus() != Status.ACTIVE) {
-            throw new IllegalArgumentException("존재하지 않는 조직입니다.");
+        // 삭제된 조직의 상태 복구나 재변경은 관리자만 할 수 있습니다.
+        if (organization.getStatus() == Status.DELETE && !isAdmin) {
+            throw new IllegalArgumentException("삭제된 조직은 관리자만 상태를 변경할 수 있습니다.");
         }
 
-        organization.deleteOrganization();
+        // 먼저 조직 상태를 요청한 값으로 변경합니다.
+        organization.changeStatus(targetStatus);
+
+        // 조직 검색 문서도 바로 갱신합니다.
         organizationSearchService.saveOrganizationDocument(organization);
+
+        // 이 조직에 속한 사용자들을 모두 조회합니다.
+        List<User> users = userRepository.findAllByOrganization_PublicId(organization.getPublicId());
+
+        for (User user : users) {
+            // 조직 비활성화면 현재 활성 사용자만 비활성화합니다.
+            // 이미 비활성화되었거나 삭제된 사용자는 그대로 둡니다.
+            if (targetStatus == Status.DEACTIVE && user.getStatus() == Status.ACTIVE) {
+                user.changeStatus(Status.DEACTIVE);
+                userSearchService.saveUserDocument(user);
+                continue;
+            }
+
+            // 조직 삭제면 아직 삭제되지 않은 사용자들을 삭제 상태로 바꿉니다.
+            if (targetStatus == Status.DELETE && user.getStatus() != Status.DELETE) {
+                user.changeStatus(Status.DELETE);
+                userSearchService.saveUserDocument(user);
+            }
+        }
+
+        return OrganizationDetailDto.fromEntity(organization);
     }
+
 
     // 검색 DTO에 실제 검색 조건이 하나라도 들어왔는지 확인
     // keyword 뿐 아니라 조직유형, 조직명, 상태도 모두 통합검색 진입 조건으로 봄

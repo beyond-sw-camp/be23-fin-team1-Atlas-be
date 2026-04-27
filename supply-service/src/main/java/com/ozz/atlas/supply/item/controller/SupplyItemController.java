@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.search.dtos.ItemSearchDto;
 import com.ozz.atlas.supply.item.search.service.ItemSearchService;
+import io.swagger.v3.oas.annotations.Operation;
 
 
 @RestController
@@ -24,6 +25,7 @@ public class SupplyItemController {
     private final SupplyItemService supplyItemService;
     private final ItemSearchService itemSearchService;
 
+    @Operation(summary = "품목 생성")
     @PostMapping
     public ResponseEntity<?> createItem(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
@@ -34,6 +36,7 @@ public class SupplyItemController {
                 .body(supplyItemService.createItem(organizationPublicId, organizationType, request));
     }
 
+    @Operation(summary = "품목 수정")
     @PutMapping("/{itemPublicId}")
     public ResponseEntity<?> updateItem(
             @PathVariable String itemPublicId,
@@ -51,6 +54,7 @@ public class SupplyItemController {
         );
     }
 
+    @Operation(summary = "품목 삭제")
     @DeleteMapping("/{itemPublicId}")
     public ResponseEntity<?> deleteItem(
             @PathVariable String itemPublicId,
@@ -61,12 +65,14 @@ public class SupplyItemController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "품목 상세 조회")
     @GetMapping("/{itemPublicId}")
     public ResponseEntity<?> getItem(@PathVariable String itemPublicId) {
         return ResponseEntity.ok(supplyItemService.getItem(itemPublicId));
     }
 
 
+    @Operation(summary = "품목 목록 조회")
     @GetMapping
     public ResponseEntity<?> getItemList(
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,

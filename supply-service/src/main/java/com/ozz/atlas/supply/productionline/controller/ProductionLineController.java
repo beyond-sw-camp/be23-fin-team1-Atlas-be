@@ -17,9 +17,12 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/supply/production-lines")
+@Tag(name = "ProductionLine")
 public class ProductionLineController {
 
     private final ProductionLineService productionLineService;
@@ -32,6 +35,7 @@ public class ProductionLineController {
     }
 
     //    생산라인 등록
+    @Operation(summary = "생산 라인 생성")
     @PostMapping("/create")
     public ResponseEntity<ProductionLineResponseDto> createProductionLine(@Valid @RequestBody ProductionLineCreateDto dto) {
         ProductionLineResponseDto response = productionLineService.createProductionLine(dto);
@@ -39,6 +43,7 @@ public class ProductionLineController {
     }
 
     //   생산라인 목록 조회
+    @Operation(summary = "생산 라인 목록 조회")
     @GetMapping
     public ResponseEntity<Page<ProductionLineResponseDto>> getProductionLines(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -62,6 +67,7 @@ public class ProductionLineController {
     }
 
     //    생산라인 상세 조회
+    @Operation(summary = "생산 라인 상세 조회")
     @GetMapping("/{productionLineId}")
     public ResponseEntity<ProductionLineResponseDto> getProductionLine(@PathVariable Long productionLineId) {
         ProductionLineResponseDto response = productionLineService.productionLIne(productionLineId);
@@ -69,6 +75,7 @@ public class ProductionLineController {
     }
 
     //    생상라인 수정
+    @Operation(summary = "생산 라인 수정")
     @PatchMapping("/{productionLineId}")
     public ResponseEntity<ProductionLineResponseDto> updateProductionLine(
             @PathVariable Long productionLineId,
@@ -77,6 +84,7 @@ public class ProductionLineController {
     }
 
     //    생산라인 상태 변경
+    @Operation(summary = "생산 라인 상태 변경")
     @PatchMapping("/{productionLineId}/status")
     public ResponseEntity<ProductionLineResponseDto> updateProductionLineStatus(
             @PathVariable Long productionLineId,
@@ -85,6 +93,7 @@ public class ProductionLineController {
     }
 
     //    생산라인 삭제
+    @Operation(summary = "생산 라인 삭제")
     @DeleteMapping("/{productionLineId}")
     public ResponseEntity<Void> deleteProductionLine(@PathVariable Long productionLineId) {
         productionLineService.deleteProductionLine(productionLineId);
