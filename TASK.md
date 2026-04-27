@@ -45,11 +45,12 @@
 ### 4. Kafka E2E 검증
 
 - [x] 로컬 인프라 compose 파일 추가
-- [ ] `application-local.yml` 로컬 인프라 기준 정리 또는 실행 환경변수 예시 추가
+- [x] Kafka는 로컬 compose 대상에서 제외하고 서버 Kafka 사용 기준으로 정리
+- [ ] `application-local.yml` DB/Redis/ES 로컬 인프라 기준 정리 또는 실행 환경변수 예시 추가
 - [ ] `docker compose -f docker/docker-compose.infra.yml up -d` 로컬 인프라 기동 확인
 - [ ] `supply-service` API 호출 후 `outbox_event` 적재 확인
-- [ ] `SupplyOutboxPublisher`가 Kafka 토픽으로 발행하는지 확인
-- [ ] `control-service` consumer가 이벤트를 수신하고 알림을 저장하는지 확인
+- [ ] `SupplyOutboxPublisher`가 서버 Kafka 토픽으로 발행하는지 확인
+- [ ] `control-service` consumer가 서버 Kafka 이벤트를 수신하고 알림을 저장하는지 확인
 - [ ] Redis publish 및 FE 알림 수신 확인
 - [ ] 이벤트 규칙 OFF 시 알림 미생성 및 triggered count 미증가 확인
 
@@ -57,6 +58,7 @@
 
 - [ ] Dockerfile을 각 서비스에 추가 또는 정리
 - [x] 로컬 개발용 인프라 compose 파일 추가
+- [x] 로컬 compose에서 Kafka 제외, 서버 Kafka 사용 기준 정리
 - [ ] K8s 이미지 경로 실제 값으로 교체
 - [ ] `k8s/secrets/*.yaml` 실제 운영 값 전략 정리
 - [ ] Redis/Kafka/Elasticsearch/S3 접속 정보 표준화
