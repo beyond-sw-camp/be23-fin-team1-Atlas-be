@@ -15,9 +15,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "ChatMessage")
 public class ChatMessageController {
 
     private final ChatMessageService chatMessageService;
@@ -74,6 +77,7 @@ public class ChatMessageController {
      * 채팅방 과거 메시지 이력 조회 API (커서 기반 페이지네이션 지원)
      * cursor 파라미터가 없으면 가장 최신 메시지부터, 있으면 해당 cursor(publicId) 이전 메시지를 반환
      */
+    @Operation(summary = "채팅 메시지 목록 조회")
     @GetMapping("/api/control/chats/rooms/{roomPublicId}/messages")
     public ResponseEntity<Page<ChatMessageDto>> getMessages(
             @PathVariable String roomPublicId,
@@ -86,6 +90,7 @@ public class ChatMessageController {
      * 특정 채팅방 안의 메시지를 키워드로 검색한다.
      * 메시지 본문, 참조 코드, 참조 제목 기준으로 부분검색이 가능하다.
      */
+    @Operation(summary = "채팅 메시지 검색")
     @GetMapping("/api/control/chats/rooms/{roomPublicId}/messages/search")
     public ResponseEntity<Page<ChatMessageDto>> searchMessages(
             @PathVariable String roomPublicId,
@@ -95,6 +100,7 @@ public class ChatMessageController {
     }
 
 
+    @Operation(summary = "채팅 메시지 수정")
     @PutMapping("/api/control/chats/messages/{messagePublicId}")
     public ResponseEntity<ChatMessageDto> updateMessage(
             @PathVariable String messagePublicId,
@@ -103,6 +109,7 @@ public class ChatMessageController {
         return ResponseEntity.ok(chatMessageService.updateMessage(messagePublicId, request.getMessageBody(), userPublicId));
     }
 
+    @Operation(summary = "채팅 메시지 삭제")
     @DeleteMapping("/api/control/chats/messages/{messagePublicId}")
     public ResponseEntity<ChatMessageDto> deleteMessage(
             @PathVariable String messagePublicId,

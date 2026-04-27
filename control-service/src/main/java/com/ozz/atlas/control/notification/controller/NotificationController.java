@@ -26,6 +26,7 @@ public class NotificationController {
     /**
      * 내 알림 목록 조회 (페이징)
      */
+    @Operation(summary = "내 알림 목록 조회")
     @GetMapping
     public ResponseEntity<Page<NotificationDto>> getMyNotifications(
             @RequestHeader("X-User-Public-Id") String userPublicId,
@@ -55,6 +56,7 @@ public class NotificationController {
     /**
      * 특정 알림 읽음 처리
      */
+    @Operation(summary = "알림 읽음 처리")
     @PatchMapping("/{publicId}/read")
     public ResponseEntity<Void> markAsRead(
             @PathVariable String publicId,
@@ -66,6 +68,7 @@ public class NotificationController {
     /**
      * 모든 알림 일괄 읽음 처리
      */
+    @Operation(summary = "전체 알림 읽음 처리")
     @PatchMapping("/read-all")
     public ResponseEntity<Void> markAllAsRead(@RequestHeader("X-User-Public-Id") String userPublicId) {
         notificationService.markAllAsRead(userPublicId);
@@ -75,6 +78,7 @@ public class NotificationController {
     /**
      * 알림 삭제 (Soft Delete)
      */
+    @Operation(summary = "알림 삭제")
     @DeleteMapping("/{publicId}")
     public ResponseEntity<Void> deleteNotification(
             @PathVariable String publicId,

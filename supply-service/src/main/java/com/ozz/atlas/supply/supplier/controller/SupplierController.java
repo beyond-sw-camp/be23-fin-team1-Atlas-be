@@ -11,6 +11,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ public class SupplierController {
 
     private final SupplierService supplierService;
 
+    @Operation(summary = "협력사 생성")
     @PostMapping
     public ResponseEntity<?> createSupplier(
             @RequestHeader("X-User-Role") String userRole,
@@ -28,6 +30,7 @@ public class SupplierController {
                 .body(supplierService.createSupplier(userRole, request));
     }
 
+    @Operation(summary = "내 협력사 조회")
     @GetMapping("/me")
     public ResponseEntity<?> getMySupplier(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
@@ -38,6 +41,7 @@ public class SupplierController {
         );
     }
 
+    @Operation(summary = "협력사 상세 조회")
     @GetMapping("/{supplierPublicId}")
     public ResponseEntity<?> getSupplier(
             @PathVariable String supplierPublicId,
@@ -56,6 +60,7 @@ public class SupplierController {
     }
 
 
+    @Operation(summary = "협력사 목록 조회")
     @GetMapping
     public ResponseEntity<?> getSupplerList(
             SupplierSearchDto supplierSearchDto,
@@ -74,6 +79,7 @@ public class SupplierController {
         );
     }
 
+    @Operation(summary = "협력사 수정")
     @PutMapping("/{supplierPublicId}")
     public ResponseEntity<?> updateSupplier(
             @PathVariable String supplierPublicId,
@@ -85,6 +91,7 @@ public class SupplierController {
         );
     }
 
+    @Operation(summary = "협력사 상태 삭제 처리")
     @DeleteMapping("/{supplierPublicId}/status")
     public ResponseEntity<?> deleteSupplier(
             @PathVariable String supplierPublicId,
@@ -94,6 +101,7 @@ public class SupplierController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "연결 협력사 요약 조회")
     @GetMapping("/connections/summary")
     public ResponseEntity<?> getConnectedSupplierSummary(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
@@ -104,6 +112,7 @@ public class SupplierController {
         );
     }
 
+    @Operation(summary = "연결 협력사 상세 조회")
     @GetMapping("/{supplierPublicId}/connections/detail")
     public ResponseEntity<?> getConnectedSupplierDetail(
             @PathVariable String supplierPublicId,

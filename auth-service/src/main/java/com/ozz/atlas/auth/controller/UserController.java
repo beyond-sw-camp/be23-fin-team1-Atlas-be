@@ -54,6 +54,10 @@ public class UserController {
 
     // 조직 관리자가 자기 조직의 일반 직원 계정을 생성
     @PostMapping("/org-admin/users")
+    @Operation(
+            summary = "조직 직원 계정 생성",
+            description = "조직 대표자가 자기 조직의 일반 직원 계정을 생성한다."
+    )
     public ResponseEntity<ProvisionedUserResponseDto> createOrganizationUser(
             @RequestBody @Valid OrganizationUserCreateDto dto,
             @AuthenticationPrincipal AuthPrincipal principal
@@ -70,6 +74,10 @@ public class UserController {
 
     // 사용자 목록 조회
     @GetMapping("/users")
+    @Operation(
+            summary = "사용자 목록 조회",
+            description = "사용자 목록을 페이지 단위로 조회하고 검색 조건이 있으면 통합검색을 적용한다."
+    )
     public ResponseEntity<Page<UserListDto>> userList(
             @PageableDefault(size = 10, sort = "userId", direction = Sort.Direction.DESC) Pageable pageable,
             @ModelAttribute UserSearchDto userSearchDto
@@ -80,6 +88,10 @@ public class UserController {
 
     // 사용자 상세 조회
     @GetMapping("/users/{userId}")
+    @Operation(
+            summary = "사용자 상세 조회",
+            description = "사용자 내부 ID 기준으로 상세 정보를 조회한다."
+    )
     public ResponseEntity<UserDetailDto> userDetail(@PathVariable Long userId) {
         UserDetailDto response = userService.userDetail(userId);
         return ResponseEntity.ok(response);
@@ -203,6 +215,10 @@ public class UserController {
 
     // 사용자 상태변경
     @PatchMapping("/users/{userId}/status")
+    @Operation(
+            summary = "사용자 상태 변경",
+            description = "사용자의 활성/비활성/삭제 상태를 변경한다."
+    )
     public ResponseEntity<UserDetailDto> userStatusUpdate(
             @PathVariable Long userId,
             @RequestBody @Valid UserStatusUpdateDto dto,
@@ -218,6 +234,10 @@ public class UserController {
 
     // 사용자 권한 변경
     @PatchMapping("/users/{userId}/role")
+    @Operation(
+            summary = "사용자 권한 변경",
+            description = "플랫폼 관리자가 사용자의 시스템 권한을 변경한다."
+    )
     public ResponseEntity<UserDetailDto> userRoleUpdate(
             @PathVariable Long userId,
             @RequestBody @Valid UserRoleUpdateDto dto,
@@ -232,6 +252,10 @@ public class UserController {
     }
 
     @PostMapping("/users/{userId}/password/verification-request")
+    @Operation(
+            summary = "비밀번호 변경 인증 요청",
+            description = "현재 비밀번호와 새 비밀번호를 검증하고 이메일 인증 요청을 생성한다."
+    )
     public ResponseEntity<PasswordVerificationRequestResponseDto> requestPasswordChangeVerification(
             @PathVariable Long userId,
             @RequestBody @Valid UserPasswordUpdateDto dto,
@@ -257,6 +281,10 @@ public class UserController {
     }
 
     @PostMapping("/users/{userId}/password/verification-confirm")
+    @Operation(
+            summary = "비밀번호 변경 인증 확인",
+            description = "이메일 인증 코드를 확인하고 비밀번호 변경을 완료한다."
+    )
     public ResponseEntity<Void> confirmPasswordChangeVerification(
             @PathVariable Long userId,
             @RequestBody @Valid PasswordVerificationConfirmDto dto,
@@ -287,6 +315,10 @@ public class UserController {
 
     // 내 로그인 이력 조회
     @GetMapping("/login-histories/me")
+    @Operation(
+            summary = "내 로그인 이력 조회",
+            description = "현재 로그인한 사용자의 로그인 이력을 기간 조건과 페이지 조건으로 조회한다."
+    )
     public ResponseEntity<Page<LoginHistoryListDto>> myLoginHistories(
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -302,6 +334,10 @@ public class UserController {
     // 채팅 서비스 등 내부 연동용 사용자 조회
     @GetMapping("/users/public/{userPublicId}")
     @SecurityRequirements
+    @Operation(
+            summary = "사용자 공개 ID 상세 조회",
+            description = "내부 연동용으로 사용자 공개 ID 기준 상세 정보를 조회한다."
+    )
     public ResponseEntity<UserDetailDto> userDetailByPublicId(@PathVariable String userPublicId) {
         UserDetailDto response = userService.userDetailByPublicId(userPublicId);
         return ResponseEntity.ok(response);
@@ -309,6 +345,10 @@ public class UserController {
 
     // 현재 로그인한 사용자의 보안 이력을 조회
     @GetMapping("/security-histories/me")
+    @Operation(
+            summary = "내 보안 이력 조회",
+            description = "현재 로그인한 사용자의 프로필/비밀번호 등 보안 관련 이력을 기간 조건과 페이지 조건으로 조회한다."
+    )
     public ResponseEntity<Page<SecurityHistoryListDto>> mySecurityHistories(
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -323,6 +363,10 @@ public class UserController {
 
     // 조직 대표자가 엑셀 파일로 자기 조직 사원을 한 번에 등록
     @PostMapping("/org-admin/users/upload")
+    @Operation(
+            summary = "조직 직원 엑셀 업로드",
+            description = "조직 대표자가 엑셀 파일로 자기 조직의 직원 계정을 일괄 생성한다."
+    )
     public ResponseEntity<OrganizationUserExcelUploadResponseDto> uploadOrganizationUsers(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal AuthPrincipal principal

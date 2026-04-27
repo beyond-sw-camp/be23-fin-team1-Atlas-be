@@ -11,6 +11,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ public class SupplyItemCategoryController {
 
     private final SupplyItemCategoryService supplyItemCategoryService;
 
+    @Operation(summary = "품목 카테고리 생성")
     @PostMapping
     public ResponseEntity<?> createCategory(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
@@ -35,6 +37,7 @@ public class SupplyItemCategoryController {
                 ));
     }
 
+    @Operation(summary = "품목 카테고리 수정")
     @PutMapping("/{categoryPublicId}")
     public ResponseEntity<?> updateCategory(
             @PathVariable String categoryPublicId,
@@ -54,6 +57,7 @@ public class SupplyItemCategoryController {
         );
     }
 
+    @Operation(summary = "품목 카테고리 삭제")
     @DeleteMapping("/{categoryPublicId}")
     public ResponseEntity<?> deleteCategory(
             @PathVariable String categoryPublicId,
@@ -70,11 +74,13 @@ public class SupplyItemCategoryController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "품목 카테고리 상세 조회")
     @GetMapping("/{categoryPublicId}")
     public ResponseEntity<?> getCategory(@PathVariable String categoryPublicId) {
         return ResponseEntity.ok(supplyItemCategoryService.getCategory(categoryPublicId));
     }
 
+    @Operation(summary = "품목 카테고리 목록 조회")
     @GetMapping
     public ResponseEntity<?> getCategoryList(
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable

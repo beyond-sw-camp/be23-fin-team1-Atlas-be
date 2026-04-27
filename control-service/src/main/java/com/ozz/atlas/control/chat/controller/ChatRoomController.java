@@ -112,6 +112,7 @@ public class ChatRoomController {
     /**
      * 사용자가 속한 채팅방 목록 조회
      */
+    @Operation(summary = "채팅방 목록 조회")
     @GetMapping
     public ResponseEntity<Page<ChatRoomDto>> getRooms(
             @RequestParam String userPublicId,
@@ -190,6 +191,7 @@ public class ChatRoomController {
     /**
      * 채팅방 나가기
      */
+    @Operation(summary = "채팅방 나가기")
     @DeleteMapping("/{roomPublicId}/participants")
     public ResponseEntity<Void> leaveRoom(
             @PathVariable String roomPublicId, 
@@ -204,6 +206,7 @@ public class ChatRoomController {
      * GET /api/control/chats/rooms/{roomPublicId}/participants/search?keyword=홍
      * GET /api/control/chats/rooms/{roomPublicId}/participants/search?keyword=manager
      */
+    @Operation(summary = "채팅방 참여자 검색")
     @GetMapping("/{roomPublicId}/participants/search")
     public ResponseEntity<Page<ChatParticipantDocument>> searchParticipants(
             @PathVariable String roomPublicId,
