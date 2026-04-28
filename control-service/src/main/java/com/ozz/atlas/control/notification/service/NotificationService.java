@@ -5,6 +5,7 @@ import com.ozz.atlas.control.config.RedisConstants;
 import com.ozz.atlas.control.notification.domain.Notification;
 import com.ozz.atlas.control.notification.command.NotificationCommand;
 import com.ozz.atlas.control.notification.dto.NotificationDto;
+import com.ozz.atlas.control.notification.domain.NotificationToastType;
 import com.ozz.atlas.control.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,9 @@ public class NotificationService {
         Notification notification = Notification.builder()
                 .publicId(PublicIdGenerator.next())
                 .recipientUserPublicId(command.recipientUserPublicId())
-                .notificationType(command.notificationType())
+                .eventType(command.eventType())
+                .domainType(command.domainType())
+                .toastType(command.toastType())
                 .title(command.title())
                 .message(command.message())
                 .deepLinkUrl(command.deepLinkUrl())
@@ -109,7 +112,9 @@ public class NotificationService {
         return NotificationDto.builder()
                 .publicId(notification.getPublicId())
                 .recipientUserPublicId(notification.getRecipientUserPublicId())
-                .notificationType(notification.getNotificationType())
+                .eventType(notification.getEventType())
+                .notificationType(notification.getToastType() != null ? notification.getToastType() : NotificationToastType.INFO)
+                .domainType(notification.getDomainType())
                 .title(notification.getTitle())
                 .message(notification.getMessage())
                 .deepLinkUrl(notification.getDeepLinkUrl())
