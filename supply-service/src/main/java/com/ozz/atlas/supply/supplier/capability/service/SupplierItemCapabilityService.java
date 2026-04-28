@@ -145,9 +145,13 @@ public class SupplierItemCapabilityService {
     }
 
     private SupplyItem getActiveItem(String itemPublicId) {
-        return supplyItemRepository.findByPublicIdAndStatusIn(itemPublicId, List.of(Status.ACTIVE))
+        return supplyItemRepository.findByPublicIdAndStatusIn(
+                        itemPublicId,
+                        List.of(Status.ACTIVE, Status.DEACTIVE)
+                )
                 .orElseThrow(() -> new SupplierItemCapabilityException(SupplierItemCapabilityErrorCode.ITEM_NOT_FOUND));
     }
+
 
     private boolean isEmptyPatch(UpdateSupplierItemCapabilityRequest request) {
         return request.getLeadTimeDays() == null
@@ -159,7 +163,7 @@ public class SupplierItemCapabilityService {
                 && request.getValidFrom() == null
                 && request.getPartialConfirmationAllowed() == null;
     }
-
+    
     private void appendInventoryShortageEventIfNeeded(
             SupplySupplierItemCapability capability,
             String actorUserPublicId

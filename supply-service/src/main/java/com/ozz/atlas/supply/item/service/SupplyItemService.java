@@ -5,13 +5,12 @@ import com.ozz.atlas.supply.common.code.SequenceCodeType;
 import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
-import com.ozz.atlas.supply.item.dtos.CreateItemRequest;
-import com.ozz.atlas.supply.item.dtos.ItemResponse;
-import com.ozz.atlas.supply.item.dtos.UpdateItemRequest;
+import com.ozz.atlas.supply.item.dtos.*;
 import com.ozz.atlas.supply.item.exception.ItemErrorCode;
 import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderItemRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.relation.service.SupplierRelationService;
@@ -39,6 +38,8 @@ public class SupplyItemService {
     private final ItemSearchService itemSearchService;
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private final SupplierRelationService supplierRelationService;
+    private static final List<Status> MANAGED_ITEM_STATUSES = List.of(Status.ACTIVE, Status.DEACTIVE);
+    private final PurchaseOrderItemRepository purchaseOrderItemRepository;
 
     public ItemResponse createItem(
             String organizationPublicId,
@@ -192,7 +193,7 @@ public class SupplyItemService {
         SupplySupplier targetSupplier = resolveTargetSupplier(supplierPublicId, supplierOrganizationPublicId);
 
         if (loginSupplier.getId().equals(targetSupplier.getId())) {
-            throw new ItemException(ItemErrorCode.SELF_SUPPLIER_ORDER_NOT_ALLOWED);
+            return;
         }
 
         if (!supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId())) {
@@ -229,6 +230,103 @@ public class SupplyItemService {
         }
         return candidate;
     }
+
+    @Transactional(readOnly = true)
+    public Page<ItemResponse> getManagedItemList(
+            String organizationPublicId,
+            String organizationType,
+            Pageable pageable
+    ) {
+        SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
+
+        return supplyItemRepository.findAllBySupplier_OrganizationPublicIdAndStatusIn(
+                supplier.getOrganizationPublicId(),
+                MANAGED_ITEM_STATUSES,
+                pageable
+        ).map(ItemResponse::fromEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public ItemDashboardSummaryResponse getManagedItemDashboard(
+            String organizationPublicId,
+            String organizationType
+    ) {
+        SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
+        String supplierOrgId = supplier.getOrganizationPublicId();
+
+        var today = java.time.LocalDate.now(KST);
+        var from = today.atStartOfDay();
+        var to = today.plusDays(1).atStartOfDay();
+
+        return ItemDashboardSummaryResponse.builder()
+                .totalItemCount(
+                        supplyItemRepository.countBySupplier_OrganizationPublicIdAndStatusIn(
+                                supplierOrgId,
+                                MANAGED_ITEM_STATUSES
+                        )
+                )
+                .activeItemCount(
+                        supplyItemRepository.countBySupplier_OrganizationPublicIdAndStatus(
+                                supplierOrgId,
+                                Status.ACTIVE
+                        )
+                )
+                .deactiveItemCount(
+                        supplyItemRepository.countBySupplier_OrganizationPublicIdAndStatus(
+                                supplierOrgId,
+                                Status.DEACTIVE
+                        )
+                )
+                .todayOrderedItemCount(
+                        purchaseOrderItemRepository.countDistinctOrderedItemsToday(
+                                supplierOrgId,
+                                from,
+                                to
+                        )
+                )
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemLinkedPurchaseOrderResponse> getManagedItemLinkedOrders(
+            String organizationPublicId,
+            String organizationType,
+            String itemPublicId
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
+
+        SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(itemPublicId, MANAGED_ITEM_STATUSES)
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        validateItemOwner(item, organizationPublicId);
+        return purchaseOrderItemRepository.findLinkedOrdersByItemPublicId(itemPublicId);
+    }
+
+    public ItemResponse changeItemStatus(
+            String organizationPublicId,
+            String organizationType,
+            String itemPublicId,
+            ChangeItemStatusRequest request
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
+
+        SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
+                        itemPublicId,
+                        List.of(Status.ACTIVE, Status.DEACTIVE)
+                )
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        validateItemOwner(item, organizationPublicId);
+
+        if (request.getStatus() != Status.ACTIVE && request.getStatus() != Status.DEACTIVE) {
+            throw new ItemException(ItemErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        item.changeActiveYn(request.getStatus());
+        itemSearchService.saveItemDocument(item);
+        return ItemResponse.fromEntity(item);
+    }
+
 
 
 

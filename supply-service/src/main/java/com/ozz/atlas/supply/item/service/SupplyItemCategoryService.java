@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.item.service;
 
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import com.ozz.atlas.supply.item.dtos.CreateItemCategoryRequest;
 import com.ozz.atlas.supply.item.dtos.ItemCategoryResponse;
@@ -9,6 +10,8 @@ import com.ozz.atlas.supply.item.exception.ItemErrorCode;
 import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.supplier.capability.exception.SupplierItemCapabilityErrorCode;
+import com.ozz.atlas.supply.supplier.capability.exception.SupplierItemCapabilityException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -188,5 +191,13 @@ public class SupplyItemCategoryService {
         if (organizationPublicId == null || organizationPublicId.isBlank()) {
             throw new ItemException(ItemErrorCode.INVALID_ACTOR_HEADER);
         }
+    }
+
+    private SupplyItem getActiveItem(String itemPublicId) {
+        return supplyItemRepository.findByPublicIdAndStatusIn(
+                        itemPublicId,
+                        List.of(Status.ACTIVE, Status.DEACTIVE)
+                )
+                .orElseThrow(() -> new SupplierItemCapabilityException(SupplierItemCapabilityErrorCode.ITEM_NOT_FOUND));
     }
 }
