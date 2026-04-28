@@ -461,10 +461,16 @@ public class SupplierService {
             throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
         }
 
-        List<SupplySubPurchaseOrder> relatedOrders = subPurchaseOrderRepository.findAllBetweenSuppliers(
+        List<SupplySubPurchaseOrder> relatedSubOrders = subPurchaseOrderRepository.findAllBetweenSuppliers(
                 loginSupplier.getId(),
                 targetSupplier.getId(),
                 SubPoStatus.DELETED
+        );
+
+        List<Shipment> shipments = relatedSubOrders.isEmpty()
+                ? List.of()
+                : shipmentRepository.findAllBySubPoIdIn(
+                relatedSubOrders.stream().map(SupplySubPurchaseOrder::getSubPoId).toList()
         );
 
         List<SupplyPurchaseOrder> directPurchaseOrders = purchaseOrderRepository
@@ -475,22 +481,24 @@ public class SupplierService {
                 .filter(po -> po.getSupplier().getId().equals(targetSupplier.getId()))
                 .toList();
 
-        List<Shipment> shipments = relatedOrders.isEmpty()
-                ? List.of()
-                : shipmentRepository.findAllBySubPoIdIn(
-                relatedOrders.stream().map(SupplySubPurchaseOrder::getSubPoId).toList()
-        );
+        List<ConnectedSupplierOrderResponse> orders = java.util.stream.Stream.concat(
+                        relatedSubOrders.stream()
+                                .map(order -> ConnectedSupplierOrderResponse.fromSubPurchaseOrder(loginSupplier.getId(), order)),
+                        directPurchaseOrders.stream()
+                                .map(ConnectedSupplierOrderResponse::fromPurchaseOrder)
+                )
+                .sorted(java.util.Comparator.comparing(ConnectedSupplierOrderResponse::getOrderedAt).reversed())
+                .toList();
 
         return ConnectedSupplierDetailResponse.of(
                 targetSupplier,
                 calculateOnTimeRate(shipments),
-                (long) (relatedOrders.size() + directPurchaseOrders.size()),
-                sumSubOrderAmounts(relatedOrders).add(sumPurchaseOrderAmounts(directPurchaseOrders)),
-                relatedOrders.stream()
-                        .map(order -> ConnectedSupplierOrderResponse.of(loginSupplier.getId(), order))
-                        .toList()
+                (long) (relatedSubOrders.size() + directPurchaseOrders.size()),
+                sumSubOrderAmounts(relatedSubOrders).add(sumPurchaseOrderAmounts(directPurchaseOrders)),
+                orders
         );
     }
+
 
     private SupplierConnectionAggregation buildSupplierConnectionAggregation(SupplySupplier loginSupplier) {
         List<SupplySupplierRelation> relations = supplierRelationService.getVisibleRelations(loginSupplier.getId());
