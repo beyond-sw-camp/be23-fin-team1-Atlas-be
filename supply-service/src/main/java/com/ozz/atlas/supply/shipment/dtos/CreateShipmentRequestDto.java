@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 @Schema(description = "출하 생성 요청")
 public class CreateShipmentRequestDto {
 
-    @NotNull
     @Schema(description = "상위 발주 ID", example = "101")
     private Long poId;
 

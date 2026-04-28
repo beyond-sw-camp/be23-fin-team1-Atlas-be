@@ -40,6 +40,7 @@ import org.springframework.data.domain.Pageable;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
+import com.ozz.atlas.supply.settlement.service.SettlementService;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -61,6 +62,7 @@ public class ReturnService {
     private final SupplyItemRepository supplyItemRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ShipmentSearchService shipmentSearchService;
+    private final SettlementService settlementService;
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyChainContextResolver supplyChainContextResolver;
@@ -257,6 +259,10 @@ public class ReturnService {
 
         if (beforeStatus != ReturnStatus.APPROVED && request.getReturnStatus() == ReturnStatus.APPROVED) {
             createReturnShipment(returnRequest);
+        }
+
+        if (request.getReturnStatus() == ReturnStatus.COMPLETED) {
+            settlementService.createReturnSettlementIfAbsent(returnRequest.getPublicId());
         }
 
         saveHistory(returnRequest.getId(), beforeStatus, returnRequest.getReturnStatus(), request.getReason(), actorPublicId);
@@ -500,7 +506,7 @@ public class ReturnService {
     }
 
     private String generateReturnNumber(Shipment shipment) {
-        String baseNumber = shipment.getPublicId();
+        String baseNumber = shipment.getShipmentNumber();
         long sequence = returnRequestRepository.count() + 1;
 
         return "RTN-" + baseNumber + "-" + String.format("%03d", sequence);
@@ -545,7 +551,7 @@ public class ReturnService {
     }
 
     private String generateReturnShipmentNumber(ReturnRequest returnRequest) {
-        return "RS-" + returnRequest.getPublicId();
+        return "RS-" + returnRequest.getReturnNumber();
     }
 
 

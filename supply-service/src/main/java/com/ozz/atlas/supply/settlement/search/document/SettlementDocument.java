@@ -34,9 +34,18 @@ public class SettlementDocument {
     @Id
     private Long id;
 
+    @Field(type = FieldType.Keyword)
+    private String publicId;
+
     // 공급사 publicId
     @Field(type = FieldType.Keyword)
     private String supplierPublicId;
+
+    @Field(type = FieldType.Keyword)
+    private String buyerOrganizationPublicId;
+
+    @Field(type = FieldType.Keyword)
+    private String supplierOrganizationPublicId;
 
     // 정산 대상 유형
     @Field(type = FieldType.Keyword)
@@ -112,7 +121,10 @@ public class SettlementDocument {
     ) {
         return SettlementDocument.builder()
                 .id(settlement.getId())
+                .publicId(settlement.getPublicId())
                 .supplierPublicId(supplierPublicId)
+                .buyerOrganizationPublicId(settlement.getBuyerOrganizationPublicId())
+                .supplierOrganizationPublicId(settlement.getSupplierOrganizationPublicId())
                 .targetType(settlement.getTargetType())
                 .targetPublicId(settlement.getTargetPublicId())
                 .settlementPeriodStart(settlement.getSettlementPeriodStart())

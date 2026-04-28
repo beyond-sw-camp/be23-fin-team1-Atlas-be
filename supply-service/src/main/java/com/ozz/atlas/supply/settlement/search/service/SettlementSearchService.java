@@ -66,7 +66,11 @@ public class SettlementSearchService {
     }
 
     // 정산 목록 검색
-    public Page<SettlementResponseDto> search(Pageable pageable, SettlementSearchDto searchDto) {
+    public Page<SettlementResponseDto> search(
+            Pageable pageable,
+            SettlementSearchDto searchDto,
+            String organizationPublicId
+    ) {
         if (searchDto == null) {
             searchDto = new SettlementSearchDto();
         }
@@ -74,6 +78,7 @@ public class SettlementSearchService {
         List<Query> mustQueries = new ArrayList<>();
         List<Query> filterQueries = new ArrayList<>();
         List<Query> mustNotQueries = new ArrayList<>();
+        filterQueries.add(readableOrganizationQuery(organizationPublicId));
 
         // 공급사 publicId 필터
         if (hasText(searchDto.getSupplierPublicId())) {
@@ -164,7 +169,10 @@ public class SettlementSearchService {
     private SettlementResponseDto toResponseDto(SettlementDocument document) {
         return SettlementResponseDto.builder()
                 .id(document.getId())
+                .publicId(document.getPublicId())
                 .supplierPublicId(document.getSupplierPublicId())
+                .buyerOrganizationPublicId(document.getBuyerOrganizationPublicId())
+                .supplierOrganizationPublicId(document.getSupplierOrganizationPublicId())
                 .targetType(document.getTargetType())
                 .targetPublicId(document.getTargetPublicId())
                 .settlementPeriodStart(document.getSettlementPeriodStart())
@@ -194,6 +202,19 @@ public class SettlementSearchService {
                                 .toList()
                 )
                 .build();
+    }
+    private Query readableOrganizationQuery(String organizationPublicId) {
+        return Query.of(q -> q.bool(b -> b
+                .should(s -> s.term(t -> t
+                        .field("buyerOrganizationPublicId")
+                        .value(organizationPublicId)
+                ))
+                .should(s -> s.term(t -> t
+                        .field("supplierOrganizationPublicId")
+                        .value(organizationPublicId)
+                ))
+                .minimumShouldMatch("1")
+        ));
     }
 
     private Query termQuery(String field, String value) {

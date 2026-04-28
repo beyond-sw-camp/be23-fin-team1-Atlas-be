@@ -45,6 +45,7 @@ import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrder;
 import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
+import com.ozz.atlas.supply.settlement.service.SettlementService;
 import com.ozz.atlas.supply.shipment.dtos.UpdateShipmentRequestDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentMapCheckpointDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentMapResponseDto;
@@ -76,6 +77,7 @@ public class ShipmentService {
     private final ReturnRequestRepository returnRequestRepository;
     private final SupplyChainContextResolver supplyChainContextResolver;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SettlementService settlementService;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -91,7 +93,8 @@ public class ShipmentService {
             SubPurchaseOrderRepository subPurchaseOrderRepository,
             ReturnRequestRepository returnRequestRepository,
             SupplyChainContextResolver supplyChainContextResolver,
-            SupplyDomainEventFactory supplyDomainEventFactory
+            SupplyDomainEventFactory supplyDomainEventFactory,
+            SettlementService settlementService
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
@@ -107,6 +110,7 @@ public class ShipmentService {
         this.returnRequestRepository = returnRequestRepository;
         this.supplyChainContextResolver = supplyChainContextResolver;
         this.supplyDomainEventFactory = supplyDomainEventFactory;
+        this.settlementService = settlementService;
     }
 
     // 출하 생성
@@ -118,7 +122,7 @@ public class ShipmentService {
             String userRole
     ) {
         validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
-        validateShippableOrder(dto, organizationPublicId);
+        ResolvedShipmentOrder order = resolveShipmentOrder(dto, organizationPublicId);
 
         if (!dto.getDepartureEta().isBefore(dto.getArrivalEta())) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
@@ -131,12 +135,16 @@ public class ShipmentService {
             throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
         }
 
+        if (!destinationNode.getOrganizationPublicId().equals(order.buyerOrganizationPublicId())) {
+            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
+        }
+
         Shipment shipment = Shipment.builder()
-                .shipmentNumber(generateShipmentNumber(dto))
-                .poId(dto.getPoId())
-                .purchaseOrderPublicId(dto.getPurchaseOrderPublicId())
-                .subPoId(dto.getSubPoId())
-                .subPurchaseOrderPublicId(dto.getSubPurchaseOrderPublicId())
+                .shipmentNumber(generateShipmentNumber(order.orderNumber()))
+                .poId(order.poId())
+                .purchaseOrderPublicId(order.purchaseOrderPublicId())
+                .subPoId(order.subPoId())
+                .subPurchaseOrderPublicId(order.subPurchaseOrderPublicId())
                 .carrierName(dto.getCarrierName())
                 .vehicleNo(dto.getVehicleNo())
                 .trackingNo(dto.getTrackingNo())
@@ -444,6 +452,11 @@ public class ShipmentService {
 
             saveEtaProjectionIfChanged(savedShipment, previousEtaResult, updatedCheckpoints);
             appendShipmentTrackingEvent(savedShipment, dto, actorUserPublicId, organizationPublicId);
+
+            if (savedShipment.getStatus() == ShipmentStatus.ARRIVED
+                    && returnRequestRepository.findByReturnShipmentPublicId(savedShipment.getPublicId()).isEmpty()) {
+                settlementService.createShipmentSettlementIfAbsent(savedShipment.getPublicId());
+            }
         }
 
         return toShipmentResponseDto(savedShipment);
@@ -918,22 +931,50 @@ public class ShipmentService {
             throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
         }
     }
-    private void validateShippableOrder(CreateShipmentRequestDto dto, String organizationPublicId) {
-        if (dto.getSubPoId() != null) {
-            validateSubPurchaseOrderForShipment(dto.getSubPoId(), organizationPublicId);
-            return;
+    private ResolvedShipmentOrder resolveShipmentOrder(CreateShipmentRequestDto dto, String organizationPublicId) {
+        if (dto.getSubPoId() != null || hasText(dto.getSubPurchaseOrderPublicId())) {
+            SupplySubPurchaseOrder subPurchaseOrder = resolveSubPurchaseOrderForShipment(dto, organizationPublicId);
+
+            return new ResolvedShipmentOrder(
+                    null,
+                    null,
+                    subPurchaseOrder.getSubPoId(),
+                    subPurchaseOrder.getPublicId(),
+                    subPurchaseOrder.getParentPurchaseOrder().getSupplier().getOrganizationPublicId(),
+                    subPurchaseOrder.getSubPoNumber()
+            );
         }
 
-        if (dto.getPoId() == null) {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
-        }
+        SupplyPurchaseOrder purchaseOrder = resolvePurchaseOrderForShipment(dto, organizationPublicId);
 
-        validatePurchaseOrderForShipment(dto.getPoId(), organizationPublicId);
+        return new ResolvedShipmentOrder(
+                purchaseOrder.getId(),
+                purchaseOrder.getPublicId(),
+                null,
+                null,
+                purchaseOrder.getBuyerOrganizationPublicId(),
+                purchaseOrder.getPoNumber()
+        );
     }
 
-    private void validatePurchaseOrderForShipment(Long poId, String organizationPublicId) {
-        SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findById(poId)
-                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+    private SupplyPurchaseOrder resolvePurchaseOrderForShipment(
+            CreateShipmentRequestDto dto,
+            String organizationPublicId
+    ) {
+        SupplyPurchaseOrder purchaseOrder;
+
+        if (dto.getPoId() != null) {
+            purchaseOrder = purchaseOrderRepository.findById(dto.getPoId())
+                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+        } else if (hasText(dto.getPurchaseOrderPublicId())) {
+            purchaseOrder = purchaseOrderRepository.findByPublicIdAndPoStatusNot(
+                            dto.getPurchaseOrderPublicId(),
+                            PoStatus.DELETED
+                    )
+                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+        } else {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
 
         if (!purchaseOrder.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
             throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
@@ -942,9 +983,41 @@ public class ShipmentService {
         if (!isShippablePurchaseOrderStatus(purchaseOrder.getPoStatus())) {
             throw new ShipmentException(ShipmentErrorCode.SHIPMENT_ORDER_STATUS_NOT_ALLOWED);
         }
+
+        return purchaseOrder;
     }
-    private String generateShipmentNumber(CreateShipmentRequestDto dto) {
-        String orderNumber = resolveShipmentOrderNumber(dto);
+
+    private SupplySubPurchaseOrder resolveSubPurchaseOrderForShipment(
+            CreateShipmentRequestDto dto,
+            String organizationPublicId
+    ) {
+        SupplySubPurchaseOrder subPurchaseOrder;
+
+        if (dto.getSubPoId() != null) {
+            subPurchaseOrder = subPurchaseOrderRepository.findById(dto.getSubPoId())
+                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+        } else if (hasText(dto.getSubPurchaseOrderPublicId())) {
+            subPurchaseOrder = subPurchaseOrderRepository.findByPublicIdAndSubPoStatusNot(
+                            dto.getSubPurchaseOrderPublicId(),
+                            SubPoStatus.DELETED
+                    )
+                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+        } else {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        if (!subPurchaseOrder.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
+        }
+
+        if (!isShippableSubPurchaseOrderStatus(subPurchaseOrder.getSubPoStatus())) {
+            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_ORDER_STATUS_NOT_ALLOWED);
+        }
+
+        return subPurchaseOrder;
+    }
+
+    private String generateShipmentNumber(String orderNumber) {
         String prefix = "SHIP-" + orderNumber + "-";
 
         String lastShipmentNumber = shipmentRepository
@@ -961,22 +1034,6 @@ public class ShipmentService {
         }
 
         return candidate;
-    }
-
-    private String resolveShipmentOrderNumber(CreateShipmentRequestDto dto) {
-        if (dto.getSubPoId() != null) {
-            SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository.findById(dto.getSubPoId())
-                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
-            return subPurchaseOrder.getSubPoNumber();
-        }
-
-        if (dto.getPoId() != null) {
-            SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findById(dto.getPoId())
-                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
-            return purchaseOrder.getPoNumber();
-        }
-
-        throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
     }
 
     private int extractNextShipmentSequence(String lastShipmentNumber) {
@@ -997,17 +1054,8 @@ public class ShipmentService {
         }
     }
 
-    private void validateSubPurchaseOrderForShipment(Long subPoId, String organizationPublicId) {
-        SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository.findById(subPoId)
-                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
-
-        if (!subPurchaseOrder.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
-            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
-        }
-
-        if (!isShippableSubPurchaseOrderStatus(subPurchaseOrder.getSubPoStatus())) {
-            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_ORDER_STATUS_NOT_ALLOWED);
-        }
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private boolean isShippablePurchaseOrderStatus(PoStatus poStatus) {
@@ -1166,5 +1214,14 @@ public class ShipmentService {
             return "출하 출발 시";
         }
         return "출하 도착 시";
+    }
+    private record ResolvedShipmentOrder(
+            Long poId,
+            String purchaseOrderPublicId,
+            Long subPoId,
+            String subPurchaseOrderPublicId,
+            String buyerOrganizationPublicId,
+            String orderNumber
+    ) {
     }
 }
