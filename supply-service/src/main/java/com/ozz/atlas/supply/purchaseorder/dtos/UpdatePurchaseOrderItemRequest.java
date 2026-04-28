@@ -19,4 +19,5 @@ public class UpdatePurchaseOrderItemRequest {
     private String itemPublicId;
     @Positive
     private Long orderedQty;
+    private String arrivalLogisticsNodePublicId;
 }

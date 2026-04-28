@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.purchaseorder.domain;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -64,22 +65,30 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
     @Builder.Default
     private PurchaseOrderItemStatus itemStatus = PurchaseOrderItemStatus.OPEN;
 
+    // 해당 발주 품목이 도착해야 하는 물류거점
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "arrival_logistics_node_id")
+    private LogisticsNode arrivalLogisticsNode;
+
     public static SupplyPurchaseOrderItem create(
             SupplyItem item,
             Long orderedQty,
             BigDecimal unitPrice,
             Integer leadTimeDays,
             Boolean partialConfirmationAllowed,
-            LocalDate expectedDueDate
+            LocalDate expectedDueDate,
+            LogisticsNode arrivalLogisticsNode
     ) {
+        BigDecimal lineAmount = calculateLineAmount(unitPrice, orderedQty);
         return SupplyPurchaseOrderItem.builder()
                 .item(item)
                 .orderedQty(orderedQty)
                 .unitPrice(unitPrice)
-                .lineAmount(calculateLineAmount(orderedQty, unitPrice))
+                .lineAmount(lineAmount)
                 .leadTimeDays(leadTimeDays)
                 .partialConfirmationAllowed(partialConfirmationAllowed)
                 .expectedDueDate(expectedDueDate)
+                .arrivalLogisticsNode(arrivalLogisticsNode)
                 .itemStatus(PurchaseOrderItemStatus.OPEN)
                 .build();
     }
@@ -99,17 +108,20 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
             BigDecimal unitPrice,
             Integer leadTimeDays,
             Boolean partialConfirmationAllowed,
-            LocalDate expectedDueDate
+            LocalDate expectedDueDate,
+            LogisticsNode arrivalLogisticsNode
     ) {
         this.item = item;
         this.orderedQty = orderedQty;
         this.unitPrice = unitPrice;
-        this.lineAmount = calculateLineAmount(orderedQty, unitPrice);
+        this.lineAmount = calculateLineAmount(unitPrice, orderedQty);
         this.leadTimeDays = leadTimeDays;
         this.partialConfirmationAllowed = partialConfirmationAllowed;
         this.expectedDueDate = expectedDueDate;
         this.confirmedQty = null;
         this.itemStatus = PurchaseOrderItemStatus.OPEN;
+        this.arrivalLogisticsNode = arrivalLogisticsNode;
+
     }
 
 
@@ -144,9 +156,13 @@ public class SupplyPurchaseOrderItem extends BaseTimeEntity {
         this.purchaseOrder = purchaseOrder;
     }
 
-    private static BigDecimal calculateLineAmount(Long orderedQty, BigDecimal unitPrice) {
-        return BigDecimal.valueOf(orderedQty)
-                .multiply(unitPrice)
+    private static BigDecimal calculateLineAmount(BigDecimal unitPrice, Long orderedQty) {
+        if (unitPrice == null || orderedQty == null) {
+            return BigDecimal.ZERO;
+        }
+
+        return unitPrice
+                .multiply(BigDecimal.valueOf(orderedQty))
                 .setScale(2, RoundingMode.HALF_UP);
     }
 

@@ -26,4 +26,8 @@ public class CreatePurchaseOrderBatchLineRequest {
     @NotNull
     @Positive
     private Long orderedQty;
+
+    // 도착거점 publicId
+    @NotBlank(message = "도착거점은 필수입니다.")
+    private String arrivalLogisticsNodePublicId;
 }
