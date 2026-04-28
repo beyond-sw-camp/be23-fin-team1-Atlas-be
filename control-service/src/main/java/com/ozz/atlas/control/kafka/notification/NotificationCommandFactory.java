@@ -156,6 +156,12 @@ public class NotificationCommandFactory {
             case EventTypes.DELIVERY_EXCEPTION_TEMPERATURE_DEVIATION -> "온도 이탈 예외";
             case EventTypes.DELIVERY_EXCEPTION_DAMAGED -> "파손 예외";
             case EventTypes.LOGISTICS_NODE_CAPACITY_STATUS_CHANGED -> "물류 거점 용량 상태 변경";
+            case EventTypes.PURCHASE_ORDER_ACCEPTED -> "발주 수락";
+            case EventTypes.LOT_RELEASED -> "LOT 보류 해제";
+            case EventTypes.LOT_DEFECTIVE -> "LOT 불량";
+            case EventTypes.LOT_EXPIRATION_IMMINENT -> "LOT 유통기한 만료 임박";
+            case EventTypes.SUPPLIER_CERTIFICATE_EXPIRING -> "협력사 인증서 만료 임박";
+            case EventTypes.SUPPLIER_CERTIFICATE_EXPIRED -> "협력사 인증서 만료";
             default -> "공급망 이벤트";
         };
     }
@@ -171,6 +177,12 @@ public class NotificationCommandFactory {
             case EventTypes.DELIVERY_EXCEPTION_TEMPERATURE_DEVIATION -> "온도 이탈 예외 발생 시";
             case EventTypes.DELIVERY_EXCEPTION_DAMAGED -> "파손 예외 발생 시";
             case EventTypes.LOGISTICS_NODE_CAPACITY_STATUS_CHANGED -> "물류 거점 용량 상태 변경 시";
+            case EventTypes.PURCHASE_ORDER_ACCEPTED -> "발주 수락 시";
+            case EventTypes.LOT_RELEASED -> "LOT 보류 해제 시";
+            case EventTypes.LOT_DEFECTIVE -> "LOT 불량 판정 시";
+            case EventTypes.LOT_EXPIRATION_IMMINENT -> "LOT 유통기한 만료 임박 시";
+            case EventTypes.SUPPLIER_CERTIFICATE_EXPIRING -> "협력사 인증서 만료 임박 시";
+            case EventTypes.SUPPLIER_CERTIFICATE_EXPIRED -> "협력사 인증서 만료 시";
             default -> "공급망 이벤트 발생 시";
         };
     }

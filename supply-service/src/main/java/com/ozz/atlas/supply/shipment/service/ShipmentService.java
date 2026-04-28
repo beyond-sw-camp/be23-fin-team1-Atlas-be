@@ -1195,9 +1195,11 @@ public class ShipmentService {
         if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
             return EventTypes.SHIPMENT_DEPARTED;
         }
-        if (dto.getCheckpointType() == CheckpointType.ARRIVAL
-                || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
+        if (dto.getCheckpointType() == CheckpointType.ARRIVAL) {
             return EventTypes.SHIPMENT_ARRIVED;
+        }
+        if (dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
+            return EventTypes.SHIPMENT_COMPLETED;
         }
         return null;
     }
@@ -1206,12 +1208,18 @@ public class ShipmentService {
         if (EventTypes.SHIPMENT_DEPARTED.equals(eventType)) {
             return "출하 출발";
         }
+        if (EventTypes.SHIPMENT_COMPLETED.equals(eventType)) {
+            return "출하 완료";
+        }
         return "출하 도착";
     }
 
     private String resolveShipmentTrackingDescription(String eventType) {
         if (EventTypes.SHIPMENT_DEPARTED.equals(eventType)) {
             return "출하 출발 시";
+        }
+        if (EventTypes.SHIPMENT_COMPLETED.equals(eventType)) {
+            return "출하 완료 시";
         }
         return "출하 도착 시";
     }

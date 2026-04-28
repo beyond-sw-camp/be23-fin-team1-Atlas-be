@@ -468,12 +468,12 @@ public class PurchaseOrderService {
         purchaseOrder.refreshConfirmationStatus();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         appendPurchaseOrderEvent(
-                EventTypes.PURCHASE_ORDER_CONFIRMED,
+                resolvePurchaseOrderConfirmationEventType(purchaseOrder),
                 purchaseOrder,
                 actorUserPublicId,
                 supplierOrganizationPublicId,
-                "발주 확정",
-                "발주 확정 시"
+                resolvePurchaseOrderConfirmationEventName(purchaseOrder),
+                resolvePurchaseOrderConfirmationDescription(purchaseOrder)
         );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
@@ -506,6 +506,27 @@ public class PurchaseOrderService {
                         )
                 )
         );
+    }
+
+    private String resolvePurchaseOrderConfirmationEventType(SupplyPurchaseOrder purchaseOrder) {
+        if (purchaseOrder.getPoStatus() == PoStatus.CONFIRMED) {
+            return EventTypes.PURCHASE_ORDER_ACCEPTED;
+        }
+        return EventTypes.PURCHASE_ORDER_CONFIRMED;
+    }
+
+    private String resolvePurchaseOrderConfirmationEventName(SupplyPurchaseOrder purchaseOrder) {
+        if (purchaseOrder.getPoStatus() == PoStatus.CONFIRMED) {
+            return "발주 수락";
+        }
+        return "발주 확정";
+    }
+
+    private String resolvePurchaseOrderConfirmationDescription(SupplyPurchaseOrder purchaseOrder) {
+        if (purchaseOrder.getPoStatus() == PoStatus.CONFIRMED) {
+            return "발주 수락 시";
+        }
+        return "발주 확정 시";
     }
 
     // 발주 생성 요청 검증
