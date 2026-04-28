@@ -92,10 +92,13 @@ public class ShipmentSearchService {
                             "vehicleNo.ngram^2.0",
                             "originNodeName^2.0",
                             "originNodeName.ngram^2.0",
+                            "originNodeCode^2.0",
                             "destinationNodeName^2.0",
                             "destinationNodeName.ngram^2.0",
+                            "destinationNodeCode^2.0",
                             "currentNodeName^2.0",
-                            "currentNodeName.ngram^2.0"
+                            "currentNodeName.ngram^2.0",
+                            "currentNodeCode^2.0"
                     ))
             )));
         }
@@ -168,10 +171,13 @@ public class ShipmentSearchService {
                 .carrierName(document.getCarrierName())
                 .originNodePublicId(document.getOriginNodePublicId())
                 .originNodeName(document.getOriginNodeName())
+                .originNodeCode(document.getOriginNodeCode())
                 .destinationNodePublicId(document.getDestinationNodePublicId())
                 .destinationNodeName(document.getDestinationNodeName())
+                .destinationNodeCode(document.getDestinationNodeCode())
                 .currentNodePublicId(document.getCurrentNodePublicId())
                 .currentNodeName(document.getCurrentNodeName())
+                .currentNodeCode(document.getCurrentNodeCode())
                 .arrivalEta(document.getArrivalEta())
                 .status(document.getStatus())
                 .build();

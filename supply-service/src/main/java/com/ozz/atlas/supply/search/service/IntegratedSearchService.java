@@ -93,7 +93,15 @@ public class IntegratedSearchService {
         addShipmentSection(sections, pageable, keyword, organizationPublicId, organizationType, userRole, size);
 
         // 반품 섹션을 추가
-        addReturnSection(sections, pageable, keyword, size);
+        addReturnSection(
+                sections,
+                pageable,
+                keyword,
+                organizationPublicId,
+                organizationType,
+                userRole,
+                size
+        );
 
         // LOT 섹션을 추가
         addLotSection(sections, pageable, keyword, size);
@@ -102,7 +110,7 @@ public class IntegratedSearchService {
         addProductionLineSection(sections, pageable, keyword, size);
 
         // 정산 섹션을 추가
-        addSettlementSection(sections, pageable, keyword, size);
+        addSettlementSection(sections, pageable, keyword, organizationPublicId, size);
 
         return IntegratedSearchResponseDto.builder()
                 .keyword(keyword)
@@ -289,13 +297,20 @@ public class IntegratedSearchService {
             List<IntegratedSearchSectionDto> sections,
             PageRequest pageable,
             String keyword,
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
             int size
     ) {
+
         Page<ReturnRequestResponseDto> page = returnSearchService.search(
                 pageable,
                 ReturnSearchDto.builder()
                         .keyword(keyword)
-                        .build()
+                        .build(),
+                organizationPublicId,
+                organizationType,
+                userRole
         );
 
         if (page.isEmpty()) {
@@ -404,13 +419,18 @@ public class IntegratedSearchService {
             List<IntegratedSearchSectionDto> sections,
             PageRequest pageable,
             String keyword,
+            String organizationPublicId,
             int size
     ) {
+        if (!hasText(organizationPublicId)) {
+            return;
+        }
         Page<SettlementResponseDto> page = settlementSearchService.search(
                 pageable,
                 SettlementSearchDto.builder()
                         .keyword(keyword)
-                        .build()
+                        .build(),
+                organizationPublicId
         );
 
         if (page.isEmpty()) {
@@ -423,6 +443,7 @@ public class IntegratedSearchService {
                 .map(settlement -> IntegratedSearchItemDto.builder()
                         .type(IntegratedSearchSectionType.SETTLEMENT)
                         .id(settlement.getId())
+                        .publicId(settlement.getPublicId())
                         .title(settlement.getTargetPublicId())
                         .subtitle(settlement.getTargetType() != null ? settlement.getTargetType().name() : null)
                         .status(settlement.getSettlementStatus() != null ? settlement.getSettlementStatus().name() : null)

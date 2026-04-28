@@ -32,6 +32,9 @@ public class ReturnRequest extends BaseTimeEntity {
     @Column(length = 26)
     private String sourceShipmentPublicId;
 
+    @Column(length = 26)
+    private String returnShipmentPublicId;
+
     @Column(nullable = false, length = 26)
     private String requestOrganizationPublicId;
 
@@ -119,4 +122,11 @@ public class ReturnRequest extends BaseTimeEntity {
             this.completedAt = LocalDateTime.now();
         }
     }
+    public void assignReturnShipmentPublicId(String returnShipmentPublicId) {
+        if (this.returnShipmentPublicId != null && !this.returnShipmentPublicId.isBlank()) {
+            throw new IllegalStateException("이미 반품출하가 생성된 반품 요청입니다.");
+        }
+        this.returnShipmentPublicId = returnShipmentPublicId;
+    }
+
 }

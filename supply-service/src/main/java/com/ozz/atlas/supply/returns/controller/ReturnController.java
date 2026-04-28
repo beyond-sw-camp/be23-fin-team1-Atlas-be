@@ -47,11 +47,8 @@ public class ReturnController {
                             examples = @ExampleObject(
                                     value = """
                                             {
-                                              "returnNumber": "RET-2026-0007",
                                               "sourceShipmentPublicId": "ship_01HZY1SHIPMENT123456789",
-                                              "requestOrganizationPublicId": "org_req_01HZY2ORGREQ123456",
-                                              "targetOrganizationPublicId": "org_tgt_01HZY2ORGTGT123456",
-                                              "returnType": "QUALITY_ISSUE",
+                                              "returnType": "DAMAGE",
                                               "returnReason": "유통기한 임박 품목 회수",
                                               "attachmentPublicIds": ["att_01HZY2ATT10"],
                                               "items": [
@@ -83,7 +80,7 @@ public class ReturnController {
                                               "sourceShipmentPublicId": "ship_01HZY1SHIPMENT123456789",
                                               "requestOrganizationPublicId": "org_req_01HZY2ORGREQ123456",
                                               "targetOrganizationPublicId": "org_tgt_01HZY2ORGTGT123456",
-                                              "returnType": "QUALITY_ISSUE",
+                                              "returnType": "DAMAGE",
                                               "returnReason": "유통기한 임박 품목 회수",
                                               "returnStatus": "REQUESTED",
                                               "requestedAt": "2026-04-17T10:10:00",
@@ -111,8 +108,20 @@ public class ReturnController {
     )
     public ResponseEntity<ReturnRequestResponseDto> createReturn(
             @Valid @RequestBody CreateReturnRequestDto request,
-            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(returnService.createReturn(request, actorPublicId));
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                returnService.createReturn(
+                        request,
+                        actorPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
     @Operation(summary = "반품 요청 목록 조회")
@@ -126,7 +135,10 @@ public class ReturnController {
             @RequestParam(value = "returnStatus", required = false) ReturnStatus returnStatus,
             @RequestParam(value = "itemPublicId", required = false) String itemPublicId,
             @RequestParam(value = "lotPublicId", required = false) String lotPublicId,
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
     ) {
         // 컨트롤러에서 받은 검색 조건을 ES 검색 DTO로 묶습니다.
         ReturnSearchDto searchDto = ReturnSearchDto.builder()
@@ -142,23 +154,62 @@ public class ReturnController {
 
         // 검색 조건이 하나라도 있으면 ES 검색으로 보냄
         if (returnSearchService.hasSearchCondition(searchDto)) {
-            return ResponseEntity.ok(returnSearchService.search(pageable, searchDto));
+            return ResponseEntity.ok(
+                    returnSearchService.search(
+                            pageable,
+                            searchDto,
+                            organizationPublicId,
+                            organizationType,
+                            userRole
+                    )
+            );
         }
 
         // 검색 조건이 없으면 기존 DB 페이지 목록을 사용
-        return ResponseEntity.ok(returnService.getAllReturns(pageable));
+        return ResponseEntity.ok(
+                returnService.getAllReturns(
+                        pageable,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
     @Operation(summary = "반품 요청 상세 조회")
     @GetMapping("/{publicId}")
-    public ResponseEntity<ReturnRequestResponseDto> getReturn(@PathVariable String publicId) {
-        return ResponseEntity.ok(returnService.getReturnByPublicId(publicId));
+    public ResponseEntity<ReturnRequestResponseDto> getReturn(
+            @PathVariable String publicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                returnService.getReturnByPublicId(
+                        publicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
     @Operation(summary = "반품 상태 이력 조회")
     @GetMapping("/{publicId}/histories")
-    public ResponseEntity<List<ReturnStatusHistoryResponseDto>> getReturnHistories(@PathVariable String publicId) {
-        return ResponseEntity.ok(returnService.getReturnHistories(publicId));
+    public ResponseEntity<List<ReturnStatusHistoryResponseDto>> getReturnHistories(
+            @PathVariable String publicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                returnService.getReturnHistories(
+                        publicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
     @Operation(summary = "반품 요청 수정")
@@ -166,8 +217,21 @@ public class ReturnController {
     public ResponseEntity<ReturnRequestResponseDto> updateReturn(
             @PathVariable String publicId,
             @Valid @RequestBody UpdateReturnRequestDto request,
-            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
-        return ResponseEntity.ok(returnService.updateReturn(publicId, request, actorPublicId));
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                returnService.updateReturn(
+                        publicId,
+                        request,
+                        actorPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 
     @Operation(summary = "상태 변경")
@@ -175,7 +239,20 @@ public class ReturnController {
     public ResponseEntity<ReturnRequestResponseDto> changeStatus(
             @PathVariable String publicId,
             @Valid @RequestBody UpdateReturnStatusDto request,
-            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
-        return ResponseEntity.ok(returnService.changeStatus(publicId, request, actorPublicId));
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                returnService.changeStatus(
+                        publicId,
+                        request,
+                        actorPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
     }
 }

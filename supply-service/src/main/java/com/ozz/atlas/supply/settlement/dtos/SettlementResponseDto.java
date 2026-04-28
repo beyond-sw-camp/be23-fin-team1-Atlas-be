@@ -20,6 +20,9 @@ import java.util.List;
 public class SettlementResponseDto {
 
     private Long id;
+    private String publicId;
+    private String buyerOrganizationPublicId;
+    private String supplierOrganizationPublicId;
     private String supplierPublicId;
     private SettlementTargetType targetType;
     private String targetPublicId;

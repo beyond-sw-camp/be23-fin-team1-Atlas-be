@@ -108,5 +108,24 @@ public class Shipment extends BaseTimeEntity {
         }
         this.status = ShipmentStatus.DELAYED;
     }
+    public void updateShipmentInfo(
+            String carrierName,
+            String vehicleNo,
+            String trackingNo,
+            Long originNodeId,
+            Long destinationNodeId,
+            Long currentNodeId,
+            LocalDateTime departureEta,
+            LocalDateTime arrivalEta
+    ) {
+        this.carrierName = carrierName;
+        this.vehicleNo = vehicleNo;
+        this.trackingNo = trackingNo;
+        this.originNodeId = originNodeId;
+        this.destinationNodeId = destinationNodeId;
+        this.currentNodeId = currentNodeId;
+        this.departureEta = departureEta;
+        this.arrivalEta = arrivalEta;
+    }
 
 }

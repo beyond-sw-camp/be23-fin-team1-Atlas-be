@@ -58,8 +58,15 @@ public class ReturnSearchService {
     }
 
     // 반품 목록 검색
-    public Page<ReturnRequestResponseDto> search(Pageable pageable, ReturnSearchDto searchDto) {
-        // null 이 들어와도 터지지 않게 빈 DTO로 변경
+    public Page<ReturnRequestResponseDto> search(
+            Pageable pageable,
+            ReturnSearchDto searchDto,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        validateReturnSearchActor(organizationPublicId, organizationType, userRole);
+
         if (searchDto == null) {
             searchDto = new ReturnSearchDto();
         }
@@ -69,6 +76,18 @@ public class ReturnSearchService {
 
         // 필터 조건(filter)
         List<Query> filterQueries = new ArrayList<>();
+
+        filterQueries.add(Query.of(q -> q.bool(b -> b
+                .should(s -> s.term(t -> t
+                        .field("requestOrganizationPublicId")
+                        .value(organizationPublicId)
+                ))
+                .should(s -> s.term(t -> t
+                        .field("targetOrganizationPublicId")
+                        .value(organizationPublicId)
+                ))
+                .minimumShouldMatch("1")
+        )));
 
         // 제외 조건(mustNot)
         List<Query> mustNotQueries = new ArrayList<>();
@@ -227,6 +246,7 @@ public class ReturnSearchService {
                 .publicId(document.getPublicId())
                 .returnNumber(document.getReturnNumber())
                 .sourceShipmentPublicId(document.getSourceShipmentPublicId())
+                .returnShipmentPublicId(document.getReturnShipmentPublicId())
                 .requestOrganizationPublicId(document.getRequestOrganizationPublicId())
                 .targetOrganizationPublicId(document.getTargetOrganizationPublicId())
                 .requestOrganizationName(reqOrgName)
@@ -287,4 +307,31 @@ public class ReturnSearchService {
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
     }
+
+    private void validateReturnSearchActor(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()
+                || organizationType == null || organizationType.isBlank()) {
+            throw new com.ozz.atlas.supply.returns.exception.ReturnException(
+                    com.ozz.atlas.supply.returns.exception.ReturnErrorCode.INVALID_RETURN_REQUEST
+            );
+        }
+
+        if ("ADMIN".equalsIgnoreCase(organizationType) || "ADMIN".equalsIgnoreCase(userRole)) {
+            throw new com.ozz.atlas.supply.returns.exception.ReturnException(
+                    com.ozz.atlas.supply.returns.exception.ReturnErrorCode.FORBIDDEN_RETURN_CREATE
+            );
+        }
+
+        if (!"BUYER".equalsIgnoreCase(organizationType)
+                && !"SUPPLIER".equalsIgnoreCase(organizationType)) {
+            throw new com.ozz.atlas.supply.returns.exception.ReturnException(
+                    com.ozz.atlas.supply.returns.exception.ReturnErrorCode.FORBIDDEN_RETURN_CREATE
+            );
+        }
+    }
+
 }

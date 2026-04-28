@@ -30,14 +30,20 @@ public class ShipmentListResponseDto {
     private String originNodePublicId;
     @Schema(description = "출발 물류거점명", example = "서울 물류창고")
     private String originNodeName;
+    @Schema(description = "출발 물류거점 코드", example = "WH-CHO1-003")
+    private String originNodeCode;
     @Schema(description = "도착 물류 노드 공개 식별자", example = "node_dest_01HZY1BBB")
     private String destinationNodePublicId;
     @Schema(description = "도착 물류거점명", example = "부산 물류창고")
     private String destinationNodeName;
+    @Schema(description = "도착 물류거점 코드", example = "WH-BUY1-001")
+    private String destinationNodeCode;
     @Schema(description = "현재 물류 노드 공개 식별자", example = "node_hub_01HZY1CCC", nullable = true)
     private String currentNodePublicId;
     @Schema(description = "현재 물류거점명", example = "대전 허브", nullable = true)
     private String currentNodeName;
+    @Schema(description = "현재 물류거점 코드", example = "WH-HUB1-002", nullable = true)
+    private String currentNodeCode;
     @Schema(description = "예상 도착 시각", example = "2026-04-18T14:00:00")
     private LocalDateTime arrivalEta;
     @Schema(description = "출하 상태", example = "IN_TRANSIT")

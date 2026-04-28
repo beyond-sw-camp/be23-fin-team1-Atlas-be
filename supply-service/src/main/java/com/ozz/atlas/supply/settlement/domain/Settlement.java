@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.settlement.domain;
 
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
+import com.ozz.atlas.common.id.PublicIdGenerator;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -24,6 +25,20 @@ public class Settlement extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, updatable = false, length = 26)
+    @Builder.Default
+    private String publicId = PublicIdGenerator.next();
+
+    // 정산을 볼 수 있는 발주사 조직 publicId입니다.
+// 출하 기준 정산에서는 출하 도착지 조직, 반품 기준 정산에서는 반품 요청 조직이 들어갑니다.
+    @Column(nullable = false, length = 26)
+    private String buyerOrganizationPublicId;
+
+    // 정산을 볼 수 있는 공급사 조직 publicId입니다.
+// 출하 기준 정산에서는 출하 출발지 조직, 반품 기준 정산에서는 반품 대상 조직이 들어갑니다.
+    @Column(nullable = false, length = 26)
+    private String supplierOrganizationPublicId;
 
     @Column(nullable = false)
     private Long supplierId;

@@ -112,6 +112,8 @@ public class ShipmentDocument {
             }
     )
     private String originNodeName;
+    @Field(type = FieldType.Keyword)
+    private String originNodeCode;
 
     @Field(type = FieldType.Keyword)
     private String destinationOrganizationPublicId;
@@ -131,6 +133,8 @@ public class ShipmentDocument {
             }
     )
     private String destinationNodeName;
+    @Field(type = FieldType.Keyword)
+    private String destinationNodeCode;
 
     @Field(type = FieldType.Keyword)
     private String currentNodePublicId;
@@ -147,6 +151,8 @@ public class ShipmentDocument {
             }
     )
     private String currentNodeName;
+    @Field(type = FieldType.Keyword)
+    private String currentNodeCode;
 
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime departureEta;
@@ -192,11 +198,14 @@ public class ShipmentDocument {
                 .originOrganizationPublicId(originNode != null ? originNode.getOrganizationPublicId() : null)
                 .originNodePublicId(originNode != null ? originNode.getPublicId() : null)
                 .originNodeName(originNode != null ? originNode.getNodeName() : null)
+                .originNodeCode(originNode != null ? originNode.getNodeCode() : null)
                 .destinationOrganizationPublicId(destinationNode != null ? destinationNode.getOrganizationPublicId() : null)
                 .destinationNodePublicId(destinationNode != null ? destinationNode.getPublicId() : null)
                 .destinationNodeName(destinationNode != null ? destinationNode.getNodeName() : null)
+                .destinationNodeCode(destinationNode != null ? destinationNode.getNodeCode() : null)
                 .currentNodePublicId(currentNode != null ? currentNode.getPublicId() : null)
                 .currentNodeName(currentNode != null ? currentNode.getNodeName() : null)
+                .currentNodeCode(currentNode != null ? currentNode.getNodeCode() : null)
                 .departureEta(shipment.getDepartureEta())
                 .arrivalEta(shipment.getArrivalEta())
                 .actualDepartedAt(shipment.getActualDepartedAt())

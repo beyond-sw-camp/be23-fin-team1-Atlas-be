@@ -4,6 +4,7 @@ import com.ozz.atlas.supply.shipment.domain.Shipment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 
 import java.util.Collection;
 import java.util.List;
@@ -20,4 +21,15 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
             Collection<Long> destinationNodeIds,
             Pageable pageable
     );
+    Optional<Shipment> findTopByShipmentNumberStartingWithOrderByShipmentNumberDesc(String prefix);
+
+    boolean existsByShipmentNumber(String shipmentNumber);
+
+    List<Shipment> findByStatusInAndOriginNodeIdInOrStatusInAndDestinationNodeIdInOrderByIdDesc(
+            Collection<ShipmentStatus> originStatuses,
+            Collection<Long> originNodeIds,
+            Collection<ShipmentStatus> destinationStatuses,
+            Collection<Long> destinationNodeIds
+    );
+
 }

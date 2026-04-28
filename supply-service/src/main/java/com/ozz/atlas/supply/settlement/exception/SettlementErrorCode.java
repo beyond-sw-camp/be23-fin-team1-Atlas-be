@@ -20,7 +20,11 @@ public enum SettlementErrorCode implements ErrorCode {
     INVALID_SHIPMENT_STATUS_TRANSITION(400, "SHIPMENT_006", "출하 상태 변경 요청이 올바르지 않습니다."),
     RETURN_NOT_FOUND(404, "SETTLEMENT_008", "반품 정보를 찾을 수 없습니다."),
     RETURN_NOT_SETTLABLE(400, "SETTLEMENT_009", "정산 반영 가능한 반품 상태가 아닙니다."),
-    DUPLICATE_SETTLEMENT_TARGET(400, "SETTLEMENT_010", "이미 정산에 반영된 대상입니다.");
+    DUPLICATE_SETTLEMENT_TARGET(400, "SETTLEMENT_010", "이미 정산에 반영된 대상입니다."),
+    FORBIDDEN_SETTLEMENT_ACCESS(403, "SETTLEMENT_011", "정산 접근 권한이 없습니다."),
+    FORBIDDEN_SETTLEMENT_CREATE(403, "SETTLEMENT_012", "정산 생성 권한이 없습니다."),
+    SHIPMENT_NOT_SETTLABLE(400, "SETTLEMENT_013", "정산 생성 가능한 출하 상태가 아닙니다."),
+    SHIPMENT_NOT_FOUND(404, "SETTLEMENT_014", "출하 정보를 찾을 수 없습니다.");
 
     private final int status;
     private final String code;

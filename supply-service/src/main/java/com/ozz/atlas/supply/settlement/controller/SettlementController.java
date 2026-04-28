@@ -34,13 +34,15 @@ public class SettlementController {
     @Operation(summary = "정산 생성")
     @PostMapping
     public ResponseEntity<SettlementResponseDto> createSettlement(
-            @Valid @RequestBody CreateSettlementRequestDto request
+            @Valid @RequestBody CreateSettlementRequestDto request,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(settlementService.createSettlement(request));
+                .body(settlementService.createSettlement(request, organizationPublicId, userRole));
     }
 
-//    정산 목록 조회
+    //    정산 목록 조회
     @Operation(summary = "정산 목록 조회")
     @GetMapping
     public Page<SettlementResponseDto> getSettlements(
@@ -49,6 +51,8 @@ public class SettlementController {
             @RequestParam(value = "targetType", required = false) SettlementTargetType targetType,
             @RequestParam(value = "settlementStatus", required = false) SettlementStatus settlementStatus,
             @RequestParam(value = "currencyCode", required = false) SettlementCurrency currencyCode,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         SettlementSearchDto searchDto = SettlementSearchDto.builder()
@@ -60,43 +64,60 @@ public class SettlementController {
                 .build();
 
         if (settlementSearchService.hasSearchCondition(searchDto)) {
-            return settlementSearchService.search(pageable, searchDto);
+            return settlementService.searchSettlements(pageable, searchDto, organizationPublicId, userRole);
         }
 
-        return settlementService.getSettlements(pageable);
+        return settlementService.getSettlements(pageable, organizationPublicId, userRole);
     }
-
 
     //    정산 상세 조회
     @Operation(summary = "정산 상세 조회")
-    @GetMapping("/{settlementId}")
+    @GetMapping("/{settlementPublicId}")
     public ResponseEntity<SettlementResponseDto> getSettlement(
-            @PathVariable Long settlementId
+            @PathVariable String settlementPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
     ) {
-        return ResponseEntity.ok(settlementService.getSettlement(settlementId));
+        return ResponseEntity.ok(
+                settlementService.getSettlement(settlementPublicId, organizationPublicId, userRole)
+        );
     }
 
-//    정산 승인
+    //    정산 승인
     @Operation(summary = "정산 승인")
-    @PatchMapping("/{settlementId}/approve")
+    @PatchMapping("/{settlementPublicId}/approve")
     public ResponseEntity<SettlementResponseDto> approveSettlement(
-            @PathVariable Long settlementId,
+            @PathVariable String settlementPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
             @RequestHeader(value = "X-User-Public-Id", required = false) String approvedByUserPublicId,
             @RequestHeader(value = "X-User-Role", required = false) String userRole
     ) {
         return ResponseEntity.ok(
-                settlementService.approveSettlement(settlementId, approvedByUserPublicId, userRole)
+                settlementService.approveSettlement(
+                        settlementPublicId,
+                        organizationPublicId,
+                        approvedByUserPublicId,
+                        userRole
+                )
         );
     }
 
-//    정산 취소
+    //    정산 취소
     @Operation(summary = "정산 취소")
-    @PatchMapping("/{settlementId}/cancel")
+    @PatchMapping("/{settlementPublicId}/cancel")
     public ResponseEntity<SettlementResponseDto> cancelSettlement(
-            @PathVariable Long settlementId,
+            @PathVariable String settlementPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
             @RequestHeader(value = "X-User-Public-Id", required = false) String cancelledByUserPublicId,
             @RequestHeader(value = "X-User-Role", required = false) String userRole
     ) {
-        return ResponseEntity.ok(settlementService.cancelSettlement(settlementId, cancelledByUserPublicId, userRole));
+        return ResponseEntity.ok(
+                settlementService.cancelSettlement(
+                        settlementPublicId,
+                        organizationPublicId,
+                        cancelledByUserPublicId,
+                        userRole
+                )
+        );
     }
 }

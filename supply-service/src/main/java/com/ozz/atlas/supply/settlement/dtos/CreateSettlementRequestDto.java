@@ -2,7 +2,6 @@ package com.ozz.atlas.supply.settlement.dtos;
 
 import com.ozz.atlas.supply.settlement.domain.SettlementCurrency;
 import com.ozz.atlas.supply.settlement.domain.SettlementTargetType;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -11,16 +10,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Builder
 public class CreateSettlementRequestDto {
-
-    @NotBlank
-    private String supplierPublicId;
 
     @NotNull
     private SettlementTargetType targetType;
@@ -33,7 +28,4 @@ public class CreateSettlementRequestDto {
 
     @NotNull
     private SettlementCurrency currencyCode;
-
-    @Valid
-    private List<CreateSettlementDetailRequestDto> details;
 }
