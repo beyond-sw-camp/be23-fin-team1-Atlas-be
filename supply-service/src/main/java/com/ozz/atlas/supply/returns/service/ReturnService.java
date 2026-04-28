@@ -365,10 +365,6 @@ public class ReturnService {
         if ("ADMIN".equalsIgnoreCase(organizationType) || "ADMIN".equalsIgnoreCase(userRole)) {
             throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
         }
-
-        if (!"BUYER".equalsIgnoreCase(organizationType)) {
-            throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
-        }
     }
     private void validateReturnReadableActor(
             String organizationPublicId,
