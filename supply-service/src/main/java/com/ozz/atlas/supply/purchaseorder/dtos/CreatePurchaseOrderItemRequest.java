@@ -22,4 +22,8 @@ public class CreatePurchaseOrderItemRequest {
     @NotNull
     @Positive
     private Long orderedQty;
+
+    @NotBlank(message = "도착거점은 필수입니다.")
+    @Size(max = 26)
+    private String arrivalLogisticsNodePublicId;
 }

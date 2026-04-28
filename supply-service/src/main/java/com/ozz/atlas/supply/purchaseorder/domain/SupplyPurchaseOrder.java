@@ -186,7 +186,7 @@ public class SupplyPurchaseOrder extends BaseTimeEntity {
     private void recalculateTotalAmount() {
         this.totalAmount = this.purchaseOrderItems.stream()
                 .filter(item -> !item.isDeleted())
-                .map(SupplyPurchaseOrderItem::getLineAmount)
+                .map(item -> item.getLineAmount() == null ? BigDecimal.ZERO : item.getLineAmount())
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
     }

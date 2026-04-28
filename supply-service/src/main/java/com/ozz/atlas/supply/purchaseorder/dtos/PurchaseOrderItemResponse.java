@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.purchaseorder.dtos;
 
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import lombok.AllArgsConstructor;
@@ -30,10 +31,14 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
     private LocalDate expectedDueDate;
     private Integer leadTimeDays;
     private Boolean partialConfirmationAllowed;
+    private String arrivalLogisticsNodePublicId;
+    private String arrivalLogisticsNodeName;
+    private String arrivalLogisticsNodeAddress;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static PurchaseOrderItemResponse fromEntity(SupplyPurchaseOrderItem purchaseOrderItem) {
+        LogisticsNode arrivalLogisticsNode = purchaseOrderItem.getArrivalLogisticsNode();
         return PurchaseOrderItemResponse.builder()
                 .poItemPublicId(purchaseOrderItem.getPublicId())
                 .itemPublicId(purchaseOrderItem.getItem().getPublicId())
@@ -50,6 +55,9 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
                 .partialConfirmationAllowed(purchaseOrderItem.getPartialConfirmationAllowed())
                 .createdAt(purchaseOrderItem.getCreatedAt())
                 .updatedAt(purchaseOrderItem.getUpdatedAt())
+                .arrivalLogisticsNodePublicId(arrivalLogisticsNode != null ? arrivalLogisticsNode.getPublicId() : null)
+                .arrivalLogisticsNodeName(arrivalLogisticsNode  != null ? arrivalLogisticsNode.getNodeName() : null)
+                .arrivalLogisticsNodeAddress(arrivalLogisticsNode  != null ? arrivalLogisticsNode.getAddress() : null)
                 .build();
     }
 }

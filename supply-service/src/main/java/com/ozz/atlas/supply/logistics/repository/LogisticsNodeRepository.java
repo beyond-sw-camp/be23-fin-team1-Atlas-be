@@ -26,4 +26,9 @@ public interface LogisticsNodeRepository extends JpaRepository<LogisticsNode, Lo
     List<LogisticsNode> findByOrganizationPublicId(String organizationPublicId);
 
     Optional<LogisticsNode> findByPublicIdAndOrganizationPublicId(String publicId, String organizationPublicId);
+
+    Optional<LogisticsNode> findByPublicIdAndOrganizationPublicIdAndActiveTrue(
+            String publicId,
+            String organizationPublicId
+    );
 }

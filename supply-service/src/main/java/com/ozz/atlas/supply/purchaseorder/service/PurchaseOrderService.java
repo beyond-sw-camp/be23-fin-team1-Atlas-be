@@ -12,6 +12,8 @@ import com.ozz.atlas.supply.common.code.SequenceCodeType;
 import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderViewType;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
@@ -64,7 +66,7 @@ public class PurchaseOrderService {
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyChainContextResolver supplyChainContextResolver;
-
+    private final LogisticsNodeRepository logisticsNodeRepository;
 
     public PurchaseOrderDetailResponse createPurchaseOrder(
                         String buyerOrganizationPublicId,
@@ -99,13 +101,19 @@ public class PurchaseOrderService {
                     SupplyItem item = itemMap.get(itemRequest.getItemPublicId());
                     SupplySupplierItemCapability capability = getCapability(supplier, item);
 
+                    LogisticsNode arrivalLogisticsNode = resolveArrivalLogisticsNode(
+                            buyerOrganizationPublicId,
+                            itemRequest.getArrivalLogisticsNodePublicId()
+                    );
+
                     return SupplyPurchaseOrderItem.create(
                             item,
                             itemRequest.getOrderedQty(),
                             item.getUnitPrice(),
                             capability.getLeadTimeDays(),
                             capability.getPartialConfirmationAllowed(),
-                            calculateExpectedDueDate(capability)
+                            calculateExpectedDueDate(capability),
+                            arrivalLogisticsNode
                     );
 
                 })
@@ -311,6 +319,10 @@ public class PurchaseOrderService {
 
         SupplySupplierItemCapability capability = getCapability(purchaseOrder.getSupplier(), item);
 
+        LogisticsNode arrivalLogisticsNode = resolveArrivalLogisticsNode(
+                buyerOrganizationPublicId,
+                request.getArrivalLogisticsNodePublicId()
+        );
         purchaseOrder.addItem(
                 SupplyPurchaseOrderItem.create(
                         item,
@@ -318,7 +330,8 @@ public class PurchaseOrderService {
                         item.getUnitPrice(),
                         capability.getLeadTimeDays(),
                         capability.getPartialConfirmationAllowed(),
-                        calculateExpectedDueDate(capability)
+                        calculateExpectedDueDate(capability),
+                        arrivalLogisticsNode
                 )
         );
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
@@ -371,13 +384,24 @@ public class PurchaseOrderService {
 
         SupplySupplierItemCapability capability = getCapability(purchaseOrder.getSupplier(), targetItem);
 
+        LogisticsNode arrivalLogisticsNode = purchaseOrderItem.getArrivalLogisticsNode();
+
+        if (request.getArrivalLogisticsNodePublicId() != null
+                && !request.getArrivalLogisticsNodePublicId().isBlank()) {
+            arrivalLogisticsNode = resolveArrivalLogisticsNode(
+                    buyerOrganizationPublicId,
+                    request.getArrivalLogisticsNodePublicId()
+            );
+        }
+
         purchaseOrderItem.update(
                 targetItem,
                 request.getOrderedQty() != null ? request.getOrderedQty() : purchaseOrderItem.getOrderedQty(),
                 targetItem.getUnitPrice(),
                 capability.getLeadTimeDays(),
                 capability.getPartialConfirmationAllowed(),
-                calculateExpectedDueDate(capability)
+                calculateExpectedDueDate(capability),
+                arrivalLogisticsNode
         );
 
 
@@ -516,6 +540,21 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_NOT_FOUND));
     }
 
+    private LogisticsNode resolveArrivalLogisticsNode(
+            String buyerOrganizationPublicId,
+            String arrivalLogisticsNodePublicId
+    ) {
+        if (arrivalLogisticsNodePublicId == null || arrivalLogisticsNodePublicId.isBlank()) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        return logisticsNodeRepository.findByPublicIdAndOrganizationPublicIdAndActiveTrue(
+                        arrivalLogisticsNodePublicId,
+                        buyerOrganizationPublicId
+                )
+                .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE));
+    }
+
     private SupplyPurchaseOrder getBuyerOwnedPurchaseOrder(String buyerOrganizationPublicId, String poPublicId) {
         return purchaseOrderRepository.findByPublicIdAndBuyerOrganizationPublicIdAndPoStatusNot(
                         poPublicId,
@@ -560,7 +599,8 @@ public class PurchaseOrderService {
 
     private boolean isEmptyItemPatch(UpdatePurchaseOrderItemRequest request) {
         return (request.getItemPublicId() == null || request.getItemPublicId().isBlank())
-                && request.getOrderedQty() == null;
+                && request.getOrderedQty() == null
+                && (request.getArrivalLogisticsNodePublicId() == null || request.getArrivalLogisticsNodePublicId().isBlank());
     }
 
     private SupplyPurchaseOrderItem findActivePurchaseOrderItem(
@@ -717,6 +757,7 @@ public class PurchaseOrderService {
                                     .map(line -> CreatePurchaseOrderItemRequest.builder()
                                             .itemPublicId(line.getItemPublicId())
                                             .orderedQty(line.getOrderedQty())
+                                            .arrivalLogisticsNodePublicId(line.getArrivalLogisticsNodePublicId())
                                             .build())
                                     .toList())
                             .build();
