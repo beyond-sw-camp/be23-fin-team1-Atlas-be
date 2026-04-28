@@ -156,6 +156,7 @@ public class IntegratedSearchService {
                         .publicId(user.getUserPublicId())
                         .title(buildUserName(user))
                         .subtitle(buildUserSubtitle(user))
+                        .thumbnailUrl(user.getProfileImageThumbPath())
                         .status(null)
                         .build())
                 .limit(size)
@@ -388,6 +389,7 @@ public class IntegratedSearchService {
         private String phone;
         private String jobTitle;
         private String userRole;
+        private String profileImageThumbPath;
     }
 
     // auth-service 조직 검색 응답 항목을 받기 위한 내부 DTO

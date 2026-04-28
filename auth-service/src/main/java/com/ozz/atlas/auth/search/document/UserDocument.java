@@ -156,6 +156,8 @@ public class UserDocument {
             }
     )
     private String jobTitle;
+    private String profileAttachmentPublicId;
+    private String profileImageThumbPath;
 
     public static UserDocument fromEntity(User user) {
         return UserDocument.builder()
@@ -174,6 +176,8 @@ public class UserDocument {
                 .status(user.getStatus())
                 .phone(user.getPhone())
                 .jobTitle(user.getJobTitle())
+                .profileAttachmentPublicId(user.getProfileAttachmentPublicId())
+                .profileImageThumbPath(user.getProfileImageThumbPath())
                 .build();
     }
 }

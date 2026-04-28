@@ -26,6 +26,10 @@ public class IntegratedSearchItemDto {
     // 제목 아래에 보여줄 보조 설명
     private String subtitle;
 
+    // 검색 결과 카드 왼쪽에 보여줄 공통 썸네일 이미지 경로
+// 사용자 프로필, 품목 이미지, 조직 로고 등 다양한 타입에서 공통
+    private String thumbnailUrl;
+
     // 상태값이 있으면 문자열로 내려줌
     private String status;
 }

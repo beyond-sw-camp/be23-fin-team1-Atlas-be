@@ -41,6 +41,11 @@ public class UserListDto {
     private String departmentName;
     @Schema(description = "사용자 권한", example = "USER")
     private UserRole userRole;
+    @Schema(description = "프로필 첨부파일 공개 식별자", nullable = true)
+    private String profileAttachmentPublicId;
+
+    @Schema(description = "프로필 이미지 썸네일 경로", nullable = true)
+    private String profileImageThumbPath;
 
     public static UserListDto fromEntity(User user){
         return UserListDto.builder()
@@ -57,6 +62,8 @@ public class UserListDto {
                 .firstName(user.getFirstName())
                 .middleName(user.getMiddleName())
                 .lastName(user.getLastName())
+                .profileAttachmentPublicId(user.getProfileAttachmentPublicId())
+                .profileImageThumbPath(user.getProfileImageThumbPath())
                 .build();
     }
 
@@ -75,6 +82,8 @@ public class UserListDto {
                 .departmentPublicId(user.getDepartmentPublicId())
                 .departmentCode(user.getDepartmentCode())
                 .departmentName(user.getDepartmentName())
+                .profileAttachmentPublicId(user.getProfileAttachmentPublicId())
+                .profileImageThumbPath(user.getProfileImageThumbPath())
                 .build();
     }
 }
