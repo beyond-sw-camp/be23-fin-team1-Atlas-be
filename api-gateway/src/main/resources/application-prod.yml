@@ -13,32 +13,76 @@ spring:
           uri: http://supply-service:8080
           predicates:
             - Path=/api/supply/**
+        - id: control-service-ws-http
+          uri: http://control-service:8080
+          predicates:
+            - Path=/ws-control/**
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+        - id: control-service-ws-http-root
+          uri: http://control-service:8080
+          predicates:
+            - Path=/ws-control
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+        - id: control-service-ws-http-api
+          uri: http://control-service:8080
+          predicates:
+            - Path=/api/control/ws-control/**
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - StripPrefix=2
         - id: control-service-ws
           uri: ws://control-service:8080
           predicates:
             - Path=/ws-control/**
+            - Header=Upgrade, websocket
         - id: control-service-ws-root
           uri: ws://control-service:8080
           predicates:
             - Path=/ws-control
+            - Header=Upgrade, websocket
         - id: control-service-ws-api
           uri: ws://control-service:8080
           predicates:
             - Path=/api/control/ws-control/**
+            - Header=Upgrade, websocket
           filters:
+            - StripPrefix=2
+        - id: control-service-ws-chat-http
+          uri: http://control-service:8080
+          predicates:
+            - Path=/ws-chat/**
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+        - id: control-service-ws-chat-http-root
+          uri: http://control-service:8080
+          predicates:
+            - Path=/ws-chat
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+        - id: control-service-ws-chat-http-api
+          uri: http://control-service:8080
+          predicates:
+            - Path=/api/control/ws-chat/**
+          filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
             - StripPrefix=2
         - id: control-service-ws-chat
           uri: ws://control-service:8080
           predicates:
             - Path=/ws-chat/**
+            - Header=Upgrade, websocket
         - id: control-service-ws-chat-root
           uri: ws://control-service:8080
           predicates:
             - Path=/ws-chat
+            - Header=Upgrade, websocket
         - id: control-service-ws-chat-api
           uri: ws://control-service:8080
           predicates:
             - Path=/api/control/ws-chat/**
+            - Header=Upgrade, websocket
           filters:
             - StripPrefix=2
         - id: control-service
