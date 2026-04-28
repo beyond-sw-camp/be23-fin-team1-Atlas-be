@@ -9,6 +9,7 @@ import com.ozz.atlas.control.kafka.recommendation.RecommendationDecisionPayload;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationFailedPayload;
 import com.ozz.atlas.control.kafka.recommendation.RecommendationGeneratedPayload;
 import com.ozz.atlas.control.notification.command.NotificationCommand;
+import com.ozz.atlas.control.notification.domain.NotificationToastType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -62,7 +63,9 @@ public class NotificationCommandFactory {
 
         return NotificationCommand.builder()
                 .recipientUserPublicId(recipientUserPublicId)
-                .notificationType(DomainType.RISK)
+                .eventType(eventEnvelope.eventType())
+                .domainType(DomainType.RISK)
+                .toastType(NotificationToastType.SUCCESS)
                 .title("권고안 생성이 완료되었습니다.")
                 .message(targetLabel + "에 대한 권고안이 생성되었습니다.")
                 .deepLinkUrl("/recommendations/" + payload.recommendationPublicId())
@@ -79,7 +82,9 @@ public class NotificationCommandFactory {
 
         return NotificationCommand.builder()
                 .recipientUserPublicId(recipientUserPublicId)
-                .notificationType(DomainType.SYSTEM)
+                .eventType(eventEnvelope.eventType())
+                .domainType(DomainType.SYSTEM)
+                .toastType(NotificationToastType.RISK_ALERT)
                 .title("권고안 생성에 실패했습니다.")
                 .message(payload.errorMessage())
                 .deepLinkUrl("/recommendations/" + payload.recommendationPublicId())
@@ -103,7 +108,11 @@ public class NotificationCommandFactory {
 
         return NotificationCommand.builder()
                 .recipientUserPublicId(recipientUserPublicId)
-                .notificationType(DomainType.RISK)
+                .eventType(eventEnvelope.eventType())
+                .domainType(DomainType.RISK)
+                .toastType(EventTypes.RECOMMENDATION_ACCEPTED.equals(eventEnvelope.eventType())
+                        ? NotificationToastType.SUCCESS
+                        : NotificationToastType.WARNING)
                 .title(title)
                 .message(message)
                 .deepLinkUrl("/recommendations/" + payload.recommendationPublicId())
@@ -137,7 +146,9 @@ public class NotificationCommandFactory {
 
         return NotificationCommand.builder()
                 .recipientUserPublicId(recipientUserPublicId)
-                .notificationType(resolveDomainType(eventEnvelope.eventType()))
+                .eventType(eventEnvelope.eventType())
+                .domainType(resolveDomainType(eventEnvelope.eventType()))
+                .toastType(resolveToastType(eventEnvelope.eventType()))
                 .title(title)
                 .message(message)
                 .deepLinkUrl(resolveDeepLink(eventEnvelope.eventType(), referencePublicId))
@@ -204,6 +215,43 @@ public class NotificationCommandFactory {
             return DomainType.SUPPLIER;
         }
         return DomainType.SYSTEM;
+    }
+
+    private NotificationToastType resolveToastType(String eventType) {
+        return switch (eventType) {
+            case EventTypes.DELIVERY_EXCEPTION_TEMPERATURE_DEVIATION,
+                 EventTypes.DELIVERY_EXCEPTION_DAMAGED,
+                 EventTypes.SUPPLIER_CERTIFICATE_EXPIRED,
+                 EventTypes.SUPPLIER_ESG_VIOLATED,
+                 EventTypes.LOT_DEFECTIVE,
+                 EventTypes.LOT_QUALITY_FAILED ->
+                    NotificationToastType.RISK_ALERT;
+            case EventTypes.SHIPMENT_DELAY_DETECTED,
+                 EventTypes.DELIVERY_EXCEPTION_DELAY,
+                 EventTypes.INVENTORY_SHORTAGE_DETECTED,
+                 EventTypes.LOT_HOLD,
+                 EventTypes.LOT_EXPIRATION_IMMINENT,
+                 EventTypes.SUPPLIER_CERTIFICATE_REJECTED,
+                 EventTypes.SUPPLIER_CERTIFICATE_EXPIRING,
+                 EventTypes.PURCHASE_ORDER_REJECTED,
+                 EventTypes.PURCHASE_ORDER_CANCELLED,
+                 EventTypes.SUB_PURCHASE_ORDER_REJECTED,
+                 EventTypes.SUB_PURCHASE_ORDER_CANCELLED,
+                 EventTypes.RETURN_REQUEST_REJECTED,
+                 EventTypes.RECOMMENDATION_REQUESTED ->
+                    NotificationToastType.WARNING;
+            case EventTypes.PURCHASE_ORDER_CONFIRMED,
+                 EventTypes.PURCHASE_ORDER_ACCEPTED,
+                 EventTypes.SUB_PURCHASE_ORDER_CONFIRMED,
+                 EventTypes.SHIPMENT_COMPLETED,
+                 EventTypes.RETURN_REQUEST_APPROVED,
+                 EventTypes.RETURN_REQUEST_COMPLETED,
+                 EventTypes.SUPPLIER_CERTIFICATE_APPROVED,
+                 EventTypes.RECOMMENDATION_GENERATED,
+                 EventTypes.RECOMMENDATION_ACCEPTED ->
+                    NotificationToastType.SUCCESS;
+            default -> NotificationToastType.INFO;
+        };
     }
 
     private String resolveDeepLink(String eventType, String referencePublicId) {

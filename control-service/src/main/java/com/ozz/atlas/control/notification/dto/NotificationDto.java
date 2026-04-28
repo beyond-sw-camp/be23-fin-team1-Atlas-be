@@ -1,6 +1,7 @@
 package com.ozz.atlas.control.notification.dto;
 
 import com.ozz.atlas.common.domain.DomainType;
+import com.ozz.atlas.control.notification.domain.NotificationToastType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
@@ -17,8 +18,12 @@ public class NotificationDto {
     private String publicId;
     @Schema(description = "수신자 사용자 공개 식별자", example = "usr_01HZXA1B2C3D4E5F6G7H8J9K0")
     private String recipientUserPublicId;
-    @Schema(description = "알림 도메인 타입", example = "PURCHASE_ORDER")
-    private DomainType notificationType;
+    @Schema(description = "이벤트 타입", example = "inventory.shortage-detected")
+    private String eventType;
+    @Schema(description = "토스트 표시 타입", example = "WARNING")
+    private NotificationToastType notificationType;
+    @Schema(description = "알림 도메인 타입", example = "ORDER")
+    private DomainType domainType;
     @Schema(description = "알림 제목", example = "새 발주가 접수되었습니다.")
     private String title;
     @Schema(description = "알림 본문", example = "PO-2026-0042 발주가 접수되어 확인이 필요합니다.")

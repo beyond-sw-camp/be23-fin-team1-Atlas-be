@@ -26,9 +26,16 @@ public class Notification extends SoftDeleteEntity {
     @Column(name = "recipient_user_public_id", nullable = false, length = 26)
     private String recipientUserPublicId;
 
+    @Column(name = "event_type", nullable = false, length = 100)
+    private String eventType;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "notification_type", nullable = false, length = 30)
-    private DomainType notificationType;
+    private DomainType domainType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "toast_type", nullable = false, length = 20)
+    private NotificationToastType toastType;
 
     @Column(name = "title", nullable = false, length = 200)
     private String title;
@@ -51,6 +58,9 @@ public class Notification extends SoftDeleteEntity {
     @PrePersist
     public void prePersist() {
         this.readYn = false;
+        if (this.toastType == null) {
+            this.toastType = NotificationToastType.INFO;
+        }
     }
 
     public void markAsRead() {
