@@ -4,6 +4,7 @@ import com.ozz.atlas.supply.lot.domain.Lot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,5 +14,6 @@ public interface LotRepository extends JpaRepository<Lot, Long> {
     List<Lot> findBySupplierPublicId(String supplierPublicId);
     List<Lot> findBySourcePoItemPublicId(String sourcePoItemPublicId);
     List<Lot> findByItemPublicId(String itemPublicId);
+    List<Lot> findByExpiredAtBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
     boolean existsByLotNumber(String lotNumber);
 }

@@ -200,12 +200,14 @@ public class LotService {
         // 품질 상태가 바뀌었으니 ES 문서도 다시 저장
         lotSearchService.saveLotDocument(lot);
         appendLotEvent(
-                resolveQualityStatusEventType(qualityStatus),
+                resolveQualityStatusEventType(preQualityStatus, qualityStatus),
                 lot,
                 actorUserPublicId,
                 lot.getSupplier() != null ? lot.getSupplier().getOrganizationPublicId() : null,
-                "LOT 품질 상태 변경",
-                reason != null && !reason.isBlank() ? reason : "LOT 품질 상태 변경 시"
+                resolveQualityStatusEventName(preQualityStatus, qualityStatus),
+                reason != null && !reason.isBlank()
+                        ? reason
+                        : resolveQualityStatusDescription(preQualityStatus, qualityStatus)
         );
         return toResponseDto(lot);
     }
@@ -272,13 +274,42 @@ public class LotService {
         return EventTypes.LOT_CREATED;
     }
 
-    private String resolveQualityStatusEventType(QualityStatus qualityStatus) {
+    private String resolveQualityStatusEventType(QualityStatus previousQualityStatus, QualityStatus qualityStatus) {
         if (qualityStatus == QualityStatus.HOLD) {
             return EventTypes.LOT_HOLD;
         }
         if (qualityStatus == QualityStatus.DEFECTIVE) {
-            return EventTypes.LOT_QUALITY_FAILED;
+            return EventTypes.LOT_DEFECTIVE;
+        }
+        if (previousQualityStatus == QualityStatus.HOLD && qualityStatus == QualityStatus.NORMAL) {
+            return EventTypes.LOT_RELEASED;
         }
         return EventTypes.LOT_QUALITY_PASSED;
+    }
+
+    private String resolveQualityStatusEventName(QualityStatus previousQualityStatus, QualityStatus qualityStatus) {
+        if (qualityStatus == QualityStatus.HOLD) {
+            return "LOT 보류";
+        }
+        if (qualityStatus == QualityStatus.DEFECTIVE) {
+            return "LOT 불량";
+        }
+        if (previousQualityStatus == QualityStatus.HOLD && qualityStatus == QualityStatus.NORMAL) {
+            return "LOT 보류 해제";
+        }
+        return "LOT 품질 통과";
+    }
+
+    private String resolveQualityStatusDescription(QualityStatus previousQualityStatus, QualityStatus qualityStatus) {
+        if (qualityStatus == QualityStatus.HOLD) {
+            return "LOT 보류 시";
+        }
+        if (qualityStatus == QualityStatus.DEFECTIVE) {
+            return "LOT 불량 판정 시";
+        }
+        if (previousQualityStatus == QualityStatus.HOLD && qualityStatus == QualityStatus.NORMAL) {
+            return "LOT 보류 해제 시";
+        }
+        return "LOT 품질 검사 통과 시";
     }
 }

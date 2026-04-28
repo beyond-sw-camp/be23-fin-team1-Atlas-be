@@ -87,6 +87,10 @@ public class SupplierCertificate extends BaseTimeEntity {
         this.rejectReason = rejectReason;
     }
 
+    public void expire() {
+        this.certificateStatus = CertificateStatus.EXPIRED;
+    }
+
     public void update(String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName, String attachmentPublicId) {
         if (certificateNo != null) this.certificateNo = certificateNo;
         if (issuedAt != null) this.issuedAt = issuedAt;

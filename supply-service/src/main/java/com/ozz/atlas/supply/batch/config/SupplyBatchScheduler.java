@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.batch.config;
 
 import com.ozz.atlas.supply.batch.service.SupplyBatchJobService;
+import com.ozz.atlas.supply.batch.service.ExpiryWarningEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,11 +18,14 @@ public class SupplyBatchScheduler {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final SupplyBatchJobService supplyBatchJobService;
+    private final ExpiryWarningEventService expiryWarningEventService;
 
     @Scheduled(cron = "0 10 0 * * *", zone = "Asia/Seoul")
     public void runCertificateExpiryWarningJob() {
         try {
-            supplyBatchJobService.runCertificateExpiryWarning(LocalDate.now(KST));
+            LocalDate runDate = LocalDate.now(KST);
+            supplyBatchJobService.runCertificateExpiryWarning(runDate);
+            expiryWarningEventService.publishExpiredCertificateEvents(runDate);
         } catch (Exception e) {
             log.error("certificateExpiryWarningJob failed", e);
         }
@@ -30,7 +34,9 @@ public class SupplyBatchScheduler {
     @Scheduled(cron = "0 20 0 * * *", zone = "Asia/Seoul")
     public void runLotExpiryAggregationJob() {
         try {
-            supplyBatchJobService.runLotExpiryAggregation(LocalDate.now(KST));
+            LocalDate runDate = LocalDate.now(KST);
+            supplyBatchJobService.runLotExpiryAggregation(runDate);
+            expiryWarningEventService.publishLotExpirationImminentEvents(runDate);
         } catch (Exception e) {
             log.error("lotExpiryAggregationJob failed", e);
         }
