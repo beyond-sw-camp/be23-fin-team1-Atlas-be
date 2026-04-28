@@ -5,6 +5,7 @@ import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
+import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
@@ -180,31 +181,51 @@ public class SupplierService {
 
         SupplierConnectionAggregation aggregation = buildSupplierConnectionAggregation(loginSupplier);
 
-        List<SupplierListResponse> content = aggregation.relatedSupplierMap().values().stream()
+        Map<Long, List<SupplyPurchaseOrder>> purchaseOrdersBySupplierId =
+                groupDirectPurchaseOrdersBySupplierId(
+                        loginSupplier.getOrganizationPublicId(),
+                        loginSupplier.getId()
+                );
+
+        Map<Long, SupplySupplier> connectedSupplierMap = new LinkedHashMap<>(aggregation.relatedSupplierMap());
+
+        purchaseOrdersBySupplierId.values().stream()
+                .flatMap(List::stream)
+                .forEach(po -> connectedSupplierMap.putIfAbsent(po.getSupplier().getId(), po.getSupplier()));
+
+        List<SupplierListResponse> content = connectedSupplierMap.values().stream()
                 .map(relatedSupplier -> {
-                    List<SupplySubPurchaseOrder> relatedOrders =
+                    List<SupplySubPurchaseOrder> relatedSubOrders =
                             aggregation.ordersByRelatedSupplierId().getOrDefault(relatedSupplier.getId(), List.of());
 
                     List<Shipment> relatedShipments =
                             aggregation.shipmentsByRelatedSupplierId().getOrDefault(relatedSupplier.getId(), List.of());
 
-                    BigDecimal cumulativeAmount = sumSubOrderAmounts(relatedOrders);
+                    List<SupplyPurchaseOrder> directPurchaseOrders =
+                            purchaseOrdersBySupplierId.getOrDefault(relatedSupplier.getId(), List.of());
+
+                    BigDecimal cumulativeAmount = sumSubOrderAmounts(relatedSubOrders)
+                            .add(sumPurchaseOrderAmounts(directPurchaseOrders));
+
                     SupplySupplierRelation relation = aggregation.relationMap().get(relatedSupplier.getId());
+                    SupplierRelationStatus relationStatus =
+                            relation != null ? relation.getRelationStatus() : SupplierRelationStatus.ACTIVE;
 
                     return SupplierListResponse.of(
                             relatedSupplier,
                             calculateOnTimeRate(relatedShipments),
                             null,
                             null,
-                            (long) relatedOrders.size(),
+                            (long) (relatedSubOrders.size() + directPurchaseOrders.size()),
                             cumulativeAmount,
                             cumulativeAmount,
-                            relation.getRelationStatus()
+                            relationStatus
                     );
                 })
                 .toList();
 
         return toPage(content, pageable);
+
     }
 
     public SupplierResponse updateSupplier(String supplierPublicId, String organizationPublicId, UpdateSupplierRequest request) {
@@ -388,19 +409,36 @@ public class SupplierService {
         SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
         SupplierConnectionAggregation aggregation = buildSupplierConnectionAggregation(loginSupplier);
 
+        Map<Long, List<SupplyPurchaseOrder>> purchaseOrdersBySupplierId =
+                groupDirectPurchaseOrdersBySupplierId(
+                        loginSupplier.getOrganizationPublicId(),
+                        loginSupplier.getId()
+                );
+
+        Map<Long, SupplySupplier> connectedSupplierMap = new LinkedHashMap<>(aggregation.relatedSupplierMap());
+
+        purchaseOrdersBySupplierId.values().stream()
+                .flatMap(List::stream)
+                .forEach(po -> connectedSupplierMap.putIfAbsent(po.getSupplier().getId(), po.getSupplier()));
+
         List<Shipment> shipments = aggregation.shipmentsByRelatedSupplierId().values().stream()
                 .flatMap(List::stream)
                 .toList();
 
-        List<SupplySubPurchaseOrder> relatedOrders = aggregation.ordersByRelatedSupplierId().values().stream()
+        List<SupplySubPurchaseOrder> relatedSubOrders = aggregation.ordersByRelatedSupplierId().values().stream()
+                .flatMap(List::stream)
+                .toList();
+
+        List<SupplyPurchaseOrder> directPurchaseOrders = purchaseOrdersBySupplierId.values().stream()
                 .flatMap(List::stream)
                 .toList();
 
         return ConnectedSupplierSummaryResponse.of(
-                (long) aggregation.relatedSupplierMap().size(),
+                (long) connectedSupplierMap.size(),
                 calculateOnTimeRate(shipments),
-                calculateAverageLeadTimeDays(relatedOrders)
+                calculateAverageLeadTimeDays(relatedSubOrders, directPurchaseOrders)
         );
+
     }
 
     @Transactional(readOnly = true)
@@ -412,8 +450,14 @@ public class SupplierService {
         SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
         SupplySupplier targetSupplier = getSupplierOrThrow(supplierPublicId);
 
+        boolean hasVisibleRelation =
+                supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId());
+
+        boolean hasDirectPurchaseOrder =
+                hasDirectPurchaseOrderConnection(loginSupplier.getOrganizationPublicId(), targetSupplier.getId());
+
         if (loginSupplier.getId().equals(targetSupplier.getId())
-                || !supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId())) {
+                || (!hasVisibleRelation && !hasDirectPurchaseOrder)) {
             throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
         }
 
@@ -422,6 +466,14 @@ public class SupplierService {
                 targetSupplier.getId(),
                 SubPoStatus.DELETED
         );
+
+        List<SupplyPurchaseOrder> directPurchaseOrders = purchaseOrderRepository
+                .findAllByBuyerOrganizationPublicIdAndPoStatusNot(
+                        loginSupplier.getOrganizationPublicId(),
+                        PoStatus.DELETED
+                ).stream()
+                .filter(po -> po.getSupplier().getId().equals(targetSupplier.getId()))
+                .toList();
 
         List<Shipment> shipments = relatedOrders.isEmpty()
                 ? List.of()
@@ -432,8 +484,8 @@ public class SupplierService {
         return ConnectedSupplierDetailResponse.of(
                 targetSupplier,
                 calculateOnTimeRate(shipments),
-                (long) relatedOrders.size(),
-                sumSubOrderAmounts(relatedOrders),
+                (long) (relatedOrders.size() + directPurchaseOrders.size()),
+                sumSubOrderAmounts(relatedOrders).add(sumPurchaseOrderAmounts(directPurchaseOrders)),
                 relatedOrders.stream()
                         .map(order -> ConnectedSupplierOrderResponse.of(loginSupplier.getId(), order))
                         .toList()
@@ -646,6 +698,61 @@ public class SupplierService {
             );
         }
     }
+
+    private Map<Long, List<SupplyPurchaseOrder>> groupDirectPurchaseOrdersBySupplierId(
+            String buyerOrganizationPublicId,
+            Long loginSupplierId
+    ) {
+        return purchaseOrderRepository.findAllByBuyerOrganizationPublicIdAndPoStatusNot(
+                        buyerOrganizationPublicId,
+                        PoStatus.DELETED
+                ).stream()
+                .filter(po -> !po.getSupplier().getId().equals(loginSupplierId))
+                .collect(Collectors.groupingBy(
+                        po -> po.getSupplier().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+    }
+
+    private BigDecimal sumPurchaseOrderAmounts(List<SupplyPurchaseOrder> orders) {
+        return orders.stream()
+                .map(SupplyPurchaseOrder::getTotalAmount)
+                .filter(amount -> amount != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private boolean hasDirectPurchaseOrderConnection(
+            String buyerOrganizationPublicId,
+            Long targetSupplierId
+    ) {
+        return purchaseOrderRepository.existsByBuyerOrganizationPublicIdAndSupplier_IdAndPoStatusNot(
+                buyerOrganizationPublicId,
+                targetSupplierId,
+                PoStatus.DELETED
+        );
+    }
+
+    private Integer calculateAverageLeadTimeDays(
+            List<SupplySubPurchaseOrder> subOrders,
+            List<SupplyPurchaseOrder> purchaseOrders
+    ) {
+        double averageLeadTime = java.util.stream.Stream.concat(
+                        subOrders.stream()
+                                .flatMap(order -> order.getActiveItems().stream())
+                                .map(SupplySubPurchaseOrderItem::getLeadTimeDays),
+                        purchaseOrders.stream()
+                                .flatMap(order -> order.getActiveItems().stream())
+                                .map(SupplyPurchaseOrderItem::getLeadTimeDays)
+                )
+                .filter(leadTimeDays -> leadTimeDays != null)
+                .mapToInt(Integer::intValue)
+                .average()
+                .orElse(0.0);
+
+        return (int) Math.round(averageLeadTime);
+    }
+
 
 
 
