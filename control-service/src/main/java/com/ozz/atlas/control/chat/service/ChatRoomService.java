@@ -213,4 +213,44 @@ public class ChatRoomService {
                 .createdAt(chatRoom.getCreatedAt())
                 .build();
     }
+
+    //     1:1 방이 있으면 그 방 반환, 없으면 새로 생성
+    @Transactional
+    public ChatRoomDto findOrCreateDirectRoom(
+            String roomName,
+            String creatorPublicId,
+            String targetUserPublicId
+    ) {
+        if (creatorPublicId == null || targetUserPublicId == null) {
+            throw new IllegalArgumentException("1:1 채팅 사용자 정보가 없습니다.");
+        }
+
+        if (creatorPublicId.equals(targetUserPublicId)) {
+            throw new IllegalArgumentException("자기 자신과는 1:1 채팅을 시작할 수 없습니다.");
+        }
+
+        // 내가 참여 중인 방 중에서 나를 포함해서 정확히 2명만 있고, 그 2명이 나와 상대인 방을 찾음
+        for (ChatParticipant myParticipant : chatParticipantRepository.findByUserPublicIdActive(creatorPublicId)) {
+            ChatRoom room = myParticipant.getChatRoom();
+
+            List<String> participantIds = chatParticipantRepository.findByChatRoomActive(room)
+                    .stream()
+                    .map(ChatParticipant::getUserPublicId)
+                    .toList();
+
+            boolean isSameDirectRoom =
+                    participantIds.size() == 2
+                            && participantIds.contains(creatorPublicId)
+                            && participantIds.contains(targetUserPublicId);
+
+            // 이미 정확한 1:1 방이 있으면 새로 만들지 않고 기존 방을 돌려줌
+            if (isSameDirectRoom) {
+                return convertToDto(room);
+            }
+        }
+
+        // 정확한 1:1 방이 없으면 새로 만듭니다.
+        return createRoom(roomName, creatorPublicId, List.of(targetUserPublicId));
+    }
+
 }

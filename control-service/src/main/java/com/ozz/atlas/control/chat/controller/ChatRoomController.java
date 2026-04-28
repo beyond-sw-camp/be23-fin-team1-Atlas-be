@@ -35,7 +35,6 @@ public class ChatRoomController {
     private final ChatRoomSearchService chatRoomSearchService;
 
 
-
     /**
      * 채팅방 생성
      * Request Body: { "roomName": "...", "creatorPublicId": "...", "participantIds": ["...", "..."] }
@@ -103,7 +102,7 @@ public class ChatRoomController {
             @PathVariable String roomPublicId,
             @RequestBody com.ozz.atlas.control.chat.dto.UpdateRoomNameRequestDto request,
             @RequestHeader(value = "X-User-Public-Id", required = false) String userPublicId) {
-        
+
         return ResponseEntity.ok(
                 chatRoomService.updateRoomName(roomPublicId, request.getRoomName(), userPublicId)
         );
@@ -146,13 +145,13 @@ public class ChatRoomController {
             )
     )
     public ResponseEntity<Void> markAsRead(
-            @PathVariable String roomPublicId, 
+            @PathVariable String roomPublicId,
             @RequestBody(required = false) MarkAsReadRequestDto request,
             @RequestHeader("X-User-Public-Id") String userPublicId) {
-        
+
         String messagePublicId = (request != null) ? request.getLastReadMessagePublicId() : null;
         chatRoomService.markAsRead(roomPublicId, userPublicId, messagePublicId);
-        
+
         return ResponseEntity.ok().build();
     }
 
@@ -179,11 +178,11 @@ public class ChatRoomController {
             )
     )
     public ResponseEntity<Void> inviteParticipants(
-            @PathVariable String roomPublicId, 
+            @PathVariable String roomPublicId,
             @RequestBody InviteParticipantsDto request) {
         String inviterPublicId = request.getInviterPublicId();
         List<String> targetUserPublicIds = request.getTargetUserPublicIds();
-        
+
         chatRoomService.inviteParticipants(roomPublicId, inviterPublicId, targetUserPublicIds);
         return ResponseEntity.ok().build();
     }
@@ -194,7 +193,7 @@ public class ChatRoomController {
     @Operation(summary = "채팅방 나가기")
     @DeleteMapping("/{roomPublicId}/participants")
     public ResponseEntity<Void> leaveRoom(
-            @PathVariable String roomPublicId, 
+            @PathVariable String roomPublicId,
             @RequestParam String userPublicId) {
         chatRoomService.leaveRoom(roomPublicId, userPublicId);
         return ResponseEntity.ok().build();
@@ -218,5 +217,19 @@ public class ChatRoomController {
 
         return ResponseEntity.ok(response);
     }
+
+    //     1:1 방이 있으면 그 방 반환, 없으면 새로 생성
+    @PostMapping("/direct")
+    public ResponseEntity<ChatRoomDto> findOrCreateDirectRoom(@RequestBody Map<String, String> request) {
+        String roomName = request.get("roomName");
+        String creatorPublicId = request.get("creatorPublicId");
+        String targetUserPublicId = request.get("targetUserPublicId");
+
+        // 정확한 1:1 방이 있으면 찾고, 없으면 새로 만들어서 반환
+        return ResponseEntity.ok(
+                chatRoomService.findOrCreateDirectRoom(roomName, creatorPublicId, targetUserPublicId)
+        );
+    }
+
 
 }
