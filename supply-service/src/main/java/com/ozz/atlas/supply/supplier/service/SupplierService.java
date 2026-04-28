@@ -126,11 +126,8 @@ public class SupplierService {
 
         SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
 
-        if (loginSupplier.getId().equals(targetSupplier.getId())) {
-            return SupplierResponse.fromEntity(targetSupplier);
-        }
-
-        if (!supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId())) {
+        if (loginSupplier.getId().equals(targetSupplier.getId())
+                || !supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId())) {
             throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
         }
 

@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.item.controller;
 
+import com.ozz.atlas.supply.item.dtos.ChangeItemStatusRequest;
 import com.ozz.atlas.supply.item.dtos.CreateItemRequest;
 import com.ozz.atlas.supply.item.dtos.UpdateItemRequest;
 import com.ozz.atlas.supply.item.service.SupplyItemService;
@@ -105,4 +106,54 @@ public class SupplyItemController {
 
         return ResponseEntity.ok(supplyItemService.getItemList(pageable));
     }
+
+    @GetMapping("/managed")
+    public ResponseEntity<?> getManagedItems(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @PageableDefault(size = 100, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(
+                supplyItemService.getManagedItemList(organizationPublicId, organizationType, pageable)
+        );
+    }
+
+    @GetMapping("/managed/dashboard")
+    public ResponseEntity<?> getManagedItemDashboard(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                supplyItemService.getManagedItemDashboard(organizationPublicId, organizationType)
+        );
+    }
+
+    @GetMapping("/managed/{itemPublicId}/purchase-orders")
+    public ResponseEntity<?> getManagedItemLinkedOrders(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @PathVariable String itemPublicId
+    ) {
+        return ResponseEntity.ok(
+                supplyItemService.getManagedItemLinkedOrders(organizationPublicId, organizationType, itemPublicId)
+        );
+    }
+
+    @PatchMapping("/{itemPublicId}/status")
+    public ResponseEntity<?> changeItemStatus(
+            @PathVariable String itemPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @Valid @RequestBody ChangeItemStatusRequest request
+    ) {
+        return ResponseEntity.ok(
+                supplyItemService.changeItemStatus(
+                        organizationPublicId,
+                        organizationType,
+                        itemPublicId,
+                        request
+                )
+        );
+    }
+
 }
