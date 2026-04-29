@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.supplier.controller;
 
 import com.ozz.atlas.supply.supplier.dtos.CreateSupplierRequest;
+import com.ozz.atlas.supply.supplier.dtos.OrganizationSupplySummaryDto;
 import com.ozz.atlas.supply.supplier.dtos.UpdateSupplierRequest;
 import com.ozz.atlas.supply.supplier.search.dtos.SupplierSearchDto;
 import com.ozz.atlas.supply.supplier.service.SupplierService;
@@ -127,6 +128,14 @@ public class SupplierController {
                 )
         );
     }
+
+    @GetMapping("/organizations/{organizationPublicId}/summary")
+    public ResponseEntity<OrganizationSupplySummaryDto> getOrganizationSupplySummary(
+            @PathVariable String organizationPublicId
+    ) {
+        return ResponseEntity.ok(supplierService.getOrganizationSupplySummary(organizationPublicId));
+    }
+
 
 
 

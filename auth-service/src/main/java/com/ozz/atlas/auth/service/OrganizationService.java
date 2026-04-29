@@ -77,7 +77,8 @@ public class OrganizationService {
             throw new IllegalArgumentException("존재하지 않는 조직입니다.");
         }
 
-        return OrganizationDetailDto.fromEntity(organization);
+        return toOrganizationDetailDto(organization);
+
     }
 
     // supply-service에서 물류거점 코드 생성을 위해 organizationPublicId 기준 alias만 조회할 때 사용한다.
@@ -125,7 +126,8 @@ public class OrganizationService {
         organization.updateOrganization(dto);
         organizationSearchService.saveOrganizationDocument(organization);
 
-        return OrganizationDetailDto.fromEntity(organization);
+        return toOrganizationDetailDto(organization);
+
     }
 
     // 조직 상태를 ACTIVE, DEACTIVE, DELETE 중 하나로 변경
@@ -180,7 +182,8 @@ public class OrganizationService {
             }
         }
 
-        return OrganizationDetailDto.fromEntity(organization);
+        return toOrganizationDetailDto(organization);
+
     }
 
 
@@ -233,6 +236,19 @@ public class OrganizationService {
             throw new IllegalArgumentException("존재하지 않는 조직입니다.");
         }
 
-        return OrganizationDetailDto.fromEntity(organization);
+        return toOrganizationDetailDto(organization);
+
     }
+
+    // 조직 상세 응답에 함께 보여줄 집계 값을 넣어줌
+    private OrganizationDetailDto toOrganizationDetailDto(Organization organization) {
+        // 삭제된 사용자는 조직 인원 수에서 제외
+        long memberCount = userRepository.countByOrganization_PublicIdAndStatusNot(
+                organization.getPublicId(),
+                Status.DELETE
+        );
+
+        return OrganizationDetailDto.fromEntity(organization, memberCount);
+    }
+
 }

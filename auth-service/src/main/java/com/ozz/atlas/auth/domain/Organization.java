@@ -56,6 +56,13 @@ public class Organization extends BaseTimeEntity {
     @Builder.Default
     private Status status = Status.ACTIVE;
 
+    @Column(length = 26)
+    private String organizationImageAttachmentPublicId;
+
+    @Column(length = 500)
+    private String organizationImageThumbPath;
+
+
     public void updateOrganization(OrganizationUpdateDto dto) {
         if (dto.getOrganizationName() != null && !dto.getOrganizationName().isBlank()) {
             this.organizationName = dto.getOrganizationName();
@@ -84,6 +91,15 @@ public class Organization extends BaseTimeEntity {
         if (dto.getContactPhone() != null && !dto.getContactPhone().isBlank()) {
             this.contactPhone = dto.getContactPhone();
         }
+
+        if (dto.getOrganizationImageAttachmentPublicId() != null) {
+            this.organizationImageAttachmentPublicId = dto.getOrganizationImageAttachmentPublicId();
+        }
+
+        if (dto.getOrganizationImageThumbPath() != null) {
+            this.organizationImageThumbPath = dto.getOrganizationImageThumbPath();
+        }
+
     }
 
     public void changeStatus(Status status) {

@@ -194,6 +194,7 @@ public class IntegratedSearchService {
                         .title(organization.getOrganizationName())
                         .subtitle(buildOrganizationSubtitle(organization))
                         .status(organization.getStatus())
+                        .thumbnailUrl(organization.getOrganizationImageThumbPath())
                         .build())
                 .limit(size)
                 .toList();
@@ -406,6 +407,7 @@ public class IntegratedSearchService {
         private String contactEmail;
         private String contactPhone;
         private String status;
+        private String organizationImageThumbPath;
     }
 
     // supply-service 통합검색 전체 응답을 받기 위한 내부 DTO

@@ -40,4 +40,8 @@ public class OrganizationUpdateDto {
     @Schema(description = "담당자 연락처", example = "010-1234-5678", nullable = true)
     private String contactPhone;
 
+    private String organizationImageAttachmentPublicId;
+
+    private String organizationImageThumbPath;
+
 }

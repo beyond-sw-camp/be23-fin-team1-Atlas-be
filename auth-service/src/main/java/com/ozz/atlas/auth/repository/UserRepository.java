@@ -45,6 +45,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             Status status
     );
 
+    // 특정 조직에 속한 삭제되지 않은 사용자 수
+    long countByOrganization_PublicIdAndStatusNot(
+            String organizationPublicId,
+            Status status
+    );
 
 
 }
