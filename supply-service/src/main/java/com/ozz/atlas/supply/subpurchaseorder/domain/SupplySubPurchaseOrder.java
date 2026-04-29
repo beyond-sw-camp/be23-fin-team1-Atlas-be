@@ -147,4 +147,8 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add)
                 .setScale(2, java.math.RoundingMode.HALF_UP);
     }
+
+    public void refreshAfterItemChanged() {
+        recalculateTotalAmount();
+    }
 }

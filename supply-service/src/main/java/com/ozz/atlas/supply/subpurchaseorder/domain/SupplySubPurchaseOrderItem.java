@@ -96,6 +96,7 @@ public class SupplySubPurchaseOrderItem extends BaseTimeEntity {
 
     public void confirm(Long confirmedQty) {
         this.confirmedQty = confirmedQty;
+        this.lineAmount = calculateLineAmount(confirmedQty, this.unitPrice);
 
         if (confirmedQty.compareTo(this.orderedQty) < 0) {
             this.lineStatus = SubPurchaseOrderLineStatus.PARTIALLY_CONFIRMED;

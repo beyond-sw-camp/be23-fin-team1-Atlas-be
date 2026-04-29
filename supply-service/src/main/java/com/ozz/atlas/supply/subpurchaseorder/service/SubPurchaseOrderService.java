@@ -61,6 +61,8 @@ public class SubPurchaseOrderService {
             SubPurchaseOrderLineStatus.PARTIALLY_CONFIRMED,
             SubPurchaseOrderLineStatus.CONFIRMED
     );
+    private static final String BUYER_ORGANIZATION_TYPE = "BUYER";
+
 
     private final SubPurchaseOrderRepository subPurchaseOrderRepository;
     private final SubPurchaseOrderItemRepository subPurchaseOrderItemRepository;
@@ -156,6 +158,19 @@ public class SubPurchaseOrderService {
                     .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
         }
 
+        if (BUYER_ORGANIZATION_TYPE.equals(organizationType)) {
+            validateOrganizationHeader(organizationPublicId);
+
+            return subPurchaseOrderRepository
+                    .findAllByParentPurchaseOrder_PublicIdAndParentPurchaseOrder_BuyerOrganizationPublicIdAndSubPoStatusNot(
+                            parentPoPublicId,
+                            organizationPublicId,
+                            SubPoStatus.DELETED,
+                            pageable
+                    )
+                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+        }
+
         validateSupplierActor(organizationPublicId, organizationType);
 
         return subPurchaseOrderRepository
@@ -167,6 +182,7 @@ public class SubPurchaseOrderService {
                 )
                 .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
     }
+
 
     @Transactional(readOnly = true)
     public Page<SubPurchaseOrderResponse> getReceivedSubPurchaseOrders(
@@ -207,6 +223,20 @@ public class SubPurchaseOrderService {
             return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
         }
 
+        if (BUYER_ORGANIZATION_TYPE.equals(organizationType)) {
+            validateOrganizationHeader(organizationPublicId);
+
+            SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository
+                    .findByPublicIdAndParentPurchaseOrder_BuyerOrganizationPublicIdAndSubPoStatusNot(
+                            subPoPublicId,
+                            organizationPublicId,
+                            SubPoStatus.DELETED
+                    )
+                    .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ACCESS_DENIED));
+
+            return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
+        }
+
         validateSupplierActor(organizationPublicId, organizationType);
 
         SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository
@@ -227,6 +257,7 @@ public class SubPurchaseOrderService {
 
         return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
     }
+
 
     public SubPurchaseOrderResponse rejectSubPurchaseOrder(
             String receiverOrganizationPublicId,
@@ -276,6 +307,7 @@ public class SubPurchaseOrderService {
         }
 
         item.confirm(request.getConfirmedQty());
+        subPurchaseOrder.refreshAfterItemChanged();
         subPurchaseOrder.refreshConfirmationStatus();
         syncRelationStatus(subPurchaseOrder);
         appendSubPurchaseOrderEvent(

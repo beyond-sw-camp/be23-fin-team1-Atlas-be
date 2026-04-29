@@ -48,6 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -455,9 +456,71 @@ public class SupplierService {
             String organizationPublicId,
             String organizationType
     ) {
-        SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
         SupplySupplier targetSupplier = getSupplierOrThrow(supplierPublicId);
 
+        if (BUYER_ORGANIZATION_TYPE.equals(organizationType)) {
+            return getBuyerConnectedSupplierDetail(targetSupplier, organizationPublicId);
+        }
+
+        SupplySupplier loginSupplier = getLoginSupplier(organizationPublicId, organizationType);
+        return getSupplierConnectedSupplierDetail(loginSupplier, targetSupplier);
+    }
+
+    private ConnectedSupplierDetailResponse getBuyerConnectedSupplierDetail(
+            SupplySupplier targetSupplier,
+            String buyerOrganizationPublicId
+    ) {
+        validateOrganizationHeader(buyerOrganizationPublicId);
+
+        List<SupplyPurchaseOrder> directPurchaseOrders = purchaseOrderRepository
+                .findAllByBuyerOrganizationPublicIdAndPoStatusNot(
+                        buyerOrganizationPublicId,
+                        PoStatus.DELETED
+                ).stream()
+                .filter(po -> po.getSupplier().getId().equals(targetSupplier.getId()))
+                .toList();
+
+        if (directPurchaseOrders.isEmpty()) {
+            throw new SupplierException(SupplierErrorCode.ACCESS_DENIED);
+        }
+
+        List<SupplySubPurchaseOrder> relatedSubOrders = subPurchaseOrderRepository
+                .findAllByParentPurchaseOrder_BuyerOrganizationPublicIdAndParentPurchaseOrder_Supplier_IdAndSubPoStatusNot(
+                        buyerOrganizationPublicId,
+                        targetSupplier.getId(),
+                        SubPoStatus.DELETED
+                ).stream()
+                .sorted(Comparator.comparing(SupplySubPurchaseOrder::getOrderedAt).reversed())
+                .toList();
+
+        List<Shipment> shipments = relatedSubOrders.isEmpty()
+                ? List.of()
+                : shipmentRepository.findAllBySubPoIdIn(
+                relatedSubOrders.stream().map(SupplySubPurchaseOrder::getSubPoId).toList()
+        );
+
+        List<ConnectedSupplierOrderResponse> orders = Stream.concat(
+                        directPurchaseOrders.stream()
+                                .map(ConnectedSupplierOrderResponse::fromPurchaseOrder),
+                        relatedSubOrders.stream()
+                                .map(order -> ConnectedSupplierOrderResponse.fromSubPurchaseOrder(targetSupplier.getId(), order))
+                )
+                .sorted(Comparator.comparing(ConnectedSupplierOrderResponse::getOrderedAt).reversed())
+                .toList();
+
+        return ConnectedSupplierDetailResponse.of(
+                targetSupplier,
+                calculateOnTimeRate(shipments),
+                (long) (directPurchaseOrders.size() + relatedSubOrders.size()),
+                sumPurchaseOrderAmounts(directPurchaseOrders).add(sumSubOrderAmounts(relatedSubOrders)),
+                orders
+        );
+    }
+
+    private ConnectedSupplierDetailResponse getSupplierConnectedSupplierDetail(
+            SupplySupplier loginSupplier,
+            SupplySupplier targetSupplier
+    ) {
         boolean hasVisibleRelation =
                 supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId());
 
@@ -489,13 +552,13 @@ public class SupplierService {
                 .filter(po -> po.getSupplier().getId().equals(targetSupplier.getId()))
                 .toList();
 
-        List<ConnectedSupplierOrderResponse> orders = java.util.stream.Stream.concat(
+        List<ConnectedSupplierOrderResponse> orders = Stream.concat(
                         relatedSubOrders.stream()
                                 .map(order -> ConnectedSupplierOrderResponse.fromSubPurchaseOrder(loginSupplier.getId(), order)),
                         directPurchaseOrders.stream()
                                 .map(ConnectedSupplierOrderResponse::fromPurchaseOrder)
                 )
-                .sorted(java.util.Comparator.comparing(ConnectedSupplierOrderResponse::getOrderedAt).reversed())
+                .sorted(Comparator.comparing(ConnectedSupplierOrderResponse::getOrderedAt).reversed())
                 .toList();
 
         return ConnectedSupplierDetailResponse.of(
@@ -506,6 +569,7 @@ public class SupplierService {
                 orders
         );
     }
+
 
 
     private SupplierConnectionAggregation buildSupplierConnectionAggregation(SupplySupplier loginSupplier) {

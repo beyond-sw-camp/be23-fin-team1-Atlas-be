@@ -465,6 +465,7 @@ public class PurchaseOrderService {
         }
 
         purchaseOrderItem.confirm(request.getConfirmedQty());
+        purchaseOrder.refreshAfterItemChanged();
         purchaseOrder.refreshConfirmationStatus();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         appendPurchaseOrderEvent(
