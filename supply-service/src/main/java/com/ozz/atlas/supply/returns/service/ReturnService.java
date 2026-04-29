@@ -102,6 +102,7 @@ public class ReturnService {
                 .requestOrganizationPublicId(requestOrganizationPublicId)
                 .targetOrganizationPublicId(targetOrganizationPublicId)
                 .returnType(request.getReturnType())
+                .resolutionType(request.getResolutionType())
                 .returnReason(request.getReturnReason())
                 .createdByUserPublicId(actorPublicId)
                 .attachmentPublicIds(masterAttachments)
@@ -223,7 +224,7 @@ public class ReturnService {
         validateReturnUpdatable(returnRequest);
 
         String attachments = request.getAttachmentPublicIds() != null ? String.join(",", request.getAttachmentPublicIds()) : null;
-        returnRequest.update(request.getReturnType(), request.getReturnReason(), attachments);
+        returnRequest.update(request.getReturnType(), request.getResolutionType(), request.getReturnReason(), attachments);
 
         // 수정된 반품 정보를 ES에도 다시 저장
         returnSearchService.saveReturnDocument(returnRequest);
@@ -256,8 +257,20 @@ public class ReturnService {
         ReturnStatus beforeStatus = returnRequest.getReturnStatus();
         returnRequest.changeStatus(request.getReturnStatus());
 
+        // 증빙 파일 업데이트 (폐기 등)
+        if (request.getAttachmentPublicIds() != null && !request.getAttachmentPublicIds().isEmpty()) {
+            String newAttachments = String.join(",", request.getAttachmentPublicIds());
+            returnRequest.update(null, null, null, newAttachments);
+        }
+
         if (beforeStatus != ReturnStatus.APPROVED && request.getReturnStatus() == ReturnStatus.APPROVED) {
-            createReturnShipment(returnRequest);
+            if (returnRequest.getResolutionType() != com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
+                createReturnShipment(returnRequest);
+            }
+        }
+
+        if (beforeStatus == ReturnStatus.RECEIVED && request.getReturnStatus() == ReturnStatus.RESHIPPED) {
+            createExchangeShipment(returnRequest);
         }
 
         if (request.getReturnStatus() == ReturnStatus.COMPLETED) {
@@ -343,7 +356,12 @@ public class ReturnService {
             }
         }
 
-        return ReturnRequestResponseDto.from(returnRequest, reqOrgName, tgtOrgName, itemNames);
+        String settlementPublicId = settlementService.getSettlementPublicIdByTargetPublicId(
+                returnRequest.getPublicId(), 
+                com.ozz.atlas.supply.settlement.domain.SettlementTargetType.RETURN
+        );
+
+        return ReturnRequestResponseDto.from(returnRequest, reqOrgName, tgtOrgName, itemNames, settlementPublicId);
     }
     private LogisticsNode getShipmentNode(Long nodeId) {
         return logisticsNodeRepository.findById(nodeId)
@@ -434,6 +452,7 @@ public class ReturnService {
             String organizationPublicId
     ) {
         ReturnStatus currentStatus = returnRequest.getReturnStatus();
+        com.ozz.atlas.supply.returns.domain.ResolutionType resolutionType = returnRequest.getResolutionType();
 
         if (currentStatus == ReturnStatus.REQUESTED) {
             if (nextStatus != ReturnStatus.APPROVED && nextStatus != ReturnStatus.REJECTED) {
@@ -448,38 +467,84 @@ public class ReturnService {
         }
 
         if (currentStatus == ReturnStatus.APPROVED) {
-            if (nextStatus != ReturnStatus.IN_TRANSIT) {
-                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            if (resolutionType == com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
+                if (nextStatus != ReturnStatus.DISPOSED) {
+                    throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+                }
+                if (!organizationPublicId.equals(returnRequest.getRequestOrganizationPublicId())) {
+                    throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+                }
+                return;
+            } else {
+                if (nextStatus != ReturnStatus.IN_TRANSIT) {
+                    throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+                }
+                if (!organizationPublicId.equals(returnRequest.getRequestOrganizationPublicId())) {
+                    throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+                }
+                return;
             }
-
-            if (!organizationPublicId.equals(returnRequest.getRequestOrganizationPublicId())) {
-                throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
-            }
-
-            return;
         }
 
         if (currentStatus == ReturnStatus.IN_TRANSIT) {
+            if (resolutionType == com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
             if (nextStatus != ReturnStatus.RECEIVED) {
                 throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
             }
-
             if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
                 throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
             }
-
             return;
         }
 
         if (currentStatus == ReturnStatus.RECEIVED) {
+            if (resolutionType == com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
+            if (resolutionType == com.ozz.atlas.supply.returns.domain.ResolutionType.EXCHANGE) {
+                if (nextStatus != ReturnStatus.RESHIPPED) {
+                    throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+                }
+                if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
+                    throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+                }
+                return;
+            } else {
+                if (nextStatus != ReturnStatus.COMPLETED) {
+                    throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+                }
+                if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
+                    throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+                }
+                return;
+            }
+        }
+
+        if (currentStatus == ReturnStatus.RESHIPPED) {
+            if (resolutionType != com.ozz.atlas.supply.returns.domain.ResolutionType.EXCHANGE) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
             if (nextStatus != ReturnStatus.COMPLETED) {
                 throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
             }
+            if (!organizationPublicId.equals(returnRequest.getRequestOrganizationPublicId())) {
+                throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+            }
+            return;
+        }
 
+        if (currentStatus == ReturnStatus.DISPOSED) {
+            if (resolutionType != com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
+            if (nextStatus != ReturnStatus.COMPLETED) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
             if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
                 throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
             }
-
             return;
         }
 
@@ -544,6 +609,40 @@ public class ReturnService {
         shipmentSearchService.saveShipmentDocument(savedReturnShipment);
 
         returnRequest.assignReturnShipmentPublicId(savedReturnShipment.getPublicId());
+    }
+
+    private void createExchangeShipment(ReturnRequest returnRequest) {
+        Shipment sourceShipment = shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId())
+                .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+
+        String exchangeShipmentNumber = "EX-" + returnRequest.getReturnNumber();
+
+        if (shipmentRepository.existsByShipmentNumber(exchangeShipmentNumber)) {
+            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
+        }
+
+        Shipment exchangeShipment = Shipment.builder()
+                .shipmentNumber(exchangeShipmentNumber)
+                .poId(sourceShipment.getPoId())
+                .subPoId(sourceShipment.getSubPoId())
+                .purchaseOrderPublicId(sourceShipment.getPurchaseOrderPublicId())
+                .subPurchaseOrderPublicId(sourceShipment.getSubPurchaseOrderPublicId())
+                .carrierName(null)
+                .vehicleNo(null)
+                .trackingNo(null)
+                .originNodeId(sourceShipment.getOriginNodeId())
+                .destinationNodeId(sourceShipment.getDestinationNodeId())
+                .currentNodeId(sourceShipment.getOriginNodeId())
+                .departureEta(null)
+                .arrivalEta(null)
+                .status(ShipmentStatus.READY)
+                .temperatureRequired(sourceShipment.isTemperatureRequired())
+                .build();
+
+        Shipment savedExchangeShipment = shipmentRepository.save(exchangeShipment);
+        shipmentSearchService.saveShipmentDocument(savedExchangeShipment);
+        
+        // Note: For EXCHANGE, we might want to track this new shipment somewhere, but ReturnRequest currently only has `returnShipmentPublicId` which is used for the backward flow.
     }
 
     private String generateReturnShipmentNumber(ReturnRequest returnRequest) {

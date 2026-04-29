@@ -29,6 +29,9 @@ public class ReturnSearchDto {
     // 반품 유형 필터
     private ReturnType returnType;
 
+    // 처리 방식 필터
+    private com.ozz.atlas.supply.returns.domain.ResolutionType resolutionType;
+
     // 반품 상태 필터
     private ReturnStatus returnStatus;
 

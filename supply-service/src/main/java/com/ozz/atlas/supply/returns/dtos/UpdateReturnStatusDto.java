@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,4 +18,6 @@ public class UpdateReturnStatusDto {
 
     @NotBlank(message = "상태 변경 사유는 필수입니다.")
     private String reason;
+
+    private List<String> attachmentPublicIds;
 }

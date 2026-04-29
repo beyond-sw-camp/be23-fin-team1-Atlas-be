@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.returns.dtos;
 
+import com.ozz.atlas.supply.returns.domain.ResolutionType;
 import com.ozz.atlas.supply.returns.domain.ReturnRequest;
 import com.ozz.atlas.supply.returns.domain.ReturnStatus;
 import com.ozz.atlas.supply.returns.domain.ReturnType;
@@ -36,8 +37,10 @@ public class ReturnRequestResponseDto {
     private String requestOrganizationName;
     @Schema(description = "대상 조직명")
     private String targetOrganizationName;
-    @Schema(description = "반품 유형", example = "QUALITY_ISSUE")
+    @Schema(description = "반품 유형", example = "DEFECTIVE")
     private ReturnType returnType;
+    @Schema(description = "처리 방식", example = "EXCHANGE")
+    private ResolutionType resolutionType;
     @Schema(description = "반품 사유", example = "유통기한 임박 품목 회수")
     private String returnReason;
     @Schema(description = "반품 상태", example = "REQUESTED")
@@ -52,10 +55,12 @@ public class ReturnRequestResponseDto {
     private String createdByUserPublicId;
     @Schema(description = "첨부 파일 공개 식별자 목록", example = "[\"att_01HZY2ATT10\"]")
     private List<String> attachmentPublicIds;
+    @Schema(description = "정산 공개 식별자", example = "stl_01HZY2STL123456789", nullable = true)
+    private String settlementPublicId;
     @Schema(description = "반품 품목 목록")
     private List<ReturnItemResponseDto> items;
 
-    public static ReturnRequestResponseDto from(ReturnRequest entity, String requestOrganizationName, String targetOrganizationName, Map<String, String> itemNames) {
+    public static ReturnRequestResponseDto from(ReturnRequest entity, String requestOrganizationName, String targetOrganizationName, Map<String, String> itemNames, String settlementPublicId) {
         List<String> attachments = (entity.getAttachmentPublicIds() != null && !entity.getAttachmentPublicIds().isBlank())
                 ? Arrays.asList(entity.getAttachmentPublicIds().split(","))
                 : Collections.emptyList();
@@ -71,6 +76,7 @@ public class ReturnRequestResponseDto {
                 .requestOrganizationName(requestOrganizationName)
                 .targetOrganizationName(targetOrganizationName)
                 .returnType(entity.getReturnType())
+                .resolutionType(entity.getResolutionType())
                 .returnReason(entity.getReturnReason())
                 .returnStatus(entity.getReturnStatus())
                 .requestedAt(entity.getRequestedAt())
@@ -78,6 +84,7 @@ public class ReturnRequestResponseDto {
                 .completedAt(entity.getCompletedAt())
                 .createdByUserPublicId(entity.getCreatedByUserPublicId())
                 .attachmentPublicIds(attachments)
+                .settlementPublicId(settlementPublicId)
                 .items(entity.getItems().stream().map(item -> ReturnItemResponseDto.from(item, itemNames.getOrDefault(item.getItemPublicId(), null))).collect(Collectors.toList()))
                 .build();
     }
