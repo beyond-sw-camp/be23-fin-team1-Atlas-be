@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.returns.dtos;
 
+import com.ozz.atlas.supply.returns.domain.ResolutionType;
 import com.ozz.atlas.supply.returns.domain.ReturnType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -23,8 +24,12 @@ public class CreateReturnRequestDto {
     private String sourceShipmentPublicId;
 
     @NotNull(message = "반품 유형은 필수입니다.")
-    @Schema(description = "반품 유형", example = "QUALITY_ISSUE")
+    @Schema(description = "반품 유형", example = "DEFECTIVE")
     private ReturnType returnType;
+
+    @NotNull(message = "처리 방식은 필수입니다.")
+    @Schema(description = "처리 방식", example = "RETURN")
+    private ResolutionType resolutionType = ResolutionType.RETURN;
 
     @NotBlank(message = "반품 사유는 필수입니다.")
     @Schema(description = "반품 사유", example = "유통기한 임박 품목 회수")

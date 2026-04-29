@@ -70,6 +70,10 @@ public class ReturnDocument {
     @Field(type = FieldType.Keyword)
     private ReturnType returnType;
 
+    // 처리 방식
+    @Field(type = FieldType.Keyword)
+    private com.ozz.atlas.supply.returns.domain.ResolutionType resolutionType;
+
     // 반품 사유
     @MultiField(
             mainField = @Field(type = FieldType.Text),
@@ -130,6 +134,7 @@ public class ReturnDocument {
                 .requestOrganizationPublicId(returnRequest.getRequestOrganizationPublicId())
                 .targetOrganizationPublicId(returnRequest.getTargetOrganizationPublicId())
                 .returnType(returnRequest.getReturnType())
+                .resolutionType(returnRequest.getResolutionType())
                 .returnReason(returnRequest.getReturnReason())
                 .returnStatus(returnRequest.getReturnStatus())
                 .requestedAt(returnRequest.getRequestedAt())

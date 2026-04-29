@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SettlementRepository extends JpaRepository<Settlement, Long> {
@@ -19,6 +20,13 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             String targetPublicId,
             SettlementStatus settlementStatus
     );
+    
+    Optional<Settlement> findByTargetTypeAndTargetPublicIdAndSettlementStatusNot(
+            SettlementTargetType targetType,
+            String targetPublicId,
+            SettlementStatus settlementStatus
+    );
+
     Optional<Settlement> findByPublicId(String publicId);
 
     @Query("""

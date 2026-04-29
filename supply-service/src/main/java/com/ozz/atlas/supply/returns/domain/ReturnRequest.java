@@ -45,6 +45,10 @@ public class ReturnRequest extends BaseTimeEntity {
     @Column(nullable = false, length = 30)
     private ReturnType returnType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ResolutionType resolutionType = ResolutionType.RETURN;
+
     @Column(columnDefinition = "TEXT", nullable = false)
     private String returnReason;
 
@@ -79,15 +83,19 @@ public class ReturnRequest extends BaseTimeEntity {
         if (this.requestedAt == null) {
             this.requestedAt = LocalDateTime.now();
         }
+        if (this.resolutionType == null) {
+            this.resolutionType = ResolutionType.RETURN;
+        }
     }
 
     @Builder
-    public ReturnRequest(String returnNumber, String sourceShipmentPublicId, String requestOrganizationPublicId, String targetOrganizationPublicId, ReturnType returnType, String returnReason, String createdByUserPublicId, String attachmentPublicIds) {
+    public ReturnRequest(String returnNumber, String sourceShipmentPublicId, String requestOrganizationPublicId, String targetOrganizationPublicId, ReturnType returnType, ResolutionType resolutionType, String returnReason, String createdByUserPublicId, String attachmentPublicIds) {
         this.returnNumber = returnNumber;
         this.sourceShipmentPublicId = sourceShipmentPublicId;
         this.requestOrganizationPublicId = requestOrganizationPublicId;
         this.targetOrganizationPublicId = targetOrganizationPublicId;
         this.returnType = returnType;
+        this.resolutionType = resolutionType != null ? resolutionType : ResolutionType.RETURN;
         this.returnReason = returnReason;
         this.createdByUserPublicId = createdByUserPublicId;
         this.attachmentPublicIds = attachmentPublicIds;
@@ -100,11 +108,12 @@ public class ReturnRequest extends BaseTimeEntity {
         item.setReturnRequest(this);
     }
 
-    public void update(ReturnType returnType, String returnReason, String attachmentPublicIds) {
+    public void update(ReturnType returnType, ResolutionType resolutionType, String returnReason, String attachmentPublicIds) {
         if (this.returnStatus != ReturnStatus.REQUESTED) {
             throw new IllegalStateException("반품 요청 상태에서만 수정할 수 있습니다.");
         }
         if (returnType != null) this.returnType = returnType;
+        if (resolutionType != null) this.resolutionType = resolutionType;
         if (returnReason != null) this.returnReason = returnReason;
         if (attachmentPublicIds != null) this.attachmentPublicIds = attachmentPublicIds;
     }

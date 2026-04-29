@@ -36,6 +36,7 @@ public class ReturnSearchService {
     private final ElasticsearchOperations elasticsearchOperations;
     private final SupplierRepository supplierRepository;
     private final SupplyItemRepository supplyItemRepository;
+    private final com.ozz.atlas.supply.settlement.repository.SettlementRepository settlementRepository;
 
     // 반품 생성/수정/상태변경 후 ES 문서를 저장
     @Transactional
@@ -51,6 +52,7 @@ public class ReturnSearchService {
                         || hasText(searchDto.getTargetOrganizationPublicId())
                         || hasText(searchDto.getSourceShipmentPublicId())
                         || searchDto.getReturnType() != null
+                        || searchDto.getResolutionType() != null
                         || searchDto.getReturnStatus() != null
                         || hasText(searchDto.getItemPublicId())
         );
@@ -235,6 +237,12 @@ public class ReturnSearchService {
             }
         }
 
+        String settlementPublicId = settlementRepository.findByTargetTypeAndTargetPublicIdAndSettlementStatusNot(
+                com.ozz.atlas.supply.settlement.domain.SettlementTargetType.RETURN,
+                document.getPublicId(),
+                com.ozz.atlas.supply.settlement.domain.SettlementStatus.CANCELLED
+        ).map(com.ozz.atlas.supply.settlement.domain.Settlement::getPublicId).orElse(null);
+
         return ReturnRequestResponseDto.builder()
                 .id(document.getId())
                 .publicId(document.getPublicId())
@@ -246,12 +254,14 @@ public class ReturnSearchService {
                 .requestOrganizationName(reqOrgName)
                 .targetOrganizationName(tgtOrgName)
                 .returnType(document.getReturnType())
+                .resolutionType(document.getResolutionType())
                 .returnReason(document.getReturnReason())
                 .returnStatus(document.getReturnStatus())
                 .requestedAt(document.getRequestedAt())
                 .approvedAt(document.getApprovedAt())
                 .completedAt(document.getCompletedAt())
                 .createdByUserPublicId(document.getCreatedByUserPublicId())
+                .settlementPublicId(settlementPublicId)
                 // 첨부파일 목록이 null이면 빈 리스트로 내려줌
                 .attachmentPublicIds(
                         document.getAttachmentPublicIds() == null ? List.of() : document.getAttachmentPublicIds()

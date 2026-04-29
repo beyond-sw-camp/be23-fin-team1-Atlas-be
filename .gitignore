@@ -73,6 +73,7 @@ GEMINI.md
 DDL.md
 **/GEMINI.md
 **/DDL.md
+implementation_plan.md
 
 ### Test Packages ###
 **/src/test/**

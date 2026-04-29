@@ -55,6 +55,15 @@ public class SettlementService {
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final SettlementSearchService settlementSearchService;
 
+    @Transactional(readOnly = true)
+    public String getSettlementPublicIdByTargetPublicId(String targetPublicId, SettlementTargetType targetType) {
+        return settlementRepository.findByTargetTypeAndTargetPublicIdAndSettlementStatusNot(
+                targetType,
+                targetPublicId,
+                SettlementStatus.CANCELLED
+        ).map(Settlement::getPublicId).orElse(null);
+    }
+
     // 정산 생성 -> 상세 금액 합계를 헤더 amount에 반영
     @Transactional
     public SettlementResponseDto createSettlement(
@@ -134,6 +143,11 @@ public class SettlementService {
 
         ReturnRequest returnRequest = returnRequestRepository.findByPublicId(returnPublicId)
                 .orElseThrow(() -> new SettlementException(SettlementErrorCode.RETURN_NOT_FOUND));
+
+        if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.EXCHANGE) {
+            // EXCHANGE는 상품 대금 차감 정산이 발생하지 않음. 물류비 정산은 별도 로직 또는 수기 처리 필요.
+            return;
+        }
 
         createSettlement(
                 CreateSettlementRequestDto.builder()
