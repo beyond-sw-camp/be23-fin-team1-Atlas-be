@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.logistics.repository;
 
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNodeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,9 +24,21 @@ public interface LogisticsNodeRepository extends JpaRepository<LogisticsNode, Lo
 
     Page<LogisticsNode> findByOrganizationPublicId(String organizationPublicId, Pageable pageable);
 
+    Page<LogisticsNode> findByOrganizationPublicIdAndNodeType(
+            String organizationPublicId,
+            LogisticsNodeType nodeType,
+            Pageable pageable
+    );
+
     List<LogisticsNode> findByOrganizationPublicId(String organizationPublicId);
 
     Optional<LogisticsNode> findByPublicIdAndOrganizationPublicId(String publicId, String organizationPublicId);
+
+    Optional<LogisticsNode> findByPublicIdAndOrganizationPublicIdAndNodeType(
+            String publicId,
+            String organizationPublicId,
+            LogisticsNodeType nodeType
+    );
 
     Optional<LogisticsNode> findByPublicIdAndOrganizationPublicIdAndActiveTrue(
             String publicId,
