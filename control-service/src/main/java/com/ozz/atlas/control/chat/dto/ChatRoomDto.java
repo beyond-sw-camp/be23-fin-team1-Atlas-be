@@ -30,4 +30,7 @@ public class ChatRoomDto {
     private String lastMessage;
     @Schema(description = "마지막 메시지 시각", example = "2026-04-17T10:35:00", nullable = true)
     private LocalDateTime lastMessageAt;
+
+    @Schema(description = "고정된 시각", example = "2026-04-17T10:35:00", nullable = true)
+    private LocalDateTime pinnedAt;
 }

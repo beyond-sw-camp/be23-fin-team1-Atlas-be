@@ -127,7 +127,24 @@ public class ChatRoomController {
     /**
      * 채팅방 메시지 읽음 처리 (수동)
      */
-    @PatchMapping("/{roomPublicId}/read")
+    @PostMapping("/{roomPublicId}/pin")
+    @Operation(summary = "채팅방 고정")
+    public ResponseEntity<Map<String, Object>> pinRoom(
+            @PathVariable String roomPublicId,
+            @RequestHeader("X-User-Public-Id") String userPublicId) {
+
+        return ResponseEntity.ok(chatRoomService.pinRoom(roomPublicId, userPublicId));
+    }
+
+    @DeleteMapping("/{roomPublicId}/pin")
+    @Operation(summary = "채팅방 고정 해제")
+    public ResponseEntity<Void> unpinRoom(
+            @PathVariable String roomPublicId,
+            @RequestHeader("X-User-Public-Id") String userPublicId) {
+
+        chatRoomService.unpinRoom(roomPublicId, userPublicId);
+        return ResponseEntity.noContent().build();
+    }
     @Operation(
             summary = "채팅 읽음 처리",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
