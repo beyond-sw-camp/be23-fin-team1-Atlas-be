@@ -8,6 +8,7 @@ import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeCapacityStatus;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNodeType;
 import com.ozz.atlas.supply.logistics.dtos.CreateLogisticsNodeRequestDto;
 import com.ozz.atlas.supply.logistics.dtos.GeocodingPointDto;
 import com.ozz.atlas.supply.logistics.dtos.LogisticsNodeResponseDto;
@@ -60,6 +61,7 @@ public class LogisticsNodeService {
             CreateLogisticsNodeRequestDto dto
     ) {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
+        validateWarehouseOnly(dto.getNodeType());
 
         String organizationAlias = organizationAliasClient.getOrganizationAlias(organizationPublicId);
         String generatedNodeCode = generateNodeCode(organizationPublicId, organizationAlias);
@@ -88,7 +90,11 @@ public class LogisticsNodeService {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
 
         return logisticsNodeRepository
-                .findByOrganizationPublicId(organizationPublicId, pageable)
+                .findByOrganizationPublicIdAndNodeType(
+                        organizationPublicId,
+                        LogisticsNodeType.WAREHOUSE,
+                        pageable
+                )
                 .map(LogisticsNodeResponseDto::from);
     }
 
@@ -142,6 +148,7 @@ public class LogisticsNodeService {
             UpdateLogisticsNodeRequestDto dto
     ) {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
+        validateWarehouseOnly(dto.getNodeType());
 
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
         LogisticsNodeCapacityStatus beforeCapacityStatus = node.getCapacityStatus();
@@ -149,7 +156,7 @@ public class LogisticsNodeService {
 
         node.update(
                 dto.getNodeName(),
-                dto.getNodeType(),
+                LogisticsNodeType.WAREHOUSE,
                 dto.getAddress(),
                 point.getLatitude(),
                 point.getLongitude(),
@@ -215,7 +222,12 @@ public class LogisticsNodeService {
 
     // 물류거점은 로그인한 조직 자신의 데이터만 조회/수정할 수 있다.
     private LogisticsNode getOwnedLogisticsNode(String publicId, String organizationPublicId) {
-        return logisticsNodeRepository.findByPublicIdAndOrganizationPublicId(publicId, organizationPublicId)
+        return logisticsNodeRepository
+                .findByPublicIdAndOrganizationPublicIdAndNodeType(
+                        publicId,
+                        organizationPublicId,
+                        LogisticsNodeType.WAREHOUSE
+                )
                 .orElseThrow(() -> new LogisticsNodeException(LogisticsNodeErrorCode.NODE_NOT_FOUND));
     }
 
@@ -239,6 +251,11 @@ public class LogisticsNodeService {
 
         if (ADMIN_ORGANIZATION_TYPE.equals(organizationType) || ADMIN_ROLE.equals(userRole)) {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.ACCESS_DENIED);
+        }
+    }
+    private void validateWarehouseOnly(LogisticsNodeType nodeType) {
+        if (nodeType != null && nodeType != LogisticsNodeType.WAREHOUSE) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
         }
     }
 

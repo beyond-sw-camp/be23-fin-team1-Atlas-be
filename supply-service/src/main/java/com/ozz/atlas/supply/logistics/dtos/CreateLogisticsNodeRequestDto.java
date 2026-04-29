@@ -4,7 +4,6 @@ import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeType;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeCapacityStatus;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,7 +18,6 @@ public class CreateLogisticsNodeRequestDto {
     @NotBlank
     private String nodeName;
 
-    @NotNull
     private LogisticsNodeType nodeType;
 
     private String address;
@@ -36,7 +34,7 @@ public class CreateLogisticsNodeRequestDto {
                 .organizationPublicId(organizationPublicId)
                 .nodeCode(nodeCode)
                 .nodeName(this.nodeName)
-                .nodeType(this.nodeType)
+                .nodeType(LogisticsNodeType.WAREHOUSE)
                 .address(this.address)
                 .latitude(latitude)
                 .longitude(longitude)

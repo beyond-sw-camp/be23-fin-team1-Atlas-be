@@ -18,7 +18,6 @@ public class UpdateLogisticsNodeRequestDto {
     @NotBlank
     private String nodeName;
 
-    @NotNull
     private LogisticsNodeType nodeType;
 
     private String address;
