@@ -24,7 +24,6 @@ public class SupplyChainNotificationHandler extends AbstractRuleBasedKafkaNotifi
                 || eventType.startsWith("delivery-exception.")
                 || eventType.startsWith("logistics-node.")
                 || eventType.startsWith("inventory.")
-                || eventType.startsWith("lot.")
                 || eventType.startsWith("return-request.")
                 || eventType.startsWith("supplier-certificate.")
                 || eventType.startsWith("supplier.");

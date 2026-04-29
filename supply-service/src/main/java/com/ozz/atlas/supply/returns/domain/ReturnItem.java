@@ -27,9 +27,6 @@ public class ReturnItem extends BaseTimeEntity {
     @Column(nullable = false, length = 26)
     private String itemPublicId;
 
-    @Column(length = 26)
-    private String lotPublicId;
-
     @Column(nullable = false, precision = 18, scale = 2)
     private BigDecimal returnQty;
 
@@ -46,9 +43,8 @@ public class ReturnItem extends BaseTimeEntity {
     private String attachmentPublicIds;
 
     @Builder
-    public ReturnItem(String itemPublicId, String lotPublicId, BigDecimal returnQty, String unit, String detailReason, String attachmentPublicIds) {
+    public ReturnItem(String itemPublicId, BigDecimal returnQty, String unit, String detailReason, String attachmentPublicIds) {
         this.itemPublicId = itemPublicId;
-        this.lotPublicId = lotPublicId;
         this.returnQty = returnQty;
         this.unit = unit;
         this.detailReason = detailReason;

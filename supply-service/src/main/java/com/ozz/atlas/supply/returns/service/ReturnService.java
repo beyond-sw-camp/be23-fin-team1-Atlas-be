@@ -111,7 +111,6 @@ public class ReturnService {
             String itemAttachments = itemDto.getAttachmentPublicIds() != null ? String.join(",", itemDto.getAttachmentPublicIds()) : null;
             ReturnItem returnItem = ReturnItem.builder()
                     .itemPublicId(itemDto.getItemPublicId())
-                    .lotPublicId(itemDto.getLotPublicId())
                     .returnQty(itemDto.getReturnQty())
                     .unit(itemDto.getUnit())
                     .detailReason(itemDto.getDetailReason())

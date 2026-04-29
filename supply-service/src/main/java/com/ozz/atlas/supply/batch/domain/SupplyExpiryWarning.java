@@ -41,7 +41,7 @@ public class SupplyExpiryWarning extends BaseTimeEntity {
     private ExpiryWarningType warningType;
 
     @Column(name = "source_public_id", nullable = false, length = 26)
-    private String sourcePublicId; // 원본 객체 publicId (certificate.publicId / lot.publicId)
+    private String sourcePublicId; // 원본 객체 publicId (certificate.publicId)
 
     @Column(name = "supplier_public_id", nullable = false, length = 26)
     private String supplierPublicId;

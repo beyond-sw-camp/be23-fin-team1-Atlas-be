@@ -15,7 +15,6 @@ public enum NotificationCategory {
     DELIVERY_EXCEPTION("배송 예외", "배송 지연, 온도 이탈, 파손 등 배송 예외 알림", 4, true),
     LOGISTICS_NODE("물류 거점", "창고 및 물류 거점 상태 변경 알림", 5, true),
     INVENTORY("재고", "재고 부족 등 재고 상태 알림", 6, true),
-    LOT("LOT/품질", "LOT 생성, 생산, 완료, 보류, 품질 검사 알림", 7, true),
     RETURN_REQUEST("반품", "반품 요청 생성, 승인, 거절, 완료, 취소 알림", 8, true),
     SUPPLIER_CERTIFICATE("협력사 인증서", "협력사 인증서 생성, 승인, 거절, 만료 알림", 9, true),
     SUPPLIER_RISK("협력사 리스크", "협력사 점수 급락, ESG 위반 등 리스크 알림", 10, true),
@@ -51,9 +50,6 @@ public enum NotificationCategory {
         if (eventType.startsWith("inventory.")) {
             return Optional.of(INVENTORY);
         }
-        if (eventType.startsWith("lot.")) {
-            return Optional.of(LOT);
-        }
         if (eventType.startsWith("return-request.")) {
             return Optional.of(RETURN_REQUEST);
         }
@@ -81,3 +77,4 @@ public enum NotificationCategory {
                 || EventTypes.RECOMMENDATION_REJECTED.equals(eventType);
     }
 }
+

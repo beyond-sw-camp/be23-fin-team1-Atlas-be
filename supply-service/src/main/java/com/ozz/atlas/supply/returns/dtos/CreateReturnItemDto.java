@@ -19,9 +19,6 @@ public class CreateReturnItemDto {
     @Schema(description = "품목 공개 식별자", example = "item_01HZY2ITEM123456789")
     private String itemPublicId;
 
-    @Schema(description = "LOT 공개 식별자", example = "lot_01HZY2LOT123456789", nullable = true)
-    private String lotPublicId;
-
     @Positive(message = "반품 수량은 0보다 커야 합니다.")
     @Schema(description = "반품 수량", example = "120.5")
     private BigDecimal returnQty;

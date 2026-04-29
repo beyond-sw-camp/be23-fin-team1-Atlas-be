@@ -34,7 +34,4 @@ public class ReturnSearchDto {
 
     // 반품 품목 publicId 필터
     private String itemPublicId;
-
-    // LOT publicId 필터
-    private String lotPublicId;
 }

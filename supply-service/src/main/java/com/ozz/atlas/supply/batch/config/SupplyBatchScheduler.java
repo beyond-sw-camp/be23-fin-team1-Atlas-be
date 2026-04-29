@@ -31,16 +31,6 @@ public class SupplyBatchScheduler {
         }
     }
 
-    @Scheduled(cron = "0 20 0 * * *", zone = "Asia/Seoul")
-    public void runLotExpiryAggregationJob() {
-        try {
-            LocalDate runDate = LocalDate.now(KST);
-            supplyBatchJobService.runLotExpiryAggregation(runDate);
-            expiryWarningEventService.publishLotExpirationImminentEvents(runDate);
-        } catch (Exception e) {
-            log.error("lotExpiryAggregationJob failed", e);
-        }
-    }
 
     @Scheduled(cron = "0 30 0 * * *", zone = "Asia/Seoul")
     public void runSupplierDeliveryKpiJob() {

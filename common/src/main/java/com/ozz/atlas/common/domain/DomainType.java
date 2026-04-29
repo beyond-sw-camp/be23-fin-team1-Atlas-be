@@ -18,7 +18,6 @@ public enum DomainType {
     // 공급망 실행 참조 전용
     ORDER("발주"),
     SHIPMENT("출하"),
-    LOT("LOT"),
     SUPPLIER("협력사"),
     ITEM("품목"),
     RETURN_REQUEST("반품"),
