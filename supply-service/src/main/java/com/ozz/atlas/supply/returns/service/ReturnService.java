@@ -400,7 +400,8 @@ public class ReturnService {
             throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
         }
 
-        if (!"BUYER".equalsIgnoreCase(organizationType)) {
+        if (!"BUYER".equalsIgnoreCase(organizationType)
+                && !"SUPPLIER".equalsIgnoreCase(organizationType)) {
             throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
         }
     }
