@@ -170,16 +170,6 @@ public class KafkaEventRuleService {
 
                 rule("INV-001", "재고 부족 경보", KafkaTopics.SUPPLY_INVENTORY, EventTypes.INVENTORY_SHORTAGE_DETECTED, "재고 상태 =", "SHORTAGE", KafkaRuleImportance.HIGH),
 
-                rule("LOT-001", "LOT 생성", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_CREATED, "이벤트 발생", "LOT 생성 시", KafkaRuleImportance.LOW),
-                rule("LOT-002", "LOT 생산 중", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_IN_PRODUCTION, "이벤트 발생", "LOT 생산 시작 시", KafkaRuleImportance.LOW),
-                rule("LOT-003", "LOT 완료", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_COMPLETED, "이벤트 발생", "LOT 완료 시", KafkaRuleImportance.LOW),
-                rule("LOT-004", "LOT 보류", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_HOLD, "이벤트 발생", "LOT 보류 시", KafkaRuleImportance.HIGH),
-                rule("LOT-005", "LOT 보류 해제", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_RELEASED, "이벤트 발생", "LOT 보류 해제 시", KafkaRuleImportance.MEDIUM),
-                rule("LOT-006", "LOT 불량", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_DEFECTIVE, "이벤트 발생", "LOT 불량 판정 시", KafkaRuleImportance.CRITICAL),
-                rule("LOT-007", "LOT 유통기한 만료 임박", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_EXPIRATION_IMMINENT, "남은 일수 <=", "7일", KafkaRuleImportance.MEDIUM),
-                rule("LOT-008", "LOT 품질 통과", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_QUALITY_PASSED, "이벤트 발생", "LOT 품질 검사 통과 시", KafkaRuleImportance.LOW),
-                rule("LOT-009", "LOT 품질 실패", KafkaTopics.SUPPLY_LOT, EventTypes.LOT_QUALITY_FAILED, "이벤트 발생", "LOT 품질 검사 실패 시", KafkaRuleImportance.CRITICAL),
-
                 rule("RTR-001", "반품 요청 생성", KafkaTopics.SUPPLY_RETURN_REQUEST, EventTypes.RETURN_REQUEST_CREATED, "이벤트 발생", "반품 요청 생성 시", KafkaRuleImportance.MEDIUM),
                 rule("RTR-002", "반품 요청 승인", KafkaTopics.SUPPLY_RETURN_REQUEST, EventTypes.RETURN_REQUEST_APPROVED, "이벤트 발생", "반품 요청 승인 시", KafkaRuleImportance.MEDIUM),
                 rule("RTR-003", "반품 요청 거절", KafkaTopics.SUPPLY_RETURN_REQUEST, EventTypes.RETURN_REQUEST_REJECTED, "이벤트 발생", "반품 요청 거절 시", KafkaRuleImportance.HIGH),

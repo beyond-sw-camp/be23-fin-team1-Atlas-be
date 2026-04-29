@@ -28,9 +28,6 @@ public enum IntegratedSearchSectionType {
     // 반품 검색 결과 섹션
     RETURN("반품"),
 
-    // LOT 검색 결과 섹션
-    LOT("LOT"),
-
     // 생산라인 검색 결과 섹션
     PRODUCTION_LINE("생산라인"),
 

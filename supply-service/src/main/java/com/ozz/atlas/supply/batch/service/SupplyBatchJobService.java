@@ -26,7 +26,6 @@ public class SupplyBatchJobService {
 
     private final JobLauncher jobLauncher;
     private final Job certificateExpiryWarningJob;
-    private final Job lotExpiryAggregationJob;
     private final Job supplierDeliveryKpiJob;
 
     // 한 번에 하나의 배치만 실행되게 막는 락
@@ -35,23 +34,16 @@ public class SupplyBatchJobService {
     public SupplyBatchJobService(
             JobLauncher jobLauncher,
             @Qualifier("certificateExpiryWarningJob") Job certificateExpiryWarningJob,
-            @Qualifier("lotExpiryAggregationJob") Job lotExpiryAggregationJob,
             @Qualifier("supplierDeliveryKpiJob") Job supplierDeliveryKpiJob
     ) {
         this.jobLauncher = jobLauncher;
         this.certificateExpiryWarningJob = certificateExpiryWarningJob;
-        this.lotExpiryAggregationJob = lotExpiryAggregationJob;
         this.supplierDeliveryKpiJob = supplierDeliveryKpiJob;
     }
 
     public BatchJobRunResponse runCertificateExpiryWarning(LocalDate runDate) {
         LocalDate targetDate = runDate != null ? runDate : LocalDate.now(KST);
         return runSingle(certificateExpiryWarningJob, targetDate);
-    }
-
-    public BatchJobRunResponse runLotExpiryAggregation(LocalDate runDate) {
-        LocalDate targetDate = runDate != null ? runDate : LocalDate.now(KST);
-        return runSingle(lotExpiryAggregationJob, targetDate);
     }
 
     public BatchJobRunResponse runSupplierDeliveryKpi(LocalDate runDate) {
@@ -67,7 +59,6 @@ public class SupplyBatchJobService {
 
             List<BatchJobRunResponse> results = new ArrayList<>();
             results.add(runInternal(certificateExpiryWarningJob, targetBaseDate));
-            results.add(runInternal(lotExpiryAggregationJob, targetBaseDate));
             results.add(runInternal(supplierDeliveryKpiJob, targetBaseDate.minusDays(1)));
             return results;
         } finally {

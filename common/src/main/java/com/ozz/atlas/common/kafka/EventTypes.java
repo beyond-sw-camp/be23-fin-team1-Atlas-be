@@ -28,16 +28,6 @@ public final class EventTypes {
     public static final String LOGISTICS_NODE_CAPACITY_STATUS_CHANGED = "logistics-node.capacity-status-changed";
     public static final String INVENTORY_SHORTAGE_DETECTED = "inventory.shortage-detected";
 
-    public static final String LOT_CREATED = "lot.created";
-    public static final String LOT_IN_PRODUCTION = "lot.in-production";
-    public static final String LOT_COMPLETED = "lot.completed";
-    public static final String LOT_HOLD = "lot.hold";
-    public static final String LOT_RELEASED = "lot.released";
-    public static final String LOT_DEFECTIVE = "lot.defective";
-    public static final String LOT_EXPIRATION_IMMINENT = "lot.expiration-imminent";
-    public static final String LOT_QUALITY_PASSED = "lot.quality-passed";
-    public static final String LOT_QUALITY_FAILED = "lot.quality-failed";
-
     public static final String RETURN_REQUEST_CREATED = "return-request.created";
     public static final String RETURN_REQUEST_APPROVED = "return-request.approved";
     public static final String RETURN_REQUEST_REJECTED = "return-request.rejected";

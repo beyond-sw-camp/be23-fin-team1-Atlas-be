@@ -53,7 +53,6 @@ public class ReturnSearchService {
                         || searchDto.getReturnType() != null
                         || searchDto.getReturnStatus() != null
                         || hasText(searchDto.getItemPublicId())
-                        || hasText(searchDto.getLotPublicId())
         );
     }
 
@@ -117,7 +116,7 @@ public class ReturnSearchService {
             filterQueries.add(termQuery("returnStatus", searchDto.getReturnStatus().name()));
         }
 
-        // 품목 / LOT 는 items nested 필드 기준으로 필터링
+        // 품목 은 items nested 필드 기준으로 필터링
         Query itemNestedQuery = buildItemNestedQuery(searchDto);
         if (itemNestedQuery != null) {
             filterQueries.add(itemNestedQuery);
@@ -178,18 +177,13 @@ public class ReturnSearchService {
         ));
     }
 
-    // 품목 publicId / LOT publicId 를 items nested 필드 기준으로 필터링
+    // 품목 publicId 를 items nested 필드 기준으로 필터링
     private Query buildItemNestedQuery(ReturnSearchDto searchDto) {
         List<Query> itemFilters = new ArrayList<>();
 
         // 특정 품목 기준 필터
         if (hasText(searchDto.getItemPublicId())) {
             itemFilters.add(termQuery("items.itemPublicId", searchDto.getItemPublicId()));
-        }
-
-        // 특정 LOT 기준 필터
-        if (hasText(searchDto.getLotPublicId())) {
-            itemFilters.add(termQuery("items.lotPublicId", searchDto.getLotPublicId()));
         }
 
         // 조건이 없으면 nested 쿼리를 만들 필요가 없음
@@ -279,7 +273,6 @@ public class ReturnSearchService {
                                         .id(item.getId())
                                         .itemPublicId(item.getItemPublicId())
                                         .itemName(itemName)
-                                        .lotPublicId(item.getLotPublicId())
                                         .returnQty(item.getReturnQty())
                                         .unit(item.getUnit())
                                         .detailReason(item.getDetailReason())

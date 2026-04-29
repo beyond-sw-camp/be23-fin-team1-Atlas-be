@@ -30,16 +30,6 @@ public class SupplyBatchController {
         return ResponseEntity.ok(supplyBatchJobService.runCertificateExpiryWarning(runDate));
     }
 
-    @Operation(summary = "LOT 유통기한 집계 배치 실행")
-    @PostMapping("/jobs/lot-expiry-aggregation")
-    public ResponseEntity<BatchJobRunResponse> runLotExpiryAggregation(
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate runDate
-    ) {
-        return ResponseEntity.ok(supplyBatchJobService.runLotExpiryAggregation(runDate));
-    }
-
     @Operation(summary = "협력사 배송 KPI 배치 실행")
     @PostMapping("/jobs/supplier-delivery-kpi")
     public ResponseEntity<BatchJobRunResponse> runSupplierDeliveryKpi(

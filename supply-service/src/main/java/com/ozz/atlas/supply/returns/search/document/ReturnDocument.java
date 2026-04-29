@@ -171,10 +171,6 @@ public class ReturnDocument {
         @Field(type = FieldType.Keyword)
         private String itemPublicId;
 
-        // LOT publicId
-        @Field(type = FieldType.Keyword)
-        private String lotPublicId;
-
         // 반품 수량
         @Field(type = FieldType.Double)
         private BigDecimal returnQty;
@@ -209,7 +205,6 @@ public class ReturnDocument {
             return ReturnItemDocument.builder()
                     .id(item.getId())
                     .itemPublicId(item.getItemPublicId())
-                    .lotPublicId(item.getLotPublicId())
                     .returnQty(item.getReturnQty())
                     .unit(item.getUnit())
                     .detailReason(item.getDetailReason())

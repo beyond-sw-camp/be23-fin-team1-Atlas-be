@@ -10,7 +10,6 @@ public enum AggregateType {
     DELIVERY_EXCEPTION,
     LOGISTICS_NODE,
     INVENTORY,
-    LOT,
     RETURN_REQUEST,
     SUPPLIER_CERTIFICATE,
     RISK,

@@ -98,8 +98,7 @@ public class NotificationRecipientResolver {
                 || eventType.startsWith("inventory.")) {
             return LOGISTICS_DEPARTMENT;
         }
-        if (eventType.startsWith("lot.")
-                || eventType.startsWith("supplier-certificate.")
+        if (eventType.startsWith("supplier-certificate.")
                 || eventType.startsWith("supplier.")) {
             return QUALITY_DEPARTMENT;
         }
@@ -127,7 +126,6 @@ public class NotificationRecipientResolver {
                 || eventType.startsWith("delivery-exception.")
                 || eventType.startsWith("logistics-node.")
                 || eventType.startsWith("inventory.")
-                || eventType.startsWith("lot.")
                 || eventType.startsWith("return-request.")
                 || eventType.startsWith("supplier-certificate.")
                 || eventType.startsWith("supplier.");

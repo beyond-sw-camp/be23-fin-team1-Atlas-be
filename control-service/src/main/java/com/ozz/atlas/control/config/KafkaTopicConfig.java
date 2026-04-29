@@ -58,14 +58,6 @@ public class KafkaTopicConfig {
     }
 
     @Bean
-    public NewTopic supplyLotTopic() {
-        return TopicBuilder.name(KafkaTopics.SUPPLY_LOT)
-                .partitions(2)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
     public NewTopic supplyReturnRequestTopic() {
         return TopicBuilder.name(KafkaTopics.SUPPLY_RETURN_REQUEST)
                 .partitions(2)

@@ -19,7 +19,7 @@ public class IntegratedSearchItemDto {
     private Long id;
 
     // publicId 기반 도메인용 값
-    // 예: supplier, item, shipment, return, lot
+    // 예: supplier, item, shipment, return
     private String publicId;
 
     // 검색 결과 카드에서 가장 크게 보여줄 대표 제목

@@ -1,6 +1,5 @@
 package com.ozz.atlas.supply.kafka.context;
 
-import com.ozz.atlas.supply.lot.domain.Lot;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
@@ -90,13 +89,6 @@ public class SupplyChainContextResolver {
         }
 
         return SupplyChainContext.empty();
-    }
-
-    public SupplyChainContext fromLot(Lot lot) {
-        if (lot == null || lot.getSourcePoItem() == null) {
-            return SupplyChainContext.empty();
-        }
-        return fromPurchaseOrder(lot.getSourcePoItem().getPurchaseOrder());
     }
 
     public SupplyChainContext fromReturn(ReturnRequest returnRequest, Shipment shipment) {

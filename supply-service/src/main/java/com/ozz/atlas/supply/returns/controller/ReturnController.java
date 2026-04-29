@@ -54,7 +54,6 @@ public class ReturnController {
                                               "items": [
                                                 {
                                                   "itemPublicId": "item_01HZY2ITEM123456789",
-                                                  "lotPublicId": "lot_01HZY2LOT123456789",
                                                   "returnQty": 120.5,
                                                   "unit": "BOX",
                                                   "detailReason": "포장 파손 및 냉장 온도 이탈",
@@ -92,7 +91,6 @@ public class ReturnController {
                                                 {
                                                   "id": 1,
                                                   "itemPublicId": "item_01HZY2ITEM123456789",
-                                                  "lotPublicId": "lot_01HZY2LOT123456789",
                                                   "returnQty": 120.5,
                                                   "unit": "BOX",
                                                   "detailReason": "포장 파손 및 냉장 온도 이탈",
@@ -134,7 +132,6 @@ public class ReturnController {
             @RequestParam(value = "returnType", required = false) ReturnType returnType,
             @RequestParam(value = "returnStatus", required = false) ReturnStatus returnStatus,
             @RequestParam(value = "itemPublicId", required = false) String itemPublicId,
-            @RequestParam(value = "lotPublicId", required = false) String lotPublicId,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
             @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
@@ -149,7 +146,6 @@ public class ReturnController {
                 .returnType(returnType)
                 .returnStatus(returnStatus)
                 .itemPublicId(itemPublicId)
-                .lotPublicId(lotPublicId)
                 .build();
 
         // 검색 조건이 하나라도 있으면 ES 검색으로 보냄

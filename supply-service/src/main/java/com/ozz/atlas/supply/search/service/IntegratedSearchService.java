@@ -3,9 +3,6 @@ package com.ozz.atlas.supply.search.service;
 import com.ozz.atlas.supply.item.dtos.ItemResponse;
 import com.ozz.atlas.supply.item.search.dtos.ItemSearchDto;
 import com.ozz.atlas.supply.item.search.service.ItemSearchService;
-import com.ozz.atlas.supply.lot.dtos.LotResponseDto;
-import com.ozz.atlas.supply.lot.search.dtos.LotSearchDto;
-import com.ozz.atlas.supply.lot.search.service.LotSearchService;
 import com.ozz.atlas.supply.productionline.dtos.ProductionLineResponseDto;
 import com.ozz.atlas.supply.productionline.search.dtos.ProductionLineSearchDto;
 import com.ozz.atlas.supply.productionline.search.service.ProductionLineSearchService;
@@ -51,7 +48,6 @@ public class IntegratedSearchService {
     private final PurchaseOrderSearchService purchaseOrderSearchService;
     private final ShipmentSearchService shipmentSearchService;
     private final ReturnSearchService returnSearchService;
-    private final LotSearchService lotSearchService;
     private final ProductionLineSearchService productionLineSearchService;
     private final SettlementSearchService settlementSearchService;
 
@@ -102,9 +98,6 @@ public class IntegratedSearchService {
                 userRole,
                 size
         );
-
-        // LOT 섹션을 추가
-        addLotSection(sections, pageable, keyword, size);
 
         // 생산라인 섹션을 추가
         addProductionLineSection(sections, pageable, keyword, size);
@@ -336,44 +329,6 @@ public class IntegratedSearchService {
         }
 
         sections.add(buildSection(IntegratedSearchSectionType.RETURN, items.size(), items));
-    }
-
-    // LOT 검색 결과를 통합검색 섹션으로 바꿈
-    private void addLotSection(
-            List<IntegratedSearchSectionDto> sections,
-            PageRequest pageable,
-            String keyword,
-            int size
-    ) {
-        Page<LotResponseDto> page = lotSearchService.search(
-                pageable,
-                LotSearchDto.builder()
-                        .keyword(keyword)
-                        .build()
-        );
-
-        if (page.isEmpty()) {
-            return;
-        }
-
-        // LOT은 lot 번호, 품목 publicId 기준으로 통합검색용 엄격 필터를 한 번 더 적용
-        List<IntegratedSearchItemDto> items = page.getContent().stream()
-                .filter(lot -> matchesKeyword(keyword, lot.getLotNumber(), lot.getItemPublicId()))
-                .map(lot -> IntegratedSearchItemDto.builder()
-                        .type(IntegratedSearchSectionType.LOT)
-                        .publicId(lot.getPublicId())
-                        .title(lot.getLotNumber())
-                        .subtitle(lot.getItemPublicId())
-                        .status(lot.getLotStatus() != null ? lot.getLotStatus().name() : null)
-                        .build())
-                .limit(size)
-                .toList();
-
-        if (items.isEmpty()) {
-            return;
-        }
-
-        sections.add(buildSection(IntegratedSearchSectionType.LOT, items.size(), items));
     }
 
     // 생산라인 검색 결과를 통합검색 섹션으로 바꿈

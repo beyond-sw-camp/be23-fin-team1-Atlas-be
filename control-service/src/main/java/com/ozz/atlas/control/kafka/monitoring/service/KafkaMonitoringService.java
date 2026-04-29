@@ -42,7 +42,6 @@ public class KafkaMonitoringService {
             KafkaTopics.SUPPLY_DELIVERY_EXCEPTION,
             KafkaTopics.SUPPLY_LOGISTICS_NODE,
             KafkaTopics.SUPPLY_INVENTORY,
-            KafkaTopics.SUPPLY_LOT,
             KafkaTopics.SUPPLY_RETURN_REQUEST,
             KafkaTopics.SUPPLY_SUPPLIER_CERTIFICATE,
             KafkaTopics.CONTROL_RECOMMENDATION_REQUESTED,

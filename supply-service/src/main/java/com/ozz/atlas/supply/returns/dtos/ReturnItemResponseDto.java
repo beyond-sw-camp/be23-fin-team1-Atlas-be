@@ -20,8 +20,6 @@ public class ReturnItemResponseDto {
     private String itemPublicId;
     @Schema(description = "품목명", example = "냉동 생지")
     private String itemName;
-    @Schema(description = "LOT 공개 식별자", example = "lot_01HZY2LOT123456789", nullable = true)
-    private String lotPublicId;
     @Schema(description = "반품 수량", example = "120.5")
     private BigDecimal returnQty;
     @Schema(description = "수량 단위", example = "BOX")
@@ -42,7 +40,6 @@ public class ReturnItemResponseDto {
                 .id(entity.getId())
                 .itemPublicId(entity.getItemPublicId())
                 .itemName(itemName)
-                .lotPublicId(entity.getLotPublicId())
                 .returnQty(entity.getReturnQty())
                 .unit(entity.getUnit())
                 .detailReason(entity.getDetailReason())
