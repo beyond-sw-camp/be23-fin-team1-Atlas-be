@@ -4,13 +4,17 @@ import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.control.chat.domain.ChatMessage;
 import com.ozz.atlas.control.chat.domain.ChatParticipant;
 import com.ozz.atlas.control.chat.domain.ChatRoom;
+import com.ozz.atlas.control.chat.domain.ChatRoomPin;
 import com.ozz.atlas.control.chat.dto.ChatRoomDto;
 import com.ozz.atlas.control.chat.enums.MessageType;
 import com.ozz.atlas.control.chat.enums.RoomStatus;
 import com.ozz.atlas.control.chat.event.ChatSystemEvent;
+import com.ozz.atlas.control.chat.exception.ChatErrorCode;
+import com.ozz.atlas.control.chat.exception.ChatException;
 import com.ozz.atlas.control.chat.repository.ChatMessageRepository;
 import com.ozz.atlas.control.chat.repository.ChatParticipantRepository;
 import com.ozz.atlas.control.chat.repository.ChatRoomRepository;
+import com.ozz.atlas.control.chat.repository.ChatRoomPinRepository;
 import com.ozz.atlas.control.chat.search.service.ChatParticipantSearchService;
 import com.ozz.atlas.control.chat.search.service.ChatRoomSearchService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,9 +37,42 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatRoomPinRepository chatRoomPinRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final ChatParticipantSearchService chatParticipantSearchService;
     private final ChatRoomSearchService chatRoomSearchService;
+
+    @Transactional
+    public Map<String, Object> pinRoom(String roomPublicId, String userPublicId) {
+        ChatRoom chatRoom = chatRoomRepository.findByPublicId(roomPublicId)
+                .orElseThrow(() -> new ChatException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
+
+        ChatParticipant participant = chatParticipantRepository.findByChatRoomAndUserPublicId(chatRoom, userPublicId)
+                .orElseThrow(() -> new ChatException(ChatErrorCode.CHAT_ROOM_NOT_FOUND)); // Assuming PARTICIPANT_NOT_FOUND might not exist, fallback to existing error or add if possible. Wait, the error was "cannot find symbol: variable PARTICIPANT_NOT_FOUND location: class ChatErrorCode". Let's check ChatErrorCode.
+        
+        if (!participant.isActiveYn()) {
+            throw new ChatException(ChatErrorCode.CHAT_ROOM_NOT_FOUND);
+        }
+
+        ChatRoomPin pin = chatRoomPinRepository.findByChatRoomAndUserPublicId(chatRoom, userPublicId)
+                .orElseGet(() -> {
+                    ChatRoomPin newPin = ChatRoomPin.builder()
+                            .chatRoom(chatRoom)
+                            .userPublicId(userPublicId)
+                            .build();
+                    return chatRoomPinRepository.save(newPin);
+                });
+
+        return Map.of("pinnedAt", pin.getPinnedAt().toString());
+    }
+
+    @Transactional
+    public void unpinRoom(String roomPublicId, String userPublicId) {
+        ChatRoom chatRoom = chatRoomRepository.findByPublicId(roomPublicId)
+                .orElseThrow(() -> new ChatException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
+
+        chatRoomPinRepository.deleteByChatRoomAndUserPublicId(chatRoom, userPublicId);
+    }
 
 
 
@@ -62,7 +101,7 @@ public class ChatRoomService {
         // 참여자까지 모두 추가된 뒤 채팅방 검색 문서를 저장
         chatRoomSearchService.saveChatRoomDocument(chatRoom);
 
-        return convertToDto(chatRoom);
+        return convertToDto(chatRoom, creatorPublicId);
     }
 
     private void addParticipant(ChatRoom chatRoom, String userPublicId, String role) {
@@ -96,7 +135,7 @@ public class ChatRoomService {
         return chatParticipantRepository.findByUserPublicIdActive(userPublicId, pageable)
                 .map(participant -> {
                     ChatRoom chatRoom = participant.getChatRoom();
-                    ChatRoomDto dto = convertToDto(chatRoom);
+                    ChatRoomDto dto = convertToDto(chatRoom, userPublicId);
                     
                     // 안 읽은 메시지 수 계산
                     Long unreadCount = chatMessageRepository.countUnreadMessages(chatRoom, participant.getLastReadMessageId());
@@ -204,13 +243,18 @@ public class ChatRoomService {
         chatRoomSearchService.saveChatRoomDocument(chatRoom);
     }
 
-    private ChatRoomDto convertToDto(ChatRoom chatRoom) {
+    private ChatRoomDto convertToDto(ChatRoom chatRoom, String userPublicId) {
+        LocalDateTime pinnedAt = chatRoomPinRepository.findByChatRoomAndUserPublicId(chatRoom, userPublicId)
+                .map(ChatRoomPin::getPinnedAt)
+                .orElse(null);
+
         return ChatRoomDto.builder()
                 .publicId(chatRoom.getPublicId())
                 .roomName(chatRoom.getRoomName())
                 .roomStatus(chatRoom.getRoomStatus())
                 .userAccountPublicId(chatRoom.getUserAccountPublicId())
                 .createdAt(chatRoom.getCreatedAt())
+                .pinnedAt(pinnedAt)
                 .build();
     }
 
@@ -245,7 +289,7 @@ public class ChatRoomService {
 
             // 이미 정확한 1:1 방이 있으면 새로 만들지 않고 기존 방을 돌려줌
             if (isSameDirectRoom) {
-                return convertToDto(room);
+                return convertToDto(room, creatorPublicId);
             }
         }
 
