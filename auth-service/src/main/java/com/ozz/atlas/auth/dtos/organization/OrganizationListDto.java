@@ -52,6 +52,8 @@ public class OrganizationListDto {
     @Schema(description = "조직 상태", example = "ACTIVE")
     private Status status;
 
+    private String organizationImageThumbPath;
+
 
     public static OrganizationListDto fromEntity(Organization organization){
         return OrganizationListDto.builder()
@@ -67,6 +69,7 @@ public class OrganizationListDto {
                 .contactEmail(organization.getContactEmail())
                 .contactPhone(organization.getContactPhone())
                 .status(organization.getStatus())
+                .organizationImageThumbPath(organization.getOrganizationImageThumbPath())
                 .build();
 
     }

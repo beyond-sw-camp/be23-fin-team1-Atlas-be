@@ -55,7 +55,14 @@ public class OrganizationDetailDto {
     @Schema(description = "조직 상태", example = "ACTIVE")
     private Status status;
 
-    public static OrganizationDetailDto fromEntity(Organization organization) {
+    private String organizationImageAttachmentPublicId;
+
+    private String organizationImageThumbPath;
+
+    private long memberCount;
+
+
+    public static OrganizationDetailDto fromEntity(Organization organization, long memberCount) {
         return OrganizationDetailDto.builder()
                 .organizationPublicId(organization.getPublicId())
                 .organizationId(organization.getOrganizationId())
@@ -70,6 +77,9 @@ public class OrganizationDetailDto {
                 .contactEmail(organization.getContactEmail())
                 .contactPhone(organization.getContactPhone())
                 .status(organization.getStatus())
+                .organizationImageAttachmentPublicId(organization.getOrganizationImageAttachmentPublicId())
+                .organizationImageThumbPath(organization.getOrganizationImageThumbPath())
+                .memberCount(memberCount)
                 .build();
     }
 }

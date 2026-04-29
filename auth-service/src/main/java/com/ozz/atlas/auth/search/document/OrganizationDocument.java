@@ -166,6 +166,11 @@ public class OrganizationDocument {
     // 상태는 ACTIVE, DELETE 같은 정확한 값 필터링이 목적
     private Status status;
 
+    private String organizationImageAttachmentPublicId;
+
+    private String organizationImageThumbPath;
+
+
 
     public static OrganizationDocument fromEntity(Organization organization) {
         return OrganizationDocument.builder()
@@ -182,6 +187,8 @@ public class OrganizationDocument {
                 .contactEmail(organization.getContactEmail())
                 .contactPhone(organization.getContactPhone())
                 .status(organization.getStatus())
+                .organizationImageAttachmentPublicId(organization.getOrganizationImageAttachmentPublicId())
+                .organizationImageThumbPath(organization.getOrganizationImageThumbPath())
                 .build();
     }
 }

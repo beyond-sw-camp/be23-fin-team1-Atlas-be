@@ -36,6 +36,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
+import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateRepository;
+import com.ozz.atlas.supply.supplier.dtos.OrganizationSupplySummaryDto;
+
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -61,6 +65,10 @@ public class SupplierService {
     private static final String BUYER_ORGANIZATION_TYPE = "BUYER";
     private static final String SUPPLIER_ORGANIZATION_TYPE = "SUPPLIER";
     private final PurchaseOrderRepository purchaseOrderRepository;
+
+    private final LogisticsNodeRepository logisticsNodeRepository;
+    private final SupplierCertificateRepository supplierCertificateRepository;
+
 
 
     public SupplierResponse createSupplier(String userRole, CreateSupplierRequest request) {
@@ -760,6 +768,23 @@ public class SupplierService {
 
         return (int) Math.round(averageLeadTime);
     }
+
+    // 조직 상세 화면에서 보여줄 공급/운영 요약 숫자를 조회
+    public OrganizationSupplySummaryDto getOrganizationSupplySummary(String organizationPublicId) {
+        // 조직에 연결된 물류 거점 수
+        long warehouseCount = logisticsNodeRepository.countByOrganizationPublicId(organizationPublicId);
+
+        // 인증서는 supplierPublicId 기준이라 조직 publicId로 협력사를 먼저 찾음
+        long esgFileCount = supplierRepository.findByOrganizationPublicId(organizationPublicId)
+                .map(supplier -> supplierCertificateRepository.countBySupplierPublicId(supplier.getPublicId()))
+                .orElse(0L);
+
+        return OrganizationSupplySummaryDto.builder()
+                .warehouseCount(warehouseCount)
+                .esgFileCount(esgFileCount)
+                .build();
+    }
+
 
 
 

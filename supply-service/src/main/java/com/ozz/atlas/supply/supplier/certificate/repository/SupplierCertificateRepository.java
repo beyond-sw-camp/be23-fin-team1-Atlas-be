@@ -16,4 +16,5 @@ public interface SupplierCertificateRepository extends JpaRepository<SupplierCer
     List<SupplierCertificate> findByExpiredAtBetween(LocalDate startDate, LocalDate endDate);
     List<SupplierCertificate> findByExpiredAtAndCertificateStatus(LocalDate expiredAt, CertificateStatus certificateStatus);
     List<SupplierCertificate> findByExpiredAtLessThanEqualAndCertificateStatus(LocalDate expiredAt, CertificateStatus certificateStatus);
+    long countBySupplierPublicId(String supplierPublicId);
 }

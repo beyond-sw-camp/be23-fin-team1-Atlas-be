@@ -140,6 +140,7 @@ public class OrganizationSearchService {
                         .contactEmail(document.getContactEmail())
                         .contactPhone(document.getContactPhone())
                         .status(document.getStatus())
+                        .organizationImageThumbPath(document.getOrganizationImageThumbPath())
                         .build())
                 .toList();
 
