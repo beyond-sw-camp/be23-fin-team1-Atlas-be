@@ -9,10 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserNotificationPreferenceRepository extends JpaRepository<UserNotificationPreference, Long> {
 
-    List<UserNotificationPreference> findAllByUserPublicIdAndCategoryIn(
-            String userPublicId,
-            Collection<NotificationCategory> categories
-    );
+    List<UserNotificationPreference> findAllByUserPublicId(String userPublicId);
 
     List<UserNotificationPreference> findAllByUserPublicIdInAndCategory(
             Collection<String> userPublicIds,
