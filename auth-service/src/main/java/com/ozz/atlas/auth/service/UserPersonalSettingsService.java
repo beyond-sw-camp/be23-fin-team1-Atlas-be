@@ -18,25 +18,25 @@ public class UserPersonalSettingsService {
     private final UserPersonalSettingsRepository userPersonalSettingsRepository;
 
     @Transactional
-    public UserPersonalSettingsResponseDto getSettings(String userPublicId) {
-        return UserPersonalSettingsResponseDto.from(getOrCreateSettings(userPublicId));
+    public UserPersonalSettingsResponseDto getSettings(Long userId) {
+        return UserPersonalSettingsResponseDto.from(getOrCreateSettings(userId));
     }
 
     @Transactional
     public UserPersonalSettingsResponseDto updateSettings(
-            String userPublicId,
+            Long userId,
             UserPersonalSettingsUpdateDto request
     ) {
-        UserPersonalSettings settings = getOrCreateSettings(userPublicId);
+        UserPersonalSettings settings = getOrCreateSettings(userId);
         settings.updateLanguage(parseLanguage(request.getLanguage()));
         return UserPersonalSettingsResponseDto.from(settings);
     }
 
-    private UserPersonalSettings getOrCreateSettings(String userPublicId) {
-        return userPersonalSettingsRepository.findByUserPublicId(userPublicId)
+    private UserPersonalSettings getOrCreateSettings(Long userId) {
+        return userPersonalSettingsRepository.findByUserId(userId)
                 .orElseGet(() -> userPersonalSettingsRepository.save(
                         UserPersonalSettings.builder()
-                                .userPublicId(userPublicId)
+                                .userId(userId)
                                 .build()
                 ));
     }

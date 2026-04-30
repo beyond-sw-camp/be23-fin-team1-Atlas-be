@@ -26,8 +26,8 @@ public class UserPersonalSettings extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long settingId;
 
-    @Column(nullable = false, unique = true, length = 26, updatable = false)
-    private String userPublicId;
+    @Column(nullable = false, unique = true, updatable = false)
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)

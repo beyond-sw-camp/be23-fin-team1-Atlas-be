@@ -150,7 +150,7 @@ public class UserController {
     public ResponseEntity<UserPersonalSettingsResponseDto> getMyPersonalSettings(
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
-        return ResponseEntity.ok(userPersonalSettingsService.getSettings(principal.userPublicId()));
+        return ResponseEntity.ok(userPersonalSettingsService.getSettings(principal.userId()));
     }
 
     @PatchMapping("/me/personal-settings")
@@ -162,7 +162,7 @@ public class UserController {
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestBody @Valid UserPersonalSettingsUpdateDto request
     ) {
-        return ResponseEntity.ok(userPersonalSettingsService.updateSettings(principal.userPublicId(), request));
+        return ResponseEntity.ok(userPersonalSettingsService.updateSettings(principal.userId(), request));
     }
 
     // 사용자 정보 수정

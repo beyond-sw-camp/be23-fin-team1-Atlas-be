@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserPersonalSettingsRepository extends JpaRepository<UserPersonalSettings, Long> {
 
-    Optional<UserPersonalSettings> findByUserPublicId(String userPublicId);
+    Optional<UserPersonalSettings> findByUserId(Long userId);
 }
