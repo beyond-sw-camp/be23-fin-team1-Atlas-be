@@ -127,4 +127,9 @@ public class SupplySupplierItemCapability {
         }
     }
 
+    public void syncAvailableQty(Long availableQty) {
+        this.availableQty = availableQty != null ? availableQty : 0L;
+    }
+
+
 }
