@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface OrganizationRepository extends JpaRepository<Organization, Long>, JpaSpecificationExecutor<Organization> {
     Optional<Organization> findByPublicId(String publicId);
 
+    Optional<Organization> findByOrganizationAlias(String organizationAlias);
+
 //    organizationAlias는 조직 코드로 사용되므로 등록/수정 시 중복 여부를 별도로 확인한다.
     boolean existsByOrganizationAlias(String organizationAlias);
 
