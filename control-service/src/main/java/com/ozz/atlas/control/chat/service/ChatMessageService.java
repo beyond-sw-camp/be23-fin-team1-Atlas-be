@@ -12,6 +12,9 @@ import com.ozz.atlas.control.chat.repository.ChatMessageRepository;
 import com.ozz.atlas.control.chat.repository.ChatParticipantRepository;
 import com.ozz.atlas.control.chat.search.service.ChatMessageSearchService;
 import com.ozz.atlas.control.chat.search.service.ChatRoomSearchService;
+import com.ozz.atlas.control.client.AuthServiceClient;
+import com.ozz.atlas.control.client.dto.AuthUserDetailDto;
+import com.ozz.atlas.control.chat.enums.MessageType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
@@ -38,6 +41,7 @@ public class ChatMessageService {
     private final SupplyServiceClient supplyServiceClient;
     private final ChatMessageSearchService chatMessageSearchService;
     private final ChatRoomSearchService chatRoomSearchService;
+    private final AuthServiceClient authServiceClient;
 
 
     /**
@@ -68,6 +72,49 @@ public class ChatMessageService {
         // 1. 채팅방 확인
         ChatRoom chatRoom = chatRoomService.findRoomByPublicId(messageDto.getRoomPublicId());
 
+        String parentMessagePublicId = null;
+        String parentMessageBody = null;
+        String parentSenderUserPublicId = null;
+        String parentSenderDisplayName = null;
+
+        if (StringUtils.hasText(messageDto.getParentMessagePublicId())) {
+            ChatMessage parentMessage = chatMessageRepository.findByPublicId(messageDto.getParentMessagePublicId()).orElse(null);
+            if (parentMessage != null) {
+                parentMessagePublicId = parentMessage.getPublicId();
+                parentSenderUserPublicId = parentMessage.getSenderUserPublicId();
+                
+                if (parentSenderUserPublicId != null) {
+                    try {
+                        AuthUserDetailDto user = authServiceClient.getUserDetailByPublicId(parentSenderUserPublicId);
+                        if (user != null) {
+                            String displayName = (user.getLastName() == null ? "" : user.getLastName()) +
+                                    (user.getFirstName() == null ? "" : user.getFirstName()) +
+                                    (user.getMiddleName() == null ? "" : user.getMiddleName());
+                            parentSenderDisplayName = displayName.isBlank() ? null : displayName.trim();
+                        }
+                    } catch (Exception e) {
+                        // ignore user fetch error to not fail message sending
+                    }
+                }
+
+                if (parentMessage.getStatus() == com.ozz.atlas.common.jpa.Status.DELETE) {
+                    parentMessageBody = "[삭제된 메시지]";
+                } else if (parentMessage.getMessageType() == MessageType.FILE) {
+                    parentMessageBody = "[파일]";
+                } else if (parentMessage.getMessageType() == MessageType.IMAGE) {
+                    parentMessageBody = "[이미지]";
+                } else {
+                    String body = parentMessage.getMessageBody();
+                    if (body == null) body = "";
+                    if (body.length() > 100) {
+                        parentMessageBody = body.substring(0, 100) + "...";
+                    } else {
+                        parentMessageBody = body;
+                    }
+                }
+            }
+        }
+
         // 2. 메시지 엔티티 저장
         String attachments = messageDto.getAttachmentPublicIds() != null && !messageDto.getAttachmentPublicIds().isEmpty() 
                 ? String.join(",", messageDto.getAttachmentPublicIds()) 
@@ -84,6 +131,10 @@ public class ChatMessageService {
                 .referenceCode(messageDto.getReferenceCode())
                 .referenceTitle(messageDto.getReferenceTitle())
                 .attachmentPublicIds(attachments)
+                .parentMessagePublicId(parentMessagePublicId)
+                .parentMessageBody(parentMessageBody)
+                .parentSenderUserPublicId(parentSenderUserPublicId)
+                .parentSenderDisplayName(parentSenderDisplayName)
                 .build();
         
         chatMessageRepository.save(chatMessage);
@@ -241,6 +292,9 @@ public class ChatMessageService {
                 .referenceCode(chatMessage.getReferenceCode())
                 .referenceTitle(chatMessage.getReferenceTitle())
                 .attachmentPublicIds(attachments)
+                .parentMessagePublicId(chatMessage.getParentMessagePublicId())
+                .parentMessageBody(chatMessage.getParentMessageBody())
+                .parentSenderDisplayName(chatMessage.getParentSenderDisplayName())
                 .sentAt(chatMessage.getCreatedAt())
                 .editedAt(chatMessage.getEditedAt())
                 .isDeleted(isDeleted)
