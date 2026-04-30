@@ -19,8 +19,7 @@ public enum NotificationCategory {
     SUPPLIER_CERTIFICATE("협력사 인증서", "협력사 인증서 생성, 승인, 거절, 만료 알림", 9, true),
     SUPPLIER_RISK("협력사 리스크", "협력사 점수 급락, ESG 위반 등 리스크 알림", 10, true),
     RECOMMENDATION("AI 권고안", "AI 권고안 생성, 실패, 수락, 거절 알림", 11, true),
-    SYSTEM("시스템", "시스템 운영 알림", 12, true),
-    CHAT("채팅", "채팅 메시지 및 참여 알림", 13, true);
+    SYSTEM("시스템", "시스템 운영 알림", 12, true);
 
     private final String label;
     private final String description;
@@ -77,4 +76,3 @@ public enum NotificationCategory {
                 || EventTypes.RECOMMENDATION_REJECTED.equals(eventType);
     }
 }
-
