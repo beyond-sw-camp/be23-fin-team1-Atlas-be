@@ -32,4 +32,12 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
             Collection<Long> destinationNodeIds
     );
 
+    long countByStatusInAndOriginNodeIdInOrStatusInAndDestinationNodeIdIn(
+            Collection<ShipmentStatus> originStatuses,
+            Collection<Long> originNodeIds,
+            Collection<ShipmentStatus> destinationStatuses,
+            Collection<Long> destinationNodeIds
+    );
+
+
 }

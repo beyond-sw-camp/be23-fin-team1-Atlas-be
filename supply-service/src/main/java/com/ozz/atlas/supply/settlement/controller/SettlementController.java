@@ -19,6 +19,11 @@ import com.ozz.atlas.supply.settlement.search.dtos.SettlementSearchDto;
 import com.ozz.atlas.supply.settlement.search.service.SettlementSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.ozz.atlas.supply.settlement.dtos.SettlementStatisticsResponseDto;
+import com.ozz.atlas.supply.settlement.dtos.SettlementBudgetRequestDto;
+import com.ozz.atlas.supply.settlement.dtos.SettlementBudgetResponseDto;
+
+
 
 
 @RestController
@@ -68,6 +73,20 @@ public class SettlementController {
         }
 
         return settlementService.getSettlements(pageable, organizationPublicId, userRole);
+    }
+
+    // 정산 통계 조회
+    // 정산 대시보드 카드와 차트에 사용할 집계 데이터를 조회
+    @Operation(summary = "정산 통계 조회")
+    @GetMapping("/statistics")
+    public ResponseEntity<SettlementStatisticsResponseDto> getSettlementStatistics(
+            @RequestParam(value = "year", required = false) Integer year,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                settlementService.getSettlementStatistics(year, organizationPublicId, userRole)
+        );
     }
 
     //    정산 상세 조회
@@ -120,4 +139,24 @@ public class SettlementController {
                 )
         );
     }
+
+    // 월별 정산 예산 저장/수정
+    @Operation(summary = "정산 예산 저장/수정")
+    @PutMapping("/budgets")
+    public ResponseEntity<SettlementBudgetResponseDto> saveSettlementBudget(
+            @Valid @RequestBody SettlementBudgetRequestDto request,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String userPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                settlementService.saveSettlementBudget(
+                        request,
+                        organizationPublicId,
+                        userPublicId,
+                        userRole
+                )
+        );
+    }
+
 }

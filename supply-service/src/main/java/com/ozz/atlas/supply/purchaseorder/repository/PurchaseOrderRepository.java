@@ -130,4 +130,33 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
             @Param("deletedStatus") PoStatus deletedStatus
     );
 
+    @Query("""
+    select count(po)
+    from SupplyPurchaseOrder po
+    where po.poStatus <> :deletedStatus
+      and (
+            po.buyerOrganizationPublicId = :organizationPublicId
+            or po.supplier.organizationPublicId = :organizationPublicId
+      )
+    """)
+    long countRelatedPurchaseOrders(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("deletedStatus") PoStatus deletedStatus
+    );
+
+    @Query("""
+    select count(po)
+    from SupplyPurchaseOrder po
+    where po.poStatus in :statuses
+      and (
+            po.buyerOrganizationPublicId = :organizationPublicId
+            or po.supplier.organizationPublicId = :organizationPublicId
+      )
+    """)
+    long countRelatedPurchaseOrdersByStatuses(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("statuses") Collection<PoStatus> statuses
+    );
+
+
 }
