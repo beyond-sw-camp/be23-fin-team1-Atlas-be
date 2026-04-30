@@ -32,6 +32,10 @@ public class UserDocument {
     // 조직 구분 필터링에 사용하는 조직 publicId
     private String organizationPublicId;
 
+    private String organizationName;
+
+    private String organizationEnglishName;
+
     private String departmentPublicId;
 
     @Field(type = FieldType.Keyword)
@@ -164,6 +168,8 @@ public class UserDocument {
                 .userId(user.getUserId())
                 .publicId(user.getPublicId())
                 .organizationPublicId(user.getOrganization().getPublicId())
+                .organizationName(user.getOrganization().getOrganizationName())
+                .organizationEnglishName(user.getOrganization().getOrganizationEnglishName())
                 .departmentPublicId(user.getDepartment() != null ? user.getDepartment().getPublicId() : null)
                 .departmentCode(user.getDepartment() != null ? user.getDepartment().getDepartmentCode() : null)
                 .departmentName(user.getDepartment() != null ? user.getDepartment().getDepartmentName() : null)
