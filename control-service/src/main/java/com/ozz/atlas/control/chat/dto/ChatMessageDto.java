@@ -23,6 +23,9 @@ public class ChatMessageDto {
     private String referenceCode;
     private String referenceTitle;
     private List<String> attachmentPublicIds;
+    private String parentMessagePublicId;
+    private String parentMessageBody;
+    private String parentSenderDisplayName;
     private LocalDateTime sentAt;
     private LocalDateTime editedAt;
     private boolean isDeleted;

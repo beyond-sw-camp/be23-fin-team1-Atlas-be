@@ -190,6 +190,7 @@ public class IntegratedSearchService {
                 ))
                 .map(organization -> IntegratedSearchItemDto.builder()
                         .type(IntegratedSearchSectionType.ORGANIZATION)
+                        .id(organization.getOrganizationId())
                         .publicId(organization.getOrganizationPublicId())
                         .title(organization.getOrganizationName())
                         .subtitle(buildOrganizationSubtitle(organization))
@@ -408,6 +409,7 @@ public class IntegratedSearchService {
         private String contactPhone;
         private String status;
         private String organizationImageThumbPath;
+        private Long organizationId;
     }
 
     // supply-service 통합검색 전체 응답을 받기 위한 내부 DTO
