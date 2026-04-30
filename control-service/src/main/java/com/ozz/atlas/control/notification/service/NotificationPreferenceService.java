@@ -6,6 +6,7 @@ import com.ozz.atlas.control.notification.dto.NotificationPreferenceResponse;
 import com.ozz.atlas.control.notification.exception.NotificationErrorCode;
 import com.ozz.atlas.control.notification.exception.NotificationException;
 import com.ozz.atlas.control.notification.repository.UserNotificationPreferenceRepository;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -25,15 +26,17 @@ public class NotificationPreferenceService {
     private final UserNotificationPreferenceRepository userNotificationPreferenceRepository;
 
     public List<NotificationPreferenceResponse> getPreferences(String userPublicId) {
+        List<NotificationCategory> supportedCategories = Arrays.asList(NotificationCategory.values());
+
         Map<NotificationCategory, UserNotificationPreference> preferences =
-                userNotificationPreferenceRepository.findAllByUserPublicId(userPublicId).stream()
+                userNotificationPreferenceRepository.findAllByUserPublicIdAndCategoryIn(userPublicId, supportedCategories).stream()
                         .collect(Collectors.toMap(
                                 UserNotificationPreference::getCategory,
                                 Function.identity(),
                                 (left, right) -> left
                         ));
 
-        return List.of(NotificationCategory.values()).stream()
+        return supportedCategories.stream()
                 .sorted(Comparator.comparingInt(NotificationCategory::getDisplayOrder))
                 .map(category -> NotificationPreferenceResponse.of(
                         category,
