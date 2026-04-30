@@ -12,6 +12,14 @@ public class RoleRouteGuard {
 
     private static final String PLATFORM_ADMIN_ROLE = "ADMIN";
 
+    private static final List<String> CONTROL_TOWER_READ_GUARD_PATHS = List.of(
+            "/api/supply/purchase-order/dashboard",
+            "/api/supply/items/managed/dashboard",
+            "/api/supply/shipments/map",
+            "/api/supply/suppliers/connections/summary",
+            "/api/supply/settlements/statistics"
+    );
+
     // 플랫폼 관리자가 FE에서 보지 않는 공급망 운영 메뉴 경로는 gateway에서 1차 차단한다.
     private static final List<String> SUPPLY_WRITE_GUARD_PATHS = List.of(
             "/api/supply/lots",
@@ -35,7 +43,7 @@ public class RoleRouteGuard {
     );
 
     public void validate(String userRole, HttpMethod method, String path) {
-        if (method == null || HttpMethod.GET.equals(method) || HttpMethod.OPTIONS.equals(method) || HttpMethod.HEAD.equals(method)) {
+        if (method == null || HttpMethod.OPTIONS.equals(method) || HttpMethod.HEAD.equals(method)) {
             return;
         }
 
@@ -43,9 +51,22 @@ public class RoleRouteGuard {
             return;
         }
 
+        if (isControlTowerReadPath(path)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "플랫폼 관리자는 해당 컨트롤타워 메뉴에 접근할 수 없습니다.");
+        }
+
+        if (HttpMethod.GET.equals(method)) {
+            return;
+        }
+
         boolean blocked = SUPPLY_WRITE_GUARD_PATHS.stream().anyMatch(path::startsWith);
         if (blocked) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "플랫폼 관리자는 해당 공급망 메뉴에 접근할 수 없습니다.");
         }
+    }
+
+    private boolean isControlTowerReadPath(String path) {
+        return CONTROL_TOWER_READ_GUARD_PATHS.stream().anyMatch(path::startsWith)
+                || (path.startsWith("/api/supply/suppliers/") && path.endsWith("/connections/detail"));
     }
 }
