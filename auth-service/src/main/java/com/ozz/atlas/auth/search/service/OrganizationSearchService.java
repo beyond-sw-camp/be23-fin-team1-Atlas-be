@@ -129,6 +129,11 @@ public class OrganizationSearchService {
         List<OrganizationListDto> content = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
                 .map(document -> OrganizationListDto.builder()
+                        // 프론트가 조직 상세 조회를 할 때 필요한 내부 ID입니다.
+                        // 이 값이 없으면 프론트의 hasOrganizationId(row)가 false가 되어서 클릭이 막힙니다.
+                        .organizationId(document.getOrganizationId())
+
+                        // 화면 표시와 다른 API 연동에 쓰는 공개 ID입니다.
                         .organizationPublicId(document.getPublicId())
                         .organizationType(document.getOrganizationType())
                         .organizationName(document.getOrganizationName())
