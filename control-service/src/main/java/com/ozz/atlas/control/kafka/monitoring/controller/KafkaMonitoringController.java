@@ -24,6 +24,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.ozz.atlas.control.kafka.log.search.dtos.EventLogSearchDto;
+import com.ozz.atlas.control.kafka.log.search.dtos.EventLogSearchResponse;
+import com.ozz.atlas.control.kafka.log.search.service.EventLogSearchService;
+
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +41,7 @@ public class KafkaMonitoringController {
 
     private final KafkaMonitoringService kafkaMonitoringService;
     private final KafkaEventRuleService kafkaEventRuleService;
+    private final EventLogSearchService eventLogSearchService;
 
     @GetMapping("/events")
     @Operation(summary = "Kafka 이벤트 규칙 목록 조회", description = "플랫폼 전역 Kafka 이벤트 규칙 목록을 조회한다.")
@@ -90,4 +95,17 @@ public class KafkaMonitoringController {
     public ResponseEntity<List<KafkaSubscriptionStatusResponse>> getSubscriptions() {
         return ResponseEntity.ok(kafkaMonitoringService.getSubscriptions());
     }
+
+    @GetMapping("/logs")
+    @Operation(
+            summary = "Kafka 감사로그 검색",
+            description = "Kafka 이벤트 발행 성공/실패 감사로그를 Elasticsearch에서 검색합니다."
+    )
+    public ResponseEntity<PageResponse<EventLogSearchResponse>> getEventLogs(
+            EventLogSearchDto searchDto,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(PageResponse.from(eventLogSearchService.search(pageable, searchDto)));
+    }
+
 }
