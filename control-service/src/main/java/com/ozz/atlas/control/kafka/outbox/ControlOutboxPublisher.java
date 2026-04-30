@@ -5,13 +5,16 @@ import com.ozz.atlas.control.kafka.log.EventLogRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import com.ozz.atlas.control.kafka.log.search.service.EventLogSearchService;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ControlOutboxPublisher {
@@ -21,6 +24,7 @@ public class ControlOutboxPublisher {
 
     private final OutboxEventRepository outboxEventRepository;
     private final EventLogRepository eventLogRepository;
+    private final EventLogSearchService eventLogSearchService;
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     @Scheduled(fixedDelayString = "${atlas.kafka.outbox.publish-delay-ms:2000}")
@@ -61,10 +65,25 @@ public class ControlOutboxPublisher {
         eventLogRepository.findByEventId(outboxEvent.getEventId())
                 .ifPresentOrElse(
                         existing -> {
+                            // 기존 로그가 있으면 발행 성공 상태로 갱신
                             existing.markPublished(outboxEvent);
-                            eventLogRepository.save(existing);
+
+                            // DB에 먼저 저장해야 id, updatedAt 같은 값이 확정
+                            EventLog savedLog = eventLogRepository.save(existing);
+
+                            // DB 저장이 끝난 최신 상태를 Elasticsearch에도 반영
+                            saveEventLogDocumentSafely(savedLog);
+
                         },
-                        () -> eventLogRepository.save(EventLog.publishedFrom(outboxEvent))
+                        () -> {
+                            // 처음 발행되는 이벤트면 새 감사로그를 만듬
+                            EventLog newLog = EventLog.publishedFrom(outboxEvent);
+
+                            // 새 감사로그도 DB 저장 후 Elasticsearch에 저장
+                            EventLog savedLog = eventLogRepository.save(newLog);
+                            saveEventLogDocumentSafely(savedLog);
+
+                        }
                 );
     }
 
@@ -72,10 +91,33 @@ public class ControlOutboxPublisher {
         eventLogRepository.findByEventId(outboxEvent.getEventId())
                 .ifPresentOrElse(
                         existing -> {
+                            // 기존 로그가 있으면 발행 실패 상태와 마지막 에러를 갱신
                             existing.markFailed(outboxEvent, errorMessage);
-                            eventLogRepository.save(existing);
+
+                            // DB 저장 후 확정된 값을 Elasticsearch에도 반영
+                            EventLog savedLog = eventLogRepository.save(existing);
+                            saveEventLogDocumentSafely(savedLog);
+
                         },
-                        () -> eventLogRepository.save(EventLog.failedFrom(outboxEvent, errorMessage))
+                        () -> {
+                            // 처음 실패한 이벤트면 실패 상태 감사로그를 새로 만듬
+                            EventLog newLog = EventLog.failedFrom(outboxEvent, errorMessage);
+
+                            // 새 실패 로그도 DB 저장 후 Elasticsearch에 저장
+                            EventLog savedLog = eventLogRepository.save(newLog);
+                            saveEventLogDocumentSafely(savedLog);
+
+                        }
                 );
     }
+
+    private void saveEventLogDocumentSafely(EventLog eventLog) {
+        try {
+            eventLogSearchService.saveEventLogDocument(eventLog);
+        } catch (Exception e) {
+            log.warn("Kafka 감사로그 Elasticsearch 저장에 실패했습니다. eventId={}", eventLog.getEventId(), e);
+        }
+    }
+
+
 }
