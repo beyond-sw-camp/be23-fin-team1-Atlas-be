@@ -161,6 +161,7 @@ public class ChatRoomController {
                     )
             )
     )
+    @PatchMapping("/{roomPublicId}/read")
     public ResponseEntity<Void> markAsRead(
             @PathVariable String roomPublicId,
             @RequestBody(required = false) MarkAsReadRequestDto request,
