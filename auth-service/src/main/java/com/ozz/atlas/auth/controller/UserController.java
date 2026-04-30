@@ -5,11 +5,14 @@ import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.history.LoginHistoryListDto;
 import com.ozz.atlas.auth.dtos.history.SecurityHistoryListDto;
+import com.ozz.atlas.auth.dtos.settings.UserPersonalSettingsResponseDto;
+import com.ozz.atlas.auth.dtos.settings.UserPersonalSettingsUpdateDto;
 import com.ozz.atlas.auth.dtos.user.*;
 import com.ozz.atlas.auth.search.dtos.UserSearchDto;
 import com.ozz.atlas.auth.service.LoginHistoryService;
 import com.ozz.atlas.auth.service.PasswordChangeVerificationService;
 import com.ozz.atlas.auth.service.SecurityHistoryService;
+import com.ozz.atlas.auth.service.UserPersonalSettingsService;
 import com.ozz.atlas.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -44,13 +47,21 @@ public class UserController {
     private final LoginHistoryService loginHistoryService;
     private final SecurityHistoryService securityHistoryService;
     private final PasswordChangeVerificationService passwordChangeVerificationService;
+    private final UserPersonalSettingsService userPersonalSettingsService;
 
     @Autowired
-    public UserController(UserService userService, LoginHistoryService loginHistoryService, SecurityHistoryService securityHistoryService, PasswordChangeVerificationService passwordChangeVerificationService) {
+    public UserController(
+            UserService userService,
+            LoginHistoryService loginHistoryService,
+            SecurityHistoryService securityHistoryService,
+            PasswordChangeVerificationService passwordChangeVerificationService,
+            UserPersonalSettingsService userPersonalSettingsService
+    ) {
         this.userService = userService;
         this.loginHistoryService = loginHistoryService;
         this.securityHistoryService = securityHistoryService;
         this.passwordChangeVerificationService = passwordChangeVerificationService;
+        this.userPersonalSettingsService = userPersonalSettingsService;
     }
 
     // 조직 관리자가 자기 조직의 일반 직원 계정을 생성
@@ -129,6 +140,29 @@ public class UserController {
                 principal.role()
         );
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me/personal-settings")
+    @Operation(
+            summary = "내 개인 설정 조회",
+            description = "현재 로그인한 사용자의 개인 UI 설정을 조회한다."
+    )
+    public ResponseEntity<UserPersonalSettingsResponseDto> getMyPersonalSettings(
+            @AuthenticationPrincipal AuthPrincipal principal
+    ) {
+        return ResponseEntity.ok(userPersonalSettingsService.getSettings(principal.userId()));
+    }
+
+    @PatchMapping("/me/personal-settings")
+    @Operation(
+            summary = "내 개인 설정 수정",
+            description = "현재 로그인한 사용자의 개인 UI 설정을 수정한다."
+    )
+    public ResponseEntity<UserPersonalSettingsResponseDto> updateMyPersonalSettings(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @RequestBody @Valid UserPersonalSettingsUpdateDto request
+    ) {
+        return ResponseEntity.ok(userPersonalSettingsService.updateSettings(principal.userId(), request));
     }
 
     // 사용자 정보 수정

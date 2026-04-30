@@ -41,16 +41,13 @@
       "name": "IntegratedSearch"
     },
     {
+      "name": "ItemInventory"
+    },
+    {
       "name": "KafkaMonitoring"
     },
     {
-      "name": "LOT"
-    },
-    {
       "name": "LogisticsNode"
-    },
-    {
-      "name": "LotLineMapping"
     },
     {
       "name": "Notification"
@@ -75,9 +72,6 @@
     },
     {
       "name": "Shipment"
-    },
-    {
-      "name": "ShipmentLotMapping"
     },
     {
       "name": "SubPurchaseOrder"
@@ -1153,6 +1147,58 @@
         ]
       }
     },
+    "/api/auth/me/personal-settings": {
+      "get": {
+        "operationId": "getMyPersonalSettings",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPersonalSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "내 개인 설정 조회",
+        "description": "현재 로그인한 사용자의 개인 UI 설정을 조회한다."
+      },
+      "patch": {
+        "operationId": "updateMyPersonalSettings",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPersonalSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "내 개인 설정 수정",
+        "description": "현재 로그인한 사용자의 개인 UI 설정을 수정한다.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPersonalSettingsUpdateDto"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/users/{userId}/status": {
       "patch": {
         "operationId": "userStatusUpdate",
@@ -1618,41 +1664,6 @@
         "description": "인증서 만료 경고 배치 실행 API입니다. 조회 조건으로 runDate 를 사용할 수 있습니다."
       }
     },
-    "/api/supply/batch/jobs/lot-expiry-aggregation": {
-      "post": {
-        "operationId": "runLotExpiryAggregation",
-        "tags": [
-          "SupplyBatch"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BatchJobRunResponse"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 유통기한 집계 배치 실행",
-        "parameters": [
-          {
-            "name": "runDate",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date",
-              "example": "2026-04-17"
-            },
-            "description": "날짜 값 조회 조건"
-          }
-        ],
-        "description": "LOT 유통기한 집계 배치 실행 API입니다. 조회 조건으로 runDate 를 사용할 수 있습니다."
-      }
-    },
     "/api/supply/batch/jobs/supplier-delivery-kpi": {
       "post": {
         "operationId": "runSupplierDeliveryKpi",
@@ -1724,6 +1735,214 @@
           }
         ],
         "description": "일일 공급망 배치 실행 API입니다. 조회 조건으로 baseDate 를 사용할 수 있습니다."
+      }
+    },
+    "/api/supply/inventories": {
+      "post": {
+        "operationId": "createInventory",
+        "tags": [
+          "ItemInventory"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemInventoryResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateItemInventoryRequest"
+              }
+            }
+          }
+        },
+        "summary": "Item Inventory 생성",
+        "description": "Item Inventory 생성 API입니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
+      },
+      "get": {
+        "operationId": "getInventories",
+        "tags": [
+          "ItemInventory"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ItemInventoryResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          }
+        ],
+        "summary": "Item Inventory 조회",
+        "description": "Item Inventory 조회 API입니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/inventories/{inventoryPublicId}": {
+      "put": {
+        "operationId": "updateInventory",
+        "tags": [
+          "ItemInventory"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemInventoryResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "inventoryPublicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItemInventoryRequest"
+              }
+            }
+          }
+        },
+        "summary": "Item Inventory 수정",
+        "description": "Item Inventory 수정 API입니다. 경로 변수 inventoryPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
+      },
+      "delete": {
+        "operationId": "deleteInventory",
+        "tags": [
+          "ItemInventory"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "name": "inventoryPublicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          }
+        ],
+        "summary": "Item Inventory 삭제",
+        "description": "Item Inventory 삭제 API입니다. 경로 변수 inventoryPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다."
       }
     },
     "/api/supply/item-category": {
@@ -2310,6 +2529,239 @@
         "description": "품목 상세 조회 API입니다. 경로 변수 itemPublicId 로 대상을 식별합니다."
       }
     },
+    "/api/supply/items/managed": {
+      "get": {
+        "operationId": "getManagedItems",
+        "tags": [
+          "품목"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ItemResponse"
+                      }
+                    },
+                    "totalElements": {
+                      "type": "integer",
+                      "format": "int64"
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "size": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "number": {
+                      "type": "integer",
+                      "format": "int32"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          }
+        ],
+        "summary": "품목 조회",
+        "description": "품목 조회 API입니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/items/managed/dashboard": {
+      "get": {
+        "operationId": "getManagedItemDashboard",
+        "tags": [
+          "품목"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemDashboardSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          }
+        ],
+        "summary": "품목 조회",
+        "description": "품목 조회 API입니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/items/managed/{itemPublicId}/purchase-orders": {
+      "get": {
+        "operationId": "getManagedItemLinkedOrders",
+        "tags": [
+          "품목"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ItemLinkedPurchaseOrderResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "itemPublicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          }
+        ],
+        "summary": "품목 조회",
+        "description": "품목 조회 API입니다. 경로 변수 itemPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/items/{itemPublicId}/status": {
+      "patch": {
+        "operationId": "changeItemStatus",
+        "tags": [
+          "품목"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "itemPublicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeItemStatusRequest"
+              }
+            }
+          }
+        },
+        "summary": "품목 상태 변경",
+        "description": "품목 상태 변경 API입니다. 경로 변수 itemPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
+      }
+    },
     "/api/supply/logistics-nodes": {
       "post": {
         "operationId": "createLogisticsNode",
@@ -2724,644 +3176,6 @@
           }
         ],
         "description": "물류 거점 비활성화 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
-      }
-    },
-    "/api/supply/lots": {
-      "post": {
-        "operationId": "createLot",
-        "tags": [
-          "LOT"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 생성",
-        "parameters": [
-          {
-            "name": "X-User-Public-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "sample_id"
-            },
-            "description": "요청 사용자 공개 식별자"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateLotRequestDto",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "description": "LOT 생성 API입니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
-      },
-      "get": {
-        "operationId": "getAllLots",
-        "tags": [
-          "LOT"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "content": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/LotResponseDto"
-                      }
-                    },
-                    "totalElements": {
-                      "type": "integer",
-                      "format": "int64"
-                    },
-                    "totalPages": {
-                      "type": "integer",
-                      "format": "int32"
-                    },
-                    "size": {
-                      "type": "integer",
-                      "format": "int32"
-                    },
-                    "number": {
-                      "type": "integer",
-                      "format": "int32"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 목록 조회",
-        "parameters": [
-          {
-            "name": "keyword",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "샘플 검색어"
-            },
-            "description": "keyword 값 조회 조건"
-          },
-          {
-            "name": "supplierPublicId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 조회 조건"
-          },
-          {
-            "name": "itemPublicId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 조회 조건"
-          },
-          {
-            "name": "sourcePoItemPublicId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 조회 조건"
-          },
-          {
-            "name": "currentNodePublicId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 조회 조건"
-          },
-          {
-            "name": "lotStatus",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/LotStatus"
-            },
-            "description": "상태 값 조회 조건"
-          },
-          {
-            "name": "qualityStatus",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/QualityStatus"
-            },
-            "description": "상태 값 조회 조건"
-          }
-        ],
-        "description": "LOT 목록 조회 API입니다. 조회 조건으로 keyword, supplierPublicId, itemPublicId, sourcePoItemPublicId, currentNodePublicId, lotStatus, qualityStatus 를 사용할 수 있습니다."
-      }
-    },
-    "/api/supply/lots/{publicId}": {
-      "get": {
-        "operationId": "getLot",
-        "tags": [
-          "LOT"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 상세 조회",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          }
-        ],
-        "description": "LOT 상세 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다."
-      },
-      "put": {
-        "operationId": "updateLot",
-        "tags": [
-          "LOT"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 수정",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateLotRequestDto",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "description": "LOT 수정 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 요청 본문 데이터를 기반으로 처리합니다."
-      }
-    },
-    "/api/supply/lots/{publicId}/histories": {
-      "get": {
-        "operationId": "getLotHistories",
-        "tags": [
-          "LOT"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LotHistoryResponseDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 이력 조회",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          }
-        ],
-        "description": "LOT 이력 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다."
-      }
-    },
-    "/api/supply/lots/{publicId}/status": {
-      "patch": {
-        "operationId": "updateLotStatus",
-        "tags": [
-          "LOT"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 상태 변경",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          },
-          {
-            "name": "X-User-Public-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "sample_id"
-            },
-            "description": "요청 사용자 공개 식별자"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateLotStatusRequestDto",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "description": "LOT 상태 변경 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
-      }
-    },
-    "/api/supply/lots/{publicId}/quality": {
-      "patch": {
-        "operationId": "updateQualityStatus",
-        "tags": [
-          "LOT"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 품질 상태 변경",
-        "parameters": [
-          {
-            "name": "publicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          },
-          {
-            "name": "X-User-Public-Id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "sample_id"
-            },
-            "description": "요청 사용자 공개 식별자"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateQualityStatusRequestDto",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "description": "LOT 품질 상태 변경 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
-      }
-    },
-    "/api/supply/mapping/lots/{lotPublicId}/line-mappings": {
-      "post": {
-        "operationId": "createLotLineMapping",
-        "tags": [
-          "LotLineMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotLineMappingResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 생산 라인 매핑 생성",
-        "parameters": [
-          {
-            "name": "lotPublicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateLotLineMappingRequestDto",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "description": "LOT 생산 라인 매핑 생성 API입니다. 경로 변수 lotPublicId 로 대상을 식별합니다. 요청 본문 데이터를 기반으로 처리합니다."
-      },
-      "get": {
-        "operationId": "getLotLineMappings",
-        "tags": [
-          "LotLineMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LotLineMappingResponseDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 생산 라인 매핑 목록 조회",
-        "parameters": [
-          {
-            "name": "lotPublicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          }
-        ],
-        "description": "LOT 생산 라인 매핑 목록 조회 API입니다. 경로 변수 lotPublicId 로 대상을 식별합니다."
-      }
-    },
-    "/api/supply/mapping/lot-line-mappings/{lotLineMappingId}": {
-      "get": {
-        "operationId": "getLotLineMapping",
-        "tags": [
-          "LotLineMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotLineMappingResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 생산 라인 매핑 상세 조회",
-        "parameters": [
-          {
-            "name": "lotLineMappingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
-            },
-            "description": "내부 식별자 경로 변수"
-          }
-        ],
-        "description": "LOT 생산 라인 매핑 상세 조회 API입니다. 경로 변수 lotLineMappingId 로 대상을 식별합니다."
-      },
-      "patch": {
-        "operationId": "updateLotLineMapping",
-        "tags": [
-          "LotLineMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotLineMappingResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 생산 라인 매핑 수정",
-        "parameters": [
-          {
-            "name": "lotLineMappingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
-            },
-            "description": "내부 식별자 경로 변수"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateLotLineMappingRequestDto",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "description": "LOT 생산 라인 매핑 수정 API입니다. 경로 변수 lotLineMappingId 로 대상을 식별합니다. 요청 본문 데이터를 기반으로 처리합니다."
-      },
-      "delete": {
-        "operationId": "deleteLotLineMapping",
-        "tags": [
-          "LotLineMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "summary": "LOT 생산 라인 매핑 삭제",
-        "parameters": [
-          {
-            "name": "lotLineMappingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
-            },
-            "description": "내부 식별자 경로 변수"
-          }
-        ],
-        "description": "LOT 생산 라인 매핑 삭제 API입니다. 경로 변수 lotLineMappingId 로 대상을 식별합니다."
-      }
-    },
-    "/api/supply/mapping/lot-line-mappings/{lotLineMappingId}/start": {
-      "post": {
-        "operationId": "startLotLineMapping",
-        "tags": [
-          "LotLineMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotLineMappingResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 생산 시작 처리",
-        "parameters": [
-          {
-            "name": "lotLineMappingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
-            },
-            "description": "내부 식별자 경로 변수"
-          }
-        ],
-        "description": "LOT 생산 시작 처리 API입니다. 경로 변수 lotLineMappingId 로 대상을 식별합니다."
-      }
-    },
-    "/api/supply/mapping/lot-line-mappings/{lotLineMappingId}/complete": {
-      "post": {
-        "operationId": "completeLotLineMapping",
-        "tags": [
-          "LotLineMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LotLineMappingResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "LOT 생산 완료 처리",
-        "parameters": [
-          {
-            "name": "lotLineMappingId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
-            },
-            "description": "내부 식별자 경로 변수"
-          }
-        ],
-        "description": "LOT 생산 완료 처리 API입니다. 경로 변수 lotLineMappingId 로 대상을 식별합니다."
       }
     },
     "/api/supply/production-lines/create": {
@@ -4437,6 +4251,36 @@
               "example": "sample_id"
             },
             "description": "요청 사용자 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
           }
         ],
         "requestBody": {
@@ -4586,17 +4430,37 @@
             "description": "공개 식별자 조회 조건"
           },
           {
-            "name": "lotPublicId",
-            "in": "query",
+            "name": "X-Organization-Public-Id",
+            "in": "header",
             "required": false,
             "schema": {
               "type": "string",
-              "example": "sample_public_id"
+              "example": "sample_id"
             },
-            "description": "공개 식별자 조회 조건"
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
           }
         ],
-        "description": "반품 요청 목록 조회 API입니다. 조회 조건으로 keyword, requestOrganizationPublicId, targetOrganizationPublicId, sourceShipmentPublicId, returnType, returnStatus, itemPublicId, lotPublicId 를 사용할 수 있습니다."
+        "description": "반품 요청 목록 조회 API입니다. 조회 조건으로 keyword, requestOrganizationPublicId, targetOrganizationPublicId, sourceShipmentPublicId, returnType, returnStatus, itemPublicId 를 사용할 수 있습니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
       }
     },
     "/api/supply/returns/{publicId}": {
@@ -4628,9 +4492,39 @@
               "example": "sample_public_id"
             },
             "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
           }
         ],
-        "description": "반품 요청 상세 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다."
+        "description": "반품 요청 상세 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
       },
       "put": {
         "operationId": "updateReturn",
@@ -4670,6 +4564,36 @@
               "example": "sample_id"
             },
             "description": "요청 사용자 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
           }
         ],
         "requestBody": {
@@ -4683,7 +4607,7 @@
             }
           }
         },
-        "description": "반품 요청 수정 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
+        "description": "반품 요청 수정 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id, X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
       }
     },
     "/api/supply/returns/{publicId}/histories": {
@@ -4718,9 +4642,39 @@
               "example": "sample_public_id"
             },
             "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
           }
         ],
-        "description": "반품 상태 이력 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다."
+        "description": "반품 상태 이력 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
       }
     },
     "/api/supply/returns/{publicId}/status": {
@@ -4762,6 +4716,36 @@
               "example": "sample_id"
             },
             "description": "요청 사용자 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
           }
         ],
         "requestBody": {
@@ -4775,7 +4759,7 @@
             }
           }
         },
-        "description": "상태 변경 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
+        "description": "상태 변경 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id, X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
       }
     },
     "/api/supply/search": {
@@ -4872,6 +4856,28 @@
           }
         },
         "summary": "정산 생성",
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4883,7 +4889,7 @@
             }
           }
         },
-        "description": "정산 생성 API입니다. 요청 본문 데이터를 기반으로 처리합니다."
+        "description": "정산 생성 API입니다. 헤더 X-Organization-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
       },
       "get": {
         "operationId": "getSettlements",
@@ -4975,12 +4981,87 @@
               "example": "CODE-001"
             },
             "description": "코드 값 조회 조건"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
           }
         ],
-        "description": "정산 목록 조회 API입니다. 조회 조건으로 keyword, supplierPublicId, targetType, settlementStatus, currencyCode 를 사용할 수 있습니다."
+        "description": "정산 목록 조회 API입니다. 조회 조건으로 keyword, supplierPublicId, targetType, settlementStatus, currencyCode 를 사용할 수 있습니다. 헤더 X-Organization-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다."
       }
     },
-    "/api/supply/settlements/{settlementId}": {
+    "/api/supply/settlements/statistics": {
+      "get": {
+        "operationId": "getSettlementStatistics",
+        "tags": [
+          "Settlement"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementStatisticsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "정산 통계 조회",
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "example": 1
+            },
+            "description": "year 값 조회 조건"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          }
+        ],
+        "description": "정산 통계 조회 API입니다. 조회 조건으로 year 를 사용할 수 있습니다. 헤더 X-Organization-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/settlements/{settlementPublicId}": {
       "get": {
         "operationId": "getSettlement",
         "tags": [
@@ -5001,21 +5082,40 @@
         "summary": "정산 상세 조회",
         "parameters": [
           {
-            "name": "settlementId",
+            "name": "settlementPublicId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
+              "type": "string",
+              "example": "sample_public_id"
             },
-            "description": "내부 식별자 경로 변수"
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
           }
         ],
-        "description": "정산 상세 조회 API입니다. 경로 변수 settlementId 로 대상을 식별합니다."
+        "description": "정산 상세 조회 API입니다. 경로 변수 settlementPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다."
       }
     },
-    "/api/supply/settlements/{settlementId}/approve": {
+    "/api/supply/settlements/{settlementPublicId}/approve": {
       "patch": {
         "operationId": "approveSettlement",
         "tags": [
@@ -5036,15 +5136,24 @@
         "summary": "정산 승인",
         "parameters": [
           {
-            "name": "settlementId",
+            "name": "settlementPublicId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
+              "type": "string",
+              "example": "sample_public_id"
             },
-            "description": "내부 식별자 경로 변수"
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
           },
           {
             "name": "X-User-Public-Id",
@@ -5067,10 +5176,10 @@
             "description": "X-User-Role 헤더 값"
           }
         ],
-        "description": "정산 승인 API입니다. 경로 변수 settlementId 로 대상을 식별합니다. 헤더 X-User-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다."
+        "description": "정산 승인 API입니다. 경로 변수 settlementPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-User-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다."
       }
     },
-    "/api/supply/settlements/{settlementId}/cancel": {
+    "/api/supply/settlements/{settlementPublicId}/cancel": {
       "patch": {
         "operationId": "cancelSettlement",
         "tags": [
@@ -5091,15 +5200,24 @@
         "summary": "정산 취소",
         "parameters": [
           {
-            "name": "settlementId",
+            "name": "settlementPublicId",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64",
-              "example": 1
+              "type": "string",
+              "example": "sample_public_id"
             },
-            "description": "내부 식별자 경로 변수"
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
           },
           {
             "name": "X-User-Public-Id",
@@ -5122,7 +5240,71 @@
             "description": "X-User-Role 헤더 값"
           }
         ],
-        "description": "정산 취소 API입니다. 경로 변수 settlementId 로 대상을 식별합니다. 헤더 X-User-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다."
+        "description": "정산 취소 API입니다. 경로 변수 settlementPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-User-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/settlements/budgets": {
+      "put": {
+        "operationId": "saveSettlementBudget",
+        "tags": [
+          "Settlement"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettlementBudgetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "정산 예산 저장/수정",
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-User-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 사용자 공개 식별자"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettlementBudgetRequestDto"
+              }
+            }
+          }
+        },
+        "description": "정산 예산 저장/수정 API입니다. 헤더 X-Organization-Public-Id, X-User-Public-Id, X-User-Role 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
       }
     },
     "/api/supply/delivery-exceptions": {
@@ -5381,6 +5563,100 @@
         "description": "출하 목록 조회 API입니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
       }
     },
+    "/api/supply/shipments/reindex": {
+      "post": {
+        "operationId": "reindexShipments",
+        "tags": [
+          "Shipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          }
+        ],
+        "summary": "출하 생성",
+        "description": "출하 생성 API입니다. 헤더 X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/shipments/map": {
+      "get": {
+        "operationId": "getShipmentMapData",
+        "tags": [
+          "Shipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ShipmentMapResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          }
+        ],
+        "summary": "출하 조회",
+        "description": "출하 조회 API입니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
     "/api/supply/shipments/{publicId}": {
       "get": {
         "operationId": "getShipment",
@@ -5443,6 +5719,226 @@
           }
         ],
         "description": "출하 상세 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
+      },
+      "patch": {
+        "operationId": "updateShipment",
+        "tags": [
+          "Shipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          },
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateShipmentRequestDto"
+              }
+            }
+          }
+        },
+        "summary": "출하 수정",
+        "description": "출하 수정 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
+      }
+    },
+    "/api/supply/shipments/{publicId}/start": {
+      "patch": {
+        "operationId": "startShipment",
+        "tags": [
+          "Shipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 사용자 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          },
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          }
+        ],
+        "summary": "출하 수정",
+        "description": "출하 수정 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id, X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/shipments/{publicId}/arrive": {
+      "patch": {
+        "operationId": "arriveShipment",
+        "tags": [
+          "Shipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 사용자 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          },
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          }
+        ],
+        "summary": "출하 수정",
+        "description": "출하 수정 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id, X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
       }
     },
     "/api/supply/shipments/{publicId}/track": {
@@ -5726,86 +6222,6 @@
           }
         ],
         "description": "출하 상태 이력 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다."
-      }
-    },
-    "/api/supply/shipments/{shipmentPublicId}/lots": {
-      "post": {
-        "operationId": "createShipmentLotMapping",
-        "tags": [
-          "ShipmentLotMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShipmentLotMappingResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "출하 LOT 매핑 생성",
-        "parameters": [
-          {
-            "name": "shipmentPublicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateShipmentLotMappingRequestDto",
-                "type": "object"
-              }
-            }
-          }
-        },
-        "description": "출하 LOT 매핑 생성 API입니다. 경로 변수 shipmentPublicId 로 대상을 식별합니다. 요청 본문 데이터를 기반으로 처리합니다."
-      },
-      "get": {
-        "operationId": "getShipmentLotMappings",
-        "tags": [
-          "ShipmentLotMapping"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ShipmentLotMappingResponseDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "출하 LOT 매핑 목록 조회",
-        "parameters": [
-          {
-            "name": "shipmentPublicId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "sample_public_id"
-            },
-            "description": "공개 식별자 경로 변수"
-          }
-        ],
-        "description": "출하 LOT 매핑 목록 조회 API입니다. 경로 변수 shipmentPublicId 로 대상을 식별합니다."
       }
     },
     "/api/supply/sub-purchase-orders": {
@@ -7528,6 +7944,40 @@
         "description": "연결 협력사 상세 조회 API입니다. 경로 변수 supplierPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type 값을 함께 전달해야 할 수 있습니다."
       }
     },
+    "/api/supply/suppliers/organizations/{organizationPublicId}/summary": {
+      "get": {
+        "operationId": "getOrganizationSupplySummary",
+        "tags": [
+          "협력사"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSupplySummaryDto"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "organizationPublicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          }
+        ],
+        "summary": "협력사 조회",
+        "description": "협력사 조회 API입니다. 경로 변수 organizationPublicId 로 대상을 식별합니다."
+      }
+    },
     "/esg/suppliers/{supplierPublicId}/assessments": {
       "post": {
         "operationId": "createAssessment",
@@ -8497,6 +8947,88 @@
         "description": "채팅방 이름 변경 API입니다. 경로 변수 roomPublicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
       }
     },
+    "/api/control/chats/rooms/{roomPublicId}/pin": {
+      "post": {
+        "operationId": "pinRoom",
+        "tags": [
+          "ChatRoom"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "채팅방 고정",
+        "parameters": [
+          {
+            "name": "roomPublicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-User-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 사용자 공개 식별자"
+          }
+        ],
+        "description": "채팅방 고정 API입니다. 경로 변수 roomPublicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다."
+      },
+      "delete": {
+        "operationId": "unpinRoom",
+        "tags": [
+          "ChatRoom"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "채팅방 고정 해제",
+        "parameters": [
+          {
+            "name": "roomPublicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-User-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 사용자 공개 식별자"
+          }
+        ],
+        "description": "채팅방 고정 해제 API입니다. 경로 변수 roomPublicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
     "/api/control/chats/rooms/{roomPublicId}/read": {
       "patch": {
         "operationId": "markAsRead",
@@ -8683,6 +9215,41 @@
           }
         ],
         "description": "채팅방 참여자 검색 API입니다. 경로 변수 roomPublicId 로 대상을 식별합니다. 조회 조건으로 keyword 를 사용할 수 있습니다."
+      }
+    },
+    "/api/control/chats/rooms/direct": {
+      "post": {
+        "operationId": "findOrCreateDirectRoom",
+        "tags": [
+          "ChatRoom"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatRoomDto"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "채팅방 조회",
+        "description": "채팅방 조회 API입니다. 요청 본문 데이터를 기반으로 처리합니다."
       }
     },
     "/api/control/monitoring/kafka/events": {
@@ -11073,159 +11640,6 @@
         ],
         "description": "Logistics Node Type 모델"
       },
-      "LotResponseDto": {
-        "type": "object",
-        "properties": {
-          "publicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "lotNumber": {
-            "type": "string",
-            "description": "업무 번호",
-            "example": "NO-2026-0001"
-          },
-          "sourcePoItemPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "supplierPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "itemPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "lotStatus": {
-            "$ref": "#/components/schemas/LotStatus",
-            "description": "상태 값"
-          },
-          "manufacturedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          },
-          "expiredAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          },
-          "qty": {
-            "type": "number",
-            "description": "qty 값",
-            "example": 100
-          },
-          "unit": {
-            "type": "string",
-            "description": "unit 값",
-            "example": "sample"
-          },
-          "qualityStatus": {
-            "$ref": "#/components/schemas/QualityStatus",
-            "description": "상태 값"
-          },
-          "currentNodePublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "날짜 값",
-            "example": "2026-04-17T09:00:00"
-          }
-        },
-        "description": "Lot 응답 모델"
-      },
-      "LotStatus": {
-        "type": "string",
-        "enum": [
-          "CREATED",
-          "IN_PRODUCTION",
-          "COMPLETED",
-          "SHIPPED",
-          "DISCARDED"
-        ],
-        "description": "Lot Status 모델"
-      },
-      "QualityStatus": {
-        "type": "string",
-        "enum": [
-          "NORMAL",
-          "HOLD",
-          "DEFECTIVE"
-        ],
-        "description": "Quality Status 모델"
-      },
-      "LotLineMappingResponseDto": {
-        "type": "object",
-        "properties": {
-          "lotLineMappingId": {
-            "type": "integer",
-            "format": "int64",
-            "description": "내부 식별자",
-            "example": 1
-          },
-          "lotPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "productionLineId": {
-            "type": "integer",
-            "format": "int64",
-            "description": "내부 식별자",
-            "example": 1
-          },
-          "lineCode": {
-            "type": "string",
-            "description": "코드 값",
-            "example": "CODE-001"
-          },
-          "lineName": {
-            "type": "string",
-            "description": "이름",
-            "example": "샘플 이름"
-          },
-          "processedQty": {
-            "type": "number",
-            "description": "processed Qty 값",
-            "example": 100
-          },
-          "processStartedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          },
-          "processEndedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          },
-          "mappingNote": {
-            "type": "string",
-            "description": "mapping Note 값",
-            "example": "sample"
-          }
-        },
-        "description": "Lot Line Mapping 응답 모델"
-      },
       "ProductionLineResponseDto": {
         "type": "object",
         "properties": {
@@ -11975,38 +12389,6 @@
           }
         },
         "description": "Shipment Status History 응답 모델"
-      },
-      "ShipmentLotMappingResponseDto": {
-        "type": "object",
-        "properties": {
-          "shipmentPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "lotPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "shippedQty": {
-            "type": "number",
-            "description": "shipped Qty 값",
-            "example": 100
-          },
-          "unit": {
-            "type": "string",
-            "description": "unit 값",
-            "example": "sample"
-          },
-          "loadedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          }
-        },
-        "description": "Shipment Lot Mapping 응답 모델"
       },
       "CertificateTypeResponseDto": {
         "type": "object",
@@ -12824,156 +13206,6 @@
         ],
         "description": "Update Logistics Node 요청 모델"
       },
-      "CreateLotRequestDto": {
-        "type": "object",
-        "properties": {
-          "lotNumber": {
-            "type": "string",
-            "description": "업무 번호",
-            "example": "NO-2026-0001"
-          },
-          "sourcePoItemPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "supplierPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "itemPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "manufacturedAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          },
-          "expiredAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          },
-          "qty": {
-            "type": "number",
-            "description": "qty 값",
-            "example": 100
-          },
-          "unit": {
-            "type": "string",
-            "description": "unit 값",
-            "example": "sample"
-          },
-          "currentNodePublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          }
-        },
-        "required": [
-          "itemPublicId",
-          "lotNumber",
-          "qty",
-          "sourcePoItemPublicId",
-          "supplierPublicId",
-          "unit"
-        ],
-        "description": "Create Lot 요청 모델"
-      },
-      "UpdateLotRequestDto": {
-        "type": "object",
-        "properties": {
-          "qty": {
-            "type": "number",
-            "description": "qty 값",
-            "example": 100
-          },
-          "expiredAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          },
-          "currentNodePublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          }
-        },
-        "description": "Update Lot 요청 모델"
-      },
-      "UpdateLotStatusRequestDto": {
-        "type": "object",
-        "properties": {
-          "lotStatus": {
-            "$ref": "#/components/schemas/LotStatus",
-            "description": "상태 값"
-          }
-        },
-        "required": [
-          "lotStatus"
-        ],
-        "description": "Update Lot Status 요청 모델"
-      },
-      "UpdateQualityStatusRequestDto": {
-        "type": "object",
-        "properties": {
-          "qualityStatus": {
-            "$ref": "#/components/schemas/QualityStatus",
-            "description": "상태 값"
-          }
-        },
-        "required": [
-          "qualityStatus"
-        ],
-        "description": "Update Quality Status 요청 모델"
-      },
-      "CreateLotLineMappingRequestDto": {
-        "type": "object",
-        "properties": {
-          "productionLineId": {
-            "type": "integer",
-            "format": "int64",
-            "description": "내부 식별자",
-            "example": 1
-          },
-          "processedQty": {
-            "type": "number",
-            "description": "processed Qty 값",
-            "example": 100
-          },
-          "mappingNote": {
-            "type": "string",
-            "description": "mapping Note 값",
-            "example": "sample"
-          }
-        },
-        "required": [
-          "productionLineId"
-        ],
-        "description": "Create Lot Line Mapping 요청 모델"
-      },
-      "UpdateLotLineMappingRequestDto": {
-        "type": "object",
-        "properties": {
-          "processedQty": {
-            "type": "number",
-            "description": "processed Qty 값",
-            "example": 100
-          },
-          "mappingNote": {
-            "type": "string",
-            "description": "mapping Note 값",
-            "example": "sample"
-          }
-        },
-        "description": "Update Lot Line Mapping 요청 모델"
-      },
       "ProductionLineCreateDto": {
         "type": "object",
         "properties": {
@@ -13434,26 +13666,6 @@
           "CANCELLED"
         ],
         "description": "Checkpoint Status 모델"
-      },
-      "CreateShipmentLotMappingRequestDto": {
-        "type": "object",
-        "properties": {
-          "lotPublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "shippedQty": {
-            "type": "number",
-            "description": "shipped Qty 값",
-            "example": 100
-          }
-        },
-        "required": [
-          "lotPublicId",
-          "shippedQty"
-        ],
-        "description": "Create Shipment Lot Mapping 요청 모델"
       },
       "CreateSubPurchaseOrderRequest": {
         "type": "object",
@@ -14013,54 +14225,6 @@
           }
         },
         "description": "Update Attachment File Order Item 데이터 모델"
-      },
-      "LotHistoryResponseDto": {
-        "type": "object",
-        "properties": {
-          "publicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "preLotStatus": {
-            "$ref": "#/components/schemas/LotStatus",
-            "description": "상태 값"
-          },
-          "lotStatus": {
-            "$ref": "#/components/schemas/LotStatus",
-            "description": "상태 값"
-          },
-          "preQualityStatus": {
-            "$ref": "#/components/schemas/QualityStatus",
-            "description": "상태 값"
-          },
-          "qualityStatus": {
-            "$ref": "#/components/schemas/QualityStatus",
-            "description": "상태 값"
-          },
-          "preNodePublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "currentNodePublicId": {
-            "type": "string",
-            "description": "공개 식별자",
-            "example": "sample_public_id"
-          },
-          "reason": {
-            "type": "string",
-            "description": "사유",
-            "example": "샘플 사유"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "일시 값",
-            "example": "2026-04-17T09:00:00"
-          }
-        },
-        "description": "Lot History 응답 모델"
       },
       "ReturnStatusHistoryResponseDto": {
         "type": "object",
@@ -16137,6 +16301,957 @@
         "type": "object",
         "properties": {},
         "description": "Notification Preference Update 요청 모델"
+      },
+      "UserPersonalSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "language 값",
+            "example": "sample"
+          }
+        },
+        "description": "User Personal Settings 응답 모델"
+      },
+      "UserPersonalSettingsUpdateDto": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "language 값",
+            "example": "sample"
+          }
+        },
+        "required": [
+          "language"
+        ],
+        "description": "User Personal Settings Update 데이터 모델"
+      },
+      "CreateItemInventoryRequest": {
+        "type": "object",
+        "properties": {
+          "itemPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "manufacturedDate": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜 값",
+            "example": "2026-04-17"
+          },
+          "expirationDate": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜 값",
+            "example": "2026-04-17"
+          },
+          "qty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "qty 값",
+            "example": 1
+          },
+          "memo": {
+            "type": "string",
+            "description": "메모",
+            "example": "샘플 메모"
+          }
+        },
+        "required": [
+          "expirationDate",
+          "itemPublicId",
+          "manufacturedDate",
+          "qty"
+        ],
+        "description": "Create Item Inventory 요청 모델"
+      },
+      "ItemInventoryResponse": {
+        "type": "object",
+        "properties": {
+          "inventoryPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "itemPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "itemCode": {
+            "type": "string",
+            "description": "코드 값",
+            "example": "CODE-001"
+          },
+          "itemName": {
+            "type": "string",
+            "description": "이름",
+            "example": "샘플 이름"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/ItemUnit",
+            "description": "unit 값"
+          },
+          "manufacturedDate": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜 값",
+            "example": "2026-04-17"
+          },
+          "expirationDate": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜 값",
+            "example": "2026-04-17"
+          },
+          "initialQty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "initial Qty 값",
+            "example": 1
+          },
+          "remainingQty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "remaining Qty 값",
+            "example": 1
+          },
+          "reservedQty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "reserved Qty 값",
+            "example": 1
+          },
+          "availableQty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "available Qty 값",
+            "example": 1
+          },
+          "status": {
+            "$ref": "#/components/schemas/InventoryStatus",
+            "description": "상태 값"
+          },
+          "memo": {
+            "type": "string",
+            "description": "메모",
+            "example": "샘플 메모"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "일시 값",
+            "example": "2026-04-17T09:00:00"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "날짜 값",
+            "example": "2026-04-17T09:00:00"
+          }
+        },
+        "description": "Item Inventory 응답 모델"
+      },
+      "InventoryStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "RESERVED",
+          "EXHAUSTED",
+          "EXPIRED",
+          "DELETED"
+        ],
+        "description": "Inventory Status 모델"
+      },
+      "UpdateItemInventoryRequest": {
+        "type": "object",
+        "properties": {
+          "manufacturedDate": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜 값",
+            "example": "2026-04-17"
+          },
+          "expirationDate": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜 값",
+            "example": "2026-04-17"
+          },
+          "qty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "qty 값",
+            "example": 1
+          },
+          "memo": {
+            "type": "string",
+            "description": "메모",
+            "example": "샘플 메모"
+          }
+        },
+        "required": [
+          "expirationDate",
+          "manufacturedDate",
+          "qty"
+        ],
+        "description": "Update Item Inventory 요청 모델"
+      },
+      "ItemDashboardSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "totalItemCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "activeItemCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "deactiveItemCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "todayOrderedItemCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          }
+        },
+        "description": "Item Dashboard Summary 응답 모델"
+      },
+      "ItemLinkedPurchaseOrderResponse": {
+        "type": "object",
+        "properties": {
+          "poPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "poNumber": {
+            "type": "string",
+            "description": "업무 번호",
+            "example": "NO-2026-0001"
+          },
+          "buyerOrganizationPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "poStatus": {
+            "$ref": "#/components/schemas/PoStatus",
+            "description": "상태 값"
+          },
+          "orderedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "일시 값",
+            "example": "2026-04-17T09:00:00"
+          },
+          "poItemPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "orderedQty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ordered Qty 값",
+            "example": 1
+          },
+          "confirmedQty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "confirmed Qty 값",
+            "example": 1
+          },
+          "itemStatus": {
+            "$ref": "#/components/schemas/PurchaseOrderItemStatus",
+            "description": "상태 값"
+          },
+          "expectedDueDate": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜 값",
+            "example": "2026-04-17"
+          }
+        },
+        "description": "Item Linked Purchase Order 응답 모델"
+      },
+      "ChangeItemStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "object",
+            "description": "상태 값",
+            "example": "sample"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "description": "Change Item Status 요청 모델"
+      },
+      "SettlementStatisticsResponseDto": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "description": "year 값",
+            "example": 1
+          },
+          "totalAmountThisYear": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "totalAmountThisMonth": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "pendingAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "approvedAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "cancelledAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "pendingCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "approvedCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "cancelledCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "approvalRate": {
+            "type": "number",
+            "description": "approval Rate 값",
+            "example": 100
+          },
+          "payableAmountThisYear": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "payableAmountThisMonth": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "receivableAmountThisYear": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "receivableAmountThisMonth": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "currentMonthBudgetAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "currentMonthRemainingBudgetAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "currentMonthBudgetUsageRate": {
+            "type": "number",
+            "description": "current Month Budget Usage Rate 값",
+            "example": 100
+          },
+          "currentMonthBudgetStatus": {
+            "$ref": "#/components/schemas/BudgetUsageStatus",
+            "description": "상태 값"
+          },
+          "yearlyAmounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "금액",
+              "example": 100
+            },
+            "description": "금액",
+            "example": 100
+          },
+          "monthlyAmounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "금액",
+              "example": 100
+            },
+            "description": "금액",
+            "example": 100
+          },
+          "statusAmounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "상태 값",
+              "example": 100
+            },
+            "description": "상태 값",
+            "example": 100
+          },
+          "targetTypeAmounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "유형 값",
+              "example": 100
+            },
+            "description": "유형 값",
+            "example": 100
+          },
+          "monthlyBudgetUsages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettlementBudgetUsageDto",
+              "description": "monthly Budget Usages 값"
+            },
+            "description": "monthly Budget Usages 값",
+            "example": []
+          },
+          "purchaseOrderCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "pendingPurchaseOrderCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "inTransitShipmentCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "delayedShipmentCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "returnInProgressCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "operationStatusCounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "상태 값",
+              "example": 1
+            },
+            "description": "상태 값",
+            "example": 1
+          },
+          "label": {
+            "type": "string",
+            "description": "label 값",
+            "example": "sample"
+          },
+          "value": {
+            "type": "string",
+            "description": "value 값",
+            "example": "sample"
+          },
+          "amount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          }
+        },
+        "description": "Settlement Statistics 응답 모델"
+      },
+      "BudgetUsageStatus": {
+        "type": "string",
+        "enum": [
+          "SAFE",
+          "WARNING",
+          "EXCEEDED",
+          "NO_BUDGET"
+        ],
+        "description": "Budget Usage Status 모델"
+      },
+      "SettlementBudgetUsageDto": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "month 값",
+            "example": 1
+          },
+          "label": {
+            "type": "string",
+            "description": "label 값",
+            "example": "sample"
+          },
+          "budgetAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "payableAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "remainingAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "usageRate": {
+            "type": "number",
+            "description": "usage Rate 값",
+            "example": 100
+          },
+          "status": {
+            "$ref": "#/components/schemas/BudgetUsageStatus",
+            "description": "상태 값"
+          }
+        },
+        "description": "Settlement Budget Usage 데이터 모델"
+      },
+      "SettlementBudgetRequestDto": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "description": "year 값",
+            "example": 1
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "month 값",
+            "example": 1
+          },
+          "budgetAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "currencyCode": {
+            "$ref": "#/components/schemas/SettlementCurrency",
+            "description": "코드 값"
+          },
+          "warningThresholdRate": {
+            "type": "number",
+            "description": "warning Threshold Rate 값",
+            "example": 100
+          }
+        },
+        "required": [
+          "budgetAmount",
+          "currencyCode",
+          "month",
+          "year"
+        ],
+        "description": "Settlement Budget 요청 모델"
+      },
+      "SettlementBudgetResponseDto": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "organizationPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "description": "year 값",
+            "example": 1
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32",
+            "description": "month 값",
+            "example": 1
+          },
+          "budgetAmount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "currencyCode": {
+            "$ref": "#/components/schemas/SettlementCurrency",
+            "description": "코드 값"
+          },
+          "warningThresholdRate": {
+            "type": "number",
+            "description": "warning Threshold Rate 값",
+            "example": 100
+          }
+        },
+        "description": "Settlement Budget 응답 모델"
+      },
+      "ShipmentMapResponseDto": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string",
+            "description": "출하 공개 식별자",
+            "example": "ship_01HZY1SHIPMENT123456789"
+          },
+          "shipmentNumber": {
+            "type": "string",
+            "description": "출하 번호",
+            "example": "SHIP-PO-20260424-0001-001"
+          },
+          "purchaseOrderPublicId": {
+            "type": "string",
+            "description": "상위 발주 공개 식별자",
+            "example": "po_01HZY1PO123456789"
+          },
+          "subPurchaseOrderPublicId": {
+            "type": "string",
+            "description": "하위 발주 공개 식별자",
+            "example": "subpo_01HZY1SUBPO123456789"
+          },
+          "carrierName": {
+            "type": "string",
+            "description": "운송사명",
+            "example": "CJ Logistics"
+          },
+          "vehicleNo": {
+            "type": "string",
+            "description": "차량 번호",
+            "example": "12가3456"
+          },
+          "trackingNo": {
+            "type": "string",
+            "description": "운송 추적 번호",
+            "example": "TRK-ATLAS-20260417"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ShipmentStatus",
+            "description": "출하 상태",
+            "example": "IN_TRANSIT"
+          },
+          "originNodePublicId": {
+            "type": "string",
+            "description": "출발 거점 공개 식별자",
+            "example": "node_origin_01HZY1AAA"
+          },
+          "originNodeName": {
+            "type": "string",
+            "description": "출발 거점명",
+            "example": "서울 물류창고"
+          },
+          "originNodeCode": {
+            "type": "string",
+            "description": "출발 거점 코드",
+            "example": "WH-CHO1-003"
+          },
+          "originLatitude": {
+            "type": "number",
+            "description": "출발 위도",
+            "example": "37.5000242"
+          },
+          "originLongitude": {
+            "type": "number",
+            "description": "출발 경도",
+            "example": "127.0365086"
+          },
+          "destinationNodePublicId": {
+            "type": "string",
+            "description": "도착 거점 공개 식별자",
+            "example": "node_dest_01HZY1BBB"
+          },
+          "destinationNodeName": {
+            "type": "string",
+            "description": "도착 거점명",
+            "example": "인천 물류창고"
+          },
+          "destinationNodeCode": {
+            "type": "string",
+            "description": "도착 거점 코드",
+            "example": "WH-BUY1-001"
+          },
+          "destinationLatitude": {
+            "type": "number",
+            "description": "도착 위도",
+            "example": "37.3821549"
+          },
+          "destinationLongitude": {
+            "type": "number",
+            "description": "도착 경도",
+            "example": "126.6474942"
+          },
+          "currentNodePublicId": {
+            "type": "string",
+            "description": "현재 거점 공개 식별자",
+            "example": "node_current_01HZY1CCC"
+          },
+          "currentNodeName": {
+            "type": "string",
+            "description": "현재 거점명",
+            "example": "대전 허브"
+          },
+          "currentNodeCode": {
+            "type": "string",
+            "description": "현재 거점 코드",
+            "example": "WH-HUB1-002"
+          },
+          "currentLatitude": {
+            "type": "number",
+            "description": "현재 위도",
+            "example": "36.3504119"
+          },
+          "currentLongitude": {
+            "type": "number",
+            "description": "현재 경도",
+            "example": "127.3845475"
+          },
+          "departureEta": {
+            "type": "string",
+            "format": "date-time",
+            "description": "예상 출발 시각",
+            "example": "2026-04-25T09:00:00"
+          },
+          "arrivalEta": {
+            "type": "string",
+            "format": "date-time",
+            "description": "예상 도착 시각",
+            "example": "2026-04-25T14:00:00"
+          },
+          "actualDepartedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "실제 출발 시각",
+            "example": "2026-04-25T09:05:00"
+          },
+          "actualArrivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "실제 도착 시각",
+            "example": "2026-04-25T13:48:00"
+          },
+          "estimatedArrivalAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "현재 계산 ETA",
+            "example": "2026-04-25T13:55:00"
+          },
+          "delayed": {
+            "type": "boolean",
+            "description": "지연 여부",
+            "example": "false"
+          },
+          "delayMinutes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "지연 분",
+            "example": "15"
+          },
+          "etaBasis": {
+            "$ref": "#/components/schemas/EtaBasis",
+            "description": "ETA 계산 기준",
+            "example": "CHECKPOINT"
+          },
+          "lastCheckpointType": {
+            "$ref": "#/components/schemas/CheckpointType",
+            "description": "마지막 체크포인트 유형",
+            "example": "TRANSIT"
+          },
+          "lastCheckpointAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "마지막 체크포인트 시각",
+            "example": "2026-04-25T11:20:00"
+          },
+          "checkpoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentMapCheckpointDto",
+              "description": "checkpoints 값"
+            },
+            "description": "지도용 체크포인트 목록",
+            "example": []
+          }
+        },
+        "description": "Shipment Map 응답 모델"
+      },
+      "ShipmentMapCheckpointDto": {
+        "type": "object",
+        "properties": {
+          "nodePublicId": {
+            "type": "string",
+            "description": "체크포인트 노드 공개 식별자",
+            "example": "node_01HZY1AAA"
+          },
+          "nodeName": {
+            "type": "string",
+            "description": "체크포인트 노드명",
+            "example": "서울 물류창고"
+          },
+          "nodeCode": {
+            "type": "string",
+            "description": "체크포인트 노드 코드",
+            "example": "WH-CHO1-003"
+          },
+          "checkpointType": {
+            "$ref": "#/components/schemas/CheckpointType",
+            "description": "체크포인트 유형",
+            "example": "DEPARTURE"
+          },
+          "checkpointStatus": {
+            "$ref": "#/components/schemas/CheckpointStatus",
+            "description": "체크포인트 상태",
+            "example": "PASSED"
+          },
+          "plannedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "예정 시각",
+            "example": "2026-04-25T09:00:00"
+          },
+          "actualAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "실제 시각",
+            "example": "2026-04-25T09:05:00"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "위도",
+            "example": "37.5000242"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "경도",
+            "example": "127.0365086"
+          },
+          "note": {
+            "type": "string",
+            "description": "메모",
+            "example": "출발 완료"
+          }
+        },
+        "description": "Shipment Map Checkpoint 데이터 모델"
+      },
+      "UpdateShipmentRequestDto": {
+        "type": "object",
+        "properties": {
+          "carrierName": {
+            "type": "string",
+            "description": "운송사명",
+            "example": "CJ Logistics"
+          },
+          "vehicleNo": {
+            "type": "string",
+            "description": "차량 번호",
+            "example": "12가3456"
+          },
+          "trackingNo": {
+            "type": "string",
+            "description": "운송 추적 번호",
+            "example": "TRK-ATLAS-20260417"
+          },
+          "originNodePublicId": {
+            "type": "string",
+            "description": "출발 물류 거점 공개 식별자",
+            "example": "node_origin_01HZY1AAA"
+          },
+          "destinationNodePublicId": {
+            "type": "string",
+            "description": "도착 물류 거점 공개 식별자",
+            "example": "node_dest_01HZY1BBB"
+          },
+          "departureEta": {
+            "type": "string",
+            "format": "date-time",
+            "description": "예상 출발 시각",
+            "example": "2026-04-18T08:00:00"
+          },
+          "arrivalEta": {
+            "type": "string",
+            "format": "date-time",
+            "description": "예상 도착 시각",
+            "example": "2026-04-18T14:00:00"
+          }
+        },
+        "description": "Update Shipment 요청 모델"
+      },
+      "OrganizationSupplySummaryDto": {
+        "type": "object",
+        "properties": {
+          "warehouseCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          },
+          "esgFileCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "개수",
+            "example": 1
+          }
+        },
+        "description": "Organization Supply Summary 데이터 모델"
       }
     },
     "securitySchemes": {
