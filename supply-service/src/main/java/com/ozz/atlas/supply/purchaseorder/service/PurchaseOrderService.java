@@ -4,6 +4,7 @@ import com.ozz.atlas.common.kafka.AggregateType;
 import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.inventory.service.ItemInventoryService;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
 import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
@@ -67,6 +68,7 @@ public class PurchaseOrderService {
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyChainContextResolver supplyChainContextResolver;
     private final LogisticsNodeRepository logisticsNodeRepository;
+    private final ItemInventoryService itemInventoryService;
 
     public PurchaseOrderDetailResponse createPurchaseOrder(
                         String buyerOrganizationPublicId,
@@ -463,6 +465,12 @@ public class PurchaseOrderService {
         if (request.getConfirmedQty().compareTo(purchaseOrderItem.getOrderedQty()) > 0) {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_CONFIRM_QTY_INVALID);
         }
+
+        itemInventoryService.reserveConfirmedQty(
+                purchaseOrder.getSupplier(),
+                purchaseOrderItem.getItem(),
+                request.getConfirmedQty()
+        );
 
         purchaseOrderItem.confirm(request.getConfirmedQty());
         purchaseOrder.refreshAfterItemChanged();
