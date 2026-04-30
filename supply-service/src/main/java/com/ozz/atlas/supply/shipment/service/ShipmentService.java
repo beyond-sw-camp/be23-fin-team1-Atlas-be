@@ -60,9 +60,6 @@ import java.util.stream.Stream;
 @Transactional
 public class ShipmentService {
 
-    private static final String ADMIN_ORGANIZATION_TYPE = "ADMIN";
-    private static final String ADMIN_ROLE = "ADMIN";
-
     private final ShipmentRepository shipmentRepository;
     private final ShipmentCheckpointRepository shipmentCheckpointRepository;
     private final ShipmentStatusHistoryRepository shipmentStatusHistoryRepository;
@@ -78,6 +75,7 @@ public class ShipmentService {
     private final SupplyChainContextResolver supplyChainContextResolver;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SettlementService settlementService;
+    private final ShipmentAuthorizationService shipmentAuthorizationService;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -94,7 +92,7 @@ public class ShipmentService {
             ReturnRequestRepository returnRequestRepository,
             SupplyChainContextResolver supplyChainContextResolver,
             SupplyDomainEventFactory supplyDomainEventFactory,
-            SettlementService settlementService
+            SettlementService settlementService, ShipmentAuthorizationService shipmentAuthorizationService
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
@@ -111,6 +109,7 @@ public class ShipmentService {
         this.supplyChainContextResolver = supplyChainContextResolver;
         this.supplyDomainEventFactory = supplyDomainEventFactory;
         this.settlementService = settlementService;
+        this.shipmentAuthorizationService = shipmentAuthorizationService;
     }
 
     // 출하 생성
@@ -121,7 +120,7 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
         ResolvedShipmentOrder order = resolveShipmentOrder(dto, organizationPublicId);
 
         if (!dto.getDepartureEta().isBefore(dto.getArrivalEta())) {
@@ -193,7 +192,7 @@ public class ShipmentService {
             String userRole,
             Pageable pageable
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         Set<Long> myNodeIds = getOrganizationNodeIds(organizationPublicId);
 
@@ -217,7 +216,7 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         Set<Long> myNodeIds = getOrganizationNodeIds(organizationPublicId);
         if (myNodeIds.isEmpty()) {
@@ -263,7 +262,7 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
@@ -276,7 +275,7 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
         validateShipmentUpdateAuthority(shipment, organizationPublicId, organizationType, userRole);
@@ -311,6 +310,98 @@ public class ShipmentService {
 
         return toShipmentResponseDto(savedShipment);
     }
+    public ShipmentResponseDto startShipment(
+            String publicId,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
+        shipmentAuthorizationService.validateSenderCanStartShipment(shipment, organizationPublicId);
+
+        if (shipment.getStatus() != ShipmentStatus.READY) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        shipment.updateShipmentInfo(
+                generateCarrierName(),
+                generateVehicleNo(),
+                generateTrackingNo(shipment),
+                shipment.getOriginNodeId(),
+                shipment.getDestinationNodeId(),
+                shipment.getOriginNodeId(),
+                shipment.getDepartureEta(),
+                shipment.getArrivalEta()
+        );
+
+        shipment.markInTransit(shipment.getOriginNodeId(), now);
+
+        Shipment savedShipment = shipmentRepository.save(shipment);
+
+        LogisticsNode originNode = getNode(savedShipment.getOriginNodeId());
+
+        saveShipmentStatusHistory(
+                savedShipment,
+                now,
+                "배송 중",
+                originNode.getNodeName(),
+                originNode.getLatitude(),
+                originNode.getLongitude(),
+                actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
+        );
+
+        shipmentSearchService.saveShipmentDocument(savedShipment);
+
+        return toShipmentResponseDto(savedShipment);
+    }
+
+    public ShipmentResponseDto arriveShipment(
+            String publicId,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
+        shipmentAuthorizationService.validateReceiverCanArriveShipment(shipment, organizationPublicId);
+
+        if (shipment.getStatus() != ShipmentStatus.IN_TRANSIT
+                && shipment.getStatus() != ShipmentStatus.DELAYED) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        shipment.markArrived(shipment.getDestinationNodeId(), now);
+
+        Shipment savedShipment = shipmentRepository.save(shipment);
+
+        LogisticsNode destinationNode = getNode(savedShipment.getDestinationNodeId());
+
+        saveShipmentStatusHistory(
+                savedShipment,
+                now,
+                "도착 완료",
+                destinationNode.getNodeName(),
+                destinationNode.getLatitude(),
+                destinationNode.getLongitude(),
+                actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
+        );
+
+        shipmentSearchService.saveShipmentDocument(savedShipment);
+
+//        settlementService.createShipmentSettlementIfAbsent(savedShipment.getPublicId());
+
+        return toShipmentResponseDto(savedShipment);
+    }
+
     private void validateShipmentUpdatable(Shipment shipment) {
         if (shipment.getStatus() == ShipmentStatus.ARRIVED
                 || shipment.getStatus() == ShipmentStatus.CANCELLED) {
@@ -339,7 +430,7 @@ public class ShipmentService {
             return;
         }
 
-        validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
     }
 
     private void validateShipmentUpdateFields(Shipment shipment, UpdateShipmentRequestDto dto) {
@@ -410,7 +501,7 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
@@ -452,11 +543,6 @@ public class ShipmentService {
 
             saveEtaProjectionIfChanged(savedShipment, previousEtaResult, updatedCheckpoints);
             appendShipmentTrackingEvent(savedShipment, dto, actorUserPublicId, organizationPublicId);
-
-            if (savedShipment.getStatus() == ShipmentStatus.ARRIVED
-                    && returnRequestRepository.findByReturnShipmentPublicId(savedShipment.getPublicId()).isEmpty()) {
-                settlementService.createShipmentSettlementIfAbsent(savedShipment.getPublicId());
-            }
         }
 
         return toShipmentResponseDto(savedShipment);
@@ -470,7 +556,7 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
@@ -518,7 +604,7 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
@@ -538,7 +624,7 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
 
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
@@ -554,31 +640,24 @@ public class ShipmentService {
         if (dto.getCheckpointStatus() == CheckpointStatus.PASSED && dto.getActualAt() == null) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_TRACK_REQUEST);
         }
+
+        // 출발/도착 상태 변경은 /start, /arrive API에서만 처리합니다.
+        // /track은 배송 중 경유 위치 기록용으로만 사용합니다.
+        if (dto.getCheckpointType() != CheckpointType.TRANSIT) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_TRACK_REQUEST);
+        }
     }
+
     private void validateCheckpointAuthority(
             Shipment shipment,
             TrackShipmentRequestDto dto,
             String organizationPublicId
     ) {
         LogisticsNode originNode = getNode(shipment.getOriginNodeId());
-        LogisticsNode destinationNode = getNode(shipment.getDestinationNodeId());
 
-        String originOrganizationPublicId = originNode.getOrganizationPublicId();
-        String destinationOrganizationPublicId = destinationNode.getOrganizationPublicId();
-
-        if (dto.getCheckpointType() == CheckpointType.DEPARTURE
-                || dto.getCheckpointType() == CheckpointType.TRANSIT) {
-            if (!originOrganizationPublicId.equals(organizationPublicId)) {
-                throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
-            }
-            return;
-        }
-
-        if (dto.getCheckpointType() == CheckpointType.ARRIVAL
-                || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
-            if (!destinationOrganizationPublicId.equals(organizationPublicId)) {
-                throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
-            }
+        // /track은 배송 중 위치 업데이트 성격이므로 보내는 쪽만 등록할 수 있게 제한합니다.
+        if (!originNode.getOrganizationPublicId().equals(organizationPublicId)) {
+            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
         }
     }
 
@@ -587,22 +666,12 @@ public class ShipmentService {
             return;
         }
 
-        try {
-            if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
-                shipment.markInTransit(nodeId, dto.getActualAt());
-                return;
-            }
-
-            if (dto.getCheckpointType() == CheckpointType.ARRIVAL
-                    || dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
-                shipment.markArrived(nodeId, dto.getActualAt());
-                return;
-            }
-
-            shipment.updateCurrentNode(nodeId);
-        } catch (IllegalStateException e) {
+        if (shipment.getStatus() != ShipmentStatus.IN_TRANSIT
+                && shipment.getStatus() != ShipmentStatus.DELAYED) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
         }
+
+        shipment.updateCurrentNode(nodeId);
     }
 
     private Shipment getReadableShipment(String publicId, String organizationPublicId) {
@@ -738,23 +807,7 @@ public class ShipmentService {
     }
 
     private String buildStatusMessage(TrackShipmentRequestDto dto) {
-        if (dto.getCheckpointType() == CheckpointType.DEPARTURE) {
-            return "출발 완료";
-        }
-
-        if (dto.getCheckpointType() == CheckpointType.TRANSIT) {
-            return "경유지 통과";
-        }
-
-        if (dto.getCheckpointType() == CheckpointType.ARRIVAL) {
-            return "도착 완료";
-        }
-
-        if (dto.getCheckpointType() == CheckpointType.WAREHOUSE_IN) {
-            return "입고 완료";
-        }
-
-        return "출하 상태 변경";
+        return "배송 위치 업데이트";
     }
 
     private ShipmentResponseDto toShipmentResponseDto(Shipment shipment) {
@@ -905,32 +958,6 @@ public class ShipmentService {
                 .build();
     }
 
-    private void validateShipmentActor(
-            String organizationPublicId,
-            String organizationType,
-            String userRole
-    ) {
-        if (organizationPublicId == null || organizationPublicId.isBlank()
-                || organizationType == null || organizationType.isBlank()) {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        if (ADMIN_ORGANIZATION_TYPE.equals(organizationType) || ADMIN_ROLE.equals(userRole)) {
-            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
-        }
-    }
-
-    private void validateCreateShipmentActor(
-            String organizationPublicId,
-            String organizationType,
-            String userRole
-    ) {
-        validateShipmentActor(organizationPublicId, organizationType, userRole);
-
-        if (!"SUPPLIER".equalsIgnoreCase(organizationType)) {
-            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
-        }
-    }
     private ResolvedShipmentOrder resolveShipmentOrder(CreateShipmentRequestDto dto, String organizationPublicId) {
         if (dto.getSubPoId() != null || hasText(dto.getSubPurchaseOrderPublicId())) {
             SupplySubPurchaseOrder subPurchaseOrder = resolveSubPurchaseOrderForShipment(dto, organizationPublicId);
@@ -1015,6 +1042,19 @@ public class ShipmentService {
         }
 
         return subPurchaseOrder;
+    }
+    private String generateCarrierName() {
+        return "Atlas Express";
+    }
+
+    private String generateVehicleNo() {
+        int number = (int) (Math.random() * 9000) + 1000;
+        return "12가" + number;
+    }
+
+    private String generateTrackingNo(Shipment shipment) {
+        String date = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+        return "TRK-" + date + "-" + shipment.getPublicId().substring(0, 8);
     }
 
     private String generateShipmentNumber(String orderNumber) {

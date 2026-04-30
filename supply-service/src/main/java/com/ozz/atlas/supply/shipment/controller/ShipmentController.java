@@ -159,6 +159,43 @@ public class ShipmentController {
                 )
         );
     }
+    @PatchMapping("/{publicId}/start")
+    public ResponseEntity<ShipmentResponseDto> startShipment(
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.startShipment(
+                        publicId,
+                        actorUserPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
+    }
+
+    @PatchMapping("/{publicId}/arrive")
+    public ResponseEntity<ShipmentResponseDto> arriveShipment(
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.arriveShipment(
+                        publicId,
+                        actorUserPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
+    }
 
     // 출하 위치/상태 추적
     @Operation(summary = "출하 추적 정보 등록")
