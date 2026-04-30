@@ -13,7 +13,6 @@ import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
 import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
 import com.ozz.atlas.supply.shipment.domain.CheckpointStatus;
 import com.ozz.atlas.supply.shipment.domain.CheckpointType;
-import com.ozz.atlas.supply.shipment.domain.EtaBasis;
 import com.ozz.atlas.supply.shipment.domain.EtaProjection;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentCheckpoint;
@@ -33,8 +32,6 @@ import com.ozz.atlas.supply.shipment.repository.ShipmentCheckpointRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentStatusHistoryRepository;
 import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -49,7 +46,6 @@ import com.ozz.atlas.supply.settlement.service.SettlementService;
 import com.ozz.atlas.supply.shipment.dtos.UpdateShipmentRequestDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentMapResponseDto;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -77,6 +73,7 @@ public class ShipmentService {
     private final ShipmentMapService shipmentMapService;
     private final ShipmentStatusService shipmentStatusService;
     private final ShipmentMapper shipmentMapper;
+    private final ShipmentEtaCalculator shipmentEtaCalculator;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -93,7 +90,12 @@ public class ShipmentService {
             ReturnRequestRepository returnRequestRepository,
             SupplyChainContextResolver supplyChainContextResolver,
             SupplyDomainEventFactory supplyDomainEventFactory,
-            SettlementService settlementService, ShipmentAuthorizationService shipmentAuthorizationService, ShipmentMapService shipmentMapService, ShipmentStatusService shipmentStatusService, ShipmentMapper shipmentMapper
+            SettlementService settlementService,
+            ShipmentAuthorizationService shipmentAuthorizationService,
+            ShipmentMapService shipmentMapService,
+            ShipmentStatusService shipmentStatusService,
+            ShipmentMapper shipmentMapper,
+            ShipmentEtaCalculator shipmentEtaCalculator
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
@@ -114,6 +116,7 @@ public class ShipmentService {
         this.shipmentMapService = shipmentMapService;
         this.shipmentStatusService = shipmentStatusService;
         this.shipmentMapper = shipmentMapper;
+        this.shipmentEtaCalculator = shipmentEtaCalculator;
     }
 
     // 출하 생성
@@ -127,12 +130,12 @@ public class ShipmentService {
         shipmentAuthorizationService.validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
         ResolvedShipmentOrder order = resolveShipmentOrder(dto, organizationPublicId);
 
-        if (!dto.getDepartureEta().isBefore(dto.getArrivalEta())) {
+        if (dto.getDepartureEta() == null) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
         }
 
         LogisticsNode originNode = getActiveNode(dto.getOriginNodePublicId());
-        LogisticsNode destinationNode = getActiveNode(dto.getDestinationNodePublicId());
+        LogisticsNode destinationNode = getActiveNode(order.destinationNodeId());
 
         if (!originNode.getOrganizationPublicId().equals(organizationPublicId)) {
             throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
@@ -148,16 +151,15 @@ public class ShipmentService {
                 .purchaseOrderPublicId(order.purchaseOrderPublicId())
                 .subPoId(order.subPoId())
                 .subPurchaseOrderPublicId(order.subPurchaseOrderPublicId())
-                .carrierName(dto.getCarrierName())
-                .vehicleNo(dto.getVehicleNo())
-                .trackingNo(dto.getTrackingNo())
                 .originNodeId(originNode.getId())
                 .destinationNodeId(destinationNode.getId())
                 .currentNodeId(originNode.getId())
                 .departureEta(dto.getDepartureEta())
-                .arrivalEta(dto.getArrivalEta())
+                .arrivalEta(null)
                 .status(ShipmentStatus.READY)
                 .temperatureRequired(dto.isTemperatureRequired())
+                .sealedPackagingRequired(dto.isSealedPackagingRequired())
+                .fragile(dto.isFragile())
                 .build();
 
         Shipment savedShipment = shipmentRepository.save(shipment);
@@ -240,6 +242,7 @@ public class ShipmentService {
 
         return shipmentMapper.toShipmentResponseDto(shipment);
     }
+
     public ShipmentResponseDto updateShipment(
             String publicId,
             UpdateShipmentRequestDto dto,
@@ -252,29 +255,17 @@ public class ShipmentService {
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
         validateShipmentUpdateAuthority(shipment, organizationPublicId, organizationType, userRole);
 
-        validateShipmentUpdatable(shipment);
-        validateShipmentUpdateFields(shipment, dto);
-
-        LogisticsNode originNode = resolveUpdatedOriginNode(shipment, dto, organizationPublicId);
-        LogisticsNode destinationNode = resolveUpdatedDestinationNode(shipment, dto);
-
-        validateUpdatedShipmentSchedule(dto, shipment);
-
-        Long currentNodeId = shipment.getCurrentNodeId();
-        if (!Objects.equals(shipment.getOriginNodeId(), originNode.getId())
-                && Objects.equals(shipment.getCurrentNodeId(), shipment.getOriginNodeId())) {
-            currentNodeId = originNode.getId();
-        }
+        validateShipmentReadyForScheduleUpdate(shipment, dto);
 
         shipment.updateShipmentInfo(
-                dto.getCarrierName() != null ? dto.getCarrierName() : shipment.getCarrierName(),
-                dto.getVehicleNo() != null ? dto.getVehicleNo() : shipment.getVehicleNo(),
-                dto.getTrackingNo() != null ? dto.getTrackingNo() : shipment.getTrackingNo(),
-                originNode.getId(),
-                destinationNode.getId(),
-                currentNodeId,
-                dto.getDepartureEta() != null ? dto.getDepartureEta() : shipment.getDepartureEta(),
-                dto.getArrivalEta() != null ? dto.getArrivalEta() : shipment.getArrivalEta()
+                shipment.getCarrierName(),
+                shipment.getVehicleNo(),
+                shipment.getTrackingNo(),
+                shipment.getOriginNodeId(),
+                shipment.getDestinationNodeId(),
+                shipment.getCurrentNodeId(),
+                dto.getDepartureEta(),
+                shipment.getArrivalEta()
         );
 
         Shipment savedShipment = shipmentRepository.save(shipment);
@@ -315,12 +306,6 @@ public class ShipmentService {
         );
     }
 
-    private void validateShipmentUpdatable(Shipment shipment) {
-        if (shipment.getStatus() == ShipmentStatus.ARRIVED
-                || shipment.getStatus() == ShipmentStatus.CANCELLED) {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
-        }
-    }
     private void validateShipmentUpdateAuthority(
             Shipment shipment,
             String organizationPublicId,
@@ -346,61 +331,12 @@ public class ShipmentService {
         shipmentAuthorizationService.validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
     }
 
-    private void validateShipmentUpdateFields(Shipment shipment, UpdateShipmentRequestDto dto) {
-        if (shipment.getStatus() != ShipmentStatus.IN_TRANSIT) {
-            return;
-        }
-
-        boolean hasNodeChangeRequest =
-                (dto.getOriginNodePublicId() != null && !dto.getOriginNodePublicId().isBlank())
-                        || (dto.getDestinationNodePublicId() != null && !dto.getDestinationNodePublicId().isBlank());
-
-        boolean hasScheduleChangeRequest =
-                dto.getDepartureEta() != null || dto.getArrivalEta() != null;
-
-        if (hasNodeChangeRequest || hasScheduleChangeRequest) {
+    private void validateShipmentReadyForScheduleUpdate(Shipment shipment, UpdateShipmentRequestDto dto) {
+        if (shipment.getStatus() != ShipmentStatus.READY) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
         }
-    }
 
-    private LogisticsNode resolveUpdatedOriginNode(
-            Shipment shipment,
-            UpdateShipmentRequestDto dto,
-            String organizationPublicId
-    ) {
-        if (dto.getOriginNodePublicId() == null || dto.getOriginNodePublicId().isBlank()) {
-            return getNode(shipment.getOriginNodeId());
-        }
-
-        LogisticsNode originNode = getActiveNode(dto.getOriginNodePublicId());
-        if (!originNode.getOrganizationPublicId().equals(organizationPublicId)) {
-            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
-        }
-
-        return originNode;
-    }
-
-    private LogisticsNode resolveUpdatedDestinationNode(
-            Shipment shipment,
-            UpdateShipmentRequestDto dto
-    ) {
-        if (dto.getDestinationNodePublicId() == null || dto.getDestinationNodePublicId().isBlank()) {
-            return getNode(shipment.getDestinationNodeId());
-        }
-
-        return getActiveNode(dto.getDestinationNodePublicId());
-    }
-
-    private void validateUpdatedShipmentSchedule(UpdateShipmentRequestDto dto, Shipment shipment) {
-        LocalDateTime departureEta = dto.getDepartureEta() != null
-                ? dto.getDepartureEta()
-                : shipment.getDepartureEta();
-
-        LocalDateTime arrivalEta = dto.getArrivalEta() != null
-                ? dto.getArrivalEta()
-                : shipment.getArrivalEta();
-
-        if (departureEta != null && arrivalEta != null && !departureEta.isBefore(arrivalEta)) {
+        if (dto.getDepartureEta() == null) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
         }
     }
@@ -430,7 +366,7 @@ public class ShipmentService {
         List<ShipmentCheckpoint> previousCheckpoints =
                 shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(shipment.getId());
 
-        EtaCalculationResult previousEtaResult = calculateEta(shipment, previousCheckpoints);
+        ShipmentEtaCalculator.Result previousEtaResult = shipmentEtaCalculator.calculate(shipment, previousCheckpoints);
 
         ShipmentCheckpoint checkpoint = dto.toEntity(shipment.getId(), node.getId());
         shipmentCheckpointRepository.save(checkpoint);
@@ -476,7 +412,7 @@ public class ShipmentService {
         List<ShipmentCheckpoint> checkpoints =
                 shipmentCheckpointRepository.findByShipmentIdOrderByActualAtAsc(shipment.getId());
 
-        EtaCalculationResult etaResult = calculateEta(shipment, checkpoints);
+        ShipmentEtaCalculator.Result etaResult = shipmentEtaCalculator.calculate(shipment, checkpoints);
 
         return ShipmentEtaResponseDto.builder()
                 .publicId(shipment.getPublicId())
@@ -606,6 +542,17 @@ public class ShipmentService {
                 || destinationNode.getOrganizationPublicId().equals(organizationPublicId);
     }
 
+    private LogisticsNode getActiveNode(Long nodeId) {
+        LogisticsNode node = logisticsNodeRepository.findById(nodeId)
+                .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
+
+        if (!node.isActive()) {
+            throw new ShipmentException(ShipmentErrorCode.INACTIVE_LOGISTICS_NODE);
+        }
+
+        return node;
+    }
+
     private LogisticsNode getActiveNode(String publicId) {
         LogisticsNode node = logisticsNodeRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
@@ -680,8 +627,10 @@ public class ShipmentService {
                     subPurchaseOrder.getSubPoId(),
                     subPurchaseOrder.getPublicId(),
                     subPurchaseOrder.getParentPurchaseOrder().getSupplier().getOrganizationPublicId(),
-                    subPurchaseOrder.getSubPoNumber()
+                    subPurchaseOrder.getSubPoNumber(),
+                    resolveSubPurchaseOrderDestinationNodeId(subPurchaseOrder)
             );
+
         }
 
         SupplyPurchaseOrder purchaseOrder = resolvePurchaseOrderForShipment(dto, organizationPublicId);
@@ -692,7 +641,8 @@ public class ShipmentService {
                 null,
                 null,
                 purchaseOrder.getBuyerOrganizationPublicId(),
-                purchaseOrder.getPoNumber()
+                purchaseOrder.getPoNumber(),
+                resolvePurchaseOrderDestinationNodeId(purchaseOrder)
         );
     }
 
@@ -756,6 +706,38 @@ public class ShipmentService {
         return subPurchaseOrder;
     }
 
+    private Long resolvePurchaseOrderDestinationNodeId(SupplyPurchaseOrder purchaseOrder) {
+        Set<Long> destinationNodeIds = purchaseOrder.getActiveItems().stream()
+                .filter(item -> item.getItemStatus() == com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.CONFIRMED
+                        || item.getItemStatus() == com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.PARTIALLY_CONFIRMED)
+                .map(item -> item.getArrivalLogisticsNode())
+                .filter(Objects::nonNull)
+                .map(LogisticsNode::getId)
+                .collect(Collectors.toSet());
+
+        if (destinationNodeIds.size() != 1) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        return destinationNodeIds.iterator().next();
+    }
+
+    private Long resolveSubPurchaseOrderDestinationNodeId(SupplySubPurchaseOrder subPurchaseOrder) {
+        Set<Long> destinationNodeIds = subPurchaseOrder.getActiveItems().stream()
+                .filter(item -> item.getLineStatus() == com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus.CONFIRMED
+                        || item.getLineStatus() == com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus.PARTIALLY_CONFIRMED)
+                .map(item -> item.getParentPurchaseOrderItem().getArrivalLogisticsNode())
+                .filter(Objects::nonNull)
+                .map(LogisticsNode::getId)
+                .collect(Collectors.toSet());
+
+        if (destinationNodeIds.size() != 1) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        return destinationNodeIds.iterator().next();
+    }
+
     private String generateShipmentNumber(String orderNumber) {
         String prefix = "SHIP-" + orderNumber + "-";
 
@@ -807,75 +789,12 @@ public class ShipmentService {
                 || subPoStatus == SubPoStatus.CONFIRMED;
     }
 
-    @Getter
-    @AllArgsConstructor
-    private static class EtaCalculationResult {
-        private LocalDateTime estimatedArrivalAt;
-        private Long delayMinutes;
-        private boolean delayed;
-        private EtaBasis etaBasis;
-        private ShipmentCheckpoint latestPassedCheckpoint;
-    }
-
-    private EtaCalculationResult calculateEta(Shipment shipment, java.util.List<ShipmentCheckpoint> checkpoints) {
-        ShipmentCheckpoint latestPassedCheckpoint = checkpoints.stream()
-                .filter(checkpoint -> checkpoint.getCheckpointStatus() == CheckpointStatus.PASSED)
-                .filter(checkpoint -> checkpoint.getActualAt() != null)
-                .reduce((first, second) -> second)
-                .orElse(null);
-
-        LocalDateTime estimatedArrivalAt;
-        EtaBasis etaBasis;
-        boolean delayed = false;
-        long delayMinutes = 0L;
-
-        if (shipment.getStatus() == ShipmentStatus.ARRIVED && shipment.getActualArrivedAt() != null) {
-            estimatedArrivalAt = shipment.getActualArrivedAt();
-            etaBasis = EtaBasis.ARRIVED;
-
-            if (shipment.getArrivalEta() != null && shipment.getActualArrivedAt().isAfter(shipment.getArrivalEta())) {
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), shipment.getActualArrivedAt()).toMinutes();
-            }
-        } else if (shipment.getActualDepartedAt() != null
-                && shipment.getDepartureEta() != null
-                && shipment.getArrivalEta() != null) {
-
-            Duration plannedDuration = Duration.between(shipment.getDepartureEta(), shipment.getArrivalEta());
-            estimatedArrivalAt = shipment.getActualDepartedAt().plus(plannedDuration);
-            etaBasis = EtaBasis.ACTUAL_TRACKING;
-
-            if (estimatedArrivalAt.isAfter(shipment.getArrivalEta())) {
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), estimatedArrivalAt).toMinutes();
-            }
-        } else {
-            estimatedArrivalAt = shipment.getArrivalEta();
-            etaBasis = EtaBasis.SCHEDULED;
-
-            if (shipment.getArrivalEta() != null
-                    && shipment.getStatus() != ShipmentStatus.ARRIVED
-                    && LocalDateTime.now().isAfter(shipment.getArrivalEta())) {
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), LocalDateTime.now()).toMinutes();
-            }
-        }
-
-        return new EtaCalculationResult(
-                estimatedArrivalAt,
-                delayMinutes,
-                delayed,
-                etaBasis,
-                latestPassedCheckpoint
-        );
-    }
-
     private void saveEtaProjectionIfChanged(
             Shipment shipment,
-            EtaCalculationResult previousEtaResult,
+            ShipmentEtaCalculator.Result previousEtaResult,
             java.util.List<ShipmentCheckpoint> updatedCheckpoints
     ) {
-        EtaCalculationResult currentEtaResult = calculateEta(shipment, updatedCheckpoints);
+        ShipmentEtaCalculator.Result currentEtaResult = shipmentEtaCalculator.calculate(shipment, updatedCheckpoints);
 
         LocalDateTime previousEta =
                 previousEtaResult != null ? previousEtaResult.getEstimatedArrivalAt() : null;
@@ -968,7 +887,8 @@ public class ShipmentService {
             Long subPoId,
             String subPurchaseOrderPublicId,
             String buyerOrganizationPublicId,
-            String orderNumber
+            String orderNumber,
+            Long destinationNodeId
     ) {
     }
 }

@@ -63,7 +63,10 @@ public class ShipmentMapper {
                 .actualArrivedAt(shipment.getActualArrivedAt())
                 .status(shipment.getStatus())
                 .temperatureRequired(shipment.isTemperatureRequired())
+                .sealedPackagingRequired(shipment.isSealedPackagingRequired())
+                .fragile(shipment.isFragile())
                 .build();
+
     }
     public ShipmentListResponseDto toShipmentListResponseDto(Shipment shipment) {
         Map<Long, LogisticsNode> nodeMap = getShipmentNodeMap(java.util.List.of(shipment));

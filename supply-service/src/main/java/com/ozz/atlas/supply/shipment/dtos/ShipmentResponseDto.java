@@ -76,5 +76,9 @@ public class ShipmentResponseDto {
     private ShipmentStatus status;
     @Schema(description = "온도 관리 필요 여부", example = "true")
     private boolean temperatureRequired;
+    @Schema(description = "밀봉 포장 필요 여부", example = "true")
+    private boolean sealedPackagingRequired;
+    @Schema(description = "파손 위험 여부", example = "true")
+    private boolean fragile;
 
 }

@@ -3,7 +3,6 @@ package com.ozz.atlas.supply.shipment.service;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.shipment.domain.CheckpointType;
-import com.ozz.atlas.supply.shipment.domain.EtaBasis;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentCheckpoint;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
@@ -11,13 +10,9 @@ import com.ozz.atlas.supply.shipment.dtos.ShipmentMapCheckpointDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentMapResponseDto;
 import com.ozz.atlas.supply.shipment.repository.ShipmentCheckpointRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -36,17 +31,20 @@ public class ShipmentMapService {
     private final ShipmentCheckpointRepository shipmentCheckpointRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ShipmentAuthorizationService shipmentAuthorizationService;
+    private final ShipmentEtaCalculator shipmentEtaCalculator;
 
     public ShipmentMapService(
             ShipmentRepository shipmentRepository,
             ShipmentCheckpointRepository shipmentCheckpointRepository,
             LogisticsNodeRepository logisticsNodeRepository,
-            ShipmentAuthorizationService shipmentAuthorizationService
+            ShipmentAuthorizationService shipmentAuthorizationService,
+            ShipmentEtaCalculator shipmentEtaCalculator
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.shipmentAuthorizationService = shipmentAuthorizationService;
+        this.shipmentEtaCalculator = shipmentEtaCalculator;
     }
 
     public List<ShipmentMapResponseDto> getShipmentMapData(
@@ -164,7 +162,7 @@ public class ShipmentMapService {
         LogisticsNode destinationNode = nodeMap.get(shipment.getDestinationNodeId());
         LogisticsNode currentNode = resolveCurrentNode(shipment, nodeMap, originNode);
 
-        EtaCalculationResult etaResult = calculateEta(shipment, transitCheckpoints);
+        ShipmentEtaCalculator.Result etaResult = shipmentEtaCalculator.calculate(shipment, transitCheckpoints);
 
         List<ShipmentMapCheckpointDto> checkpointDtos = transitCheckpoints.stream()
                 .filter(checkpoint -> checkpoint.getCheckpointType() == CheckpointType.TRANSIT)
@@ -246,67 +244,5 @@ public class ShipmentMapService {
                 .longitude(node != null ? node.getLongitude() : null)
                 .note(checkpoint.getNote())
                 .build();
-    }
-
-    private EtaCalculationResult calculateEta(Shipment shipment, List<ShipmentCheckpoint> checkpoints) {
-        ShipmentCheckpoint latestPassedCheckpoint = checkpoints.stream()
-                .filter(checkpoint -> checkpoint.getCheckpointStatus().name().equals("PASSED"))
-                .filter(checkpoint -> checkpoint.getActualAt() != null)
-                .reduce((first, second) -> second)
-                .orElse(null);
-
-        LocalDateTime estimatedArrivalAt;
-        EtaBasis etaBasis;
-        boolean delayed = false;
-        long delayMinutes = 0L;
-
-        if (shipment.getStatus() == ShipmentStatus.ARRIVED && shipment.getActualArrivedAt() != null) {
-            estimatedArrivalAt = shipment.getActualArrivedAt();
-            etaBasis = EtaBasis.ARRIVED;
-
-            if (shipment.getArrivalEta() != null && shipment.getActualArrivedAt().isAfter(shipment.getArrivalEta())) {
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), shipment.getActualArrivedAt()).toMinutes();
-            }
-        } else if (shipment.getActualDepartedAt() != null
-                && shipment.getDepartureEta() != null
-                && shipment.getArrivalEta() != null) {
-            Duration plannedDuration = Duration.between(shipment.getDepartureEta(), shipment.getArrivalEta());
-            estimatedArrivalAt = shipment.getActualDepartedAt().plus(plannedDuration);
-            etaBasis = EtaBasis.ACTUAL_TRACKING;
-
-            if (estimatedArrivalAt.isAfter(shipment.getArrivalEta())) {
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), estimatedArrivalAt).toMinutes();
-            }
-        } else {
-            estimatedArrivalAt = shipment.getArrivalEta();
-            etaBasis = EtaBasis.SCHEDULED;
-
-            if (shipment.getArrivalEta() != null
-                    && shipment.getStatus() != ShipmentStatus.ARRIVED
-                    && LocalDateTime.now().isAfter(shipment.getArrivalEta())) {
-                delayed = true;
-                delayMinutes = Duration.between(shipment.getArrivalEta(), LocalDateTime.now()).toMinutes();
-            }
-        }
-
-        return new EtaCalculationResult(
-                estimatedArrivalAt,
-                delayMinutes,
-                delayed,
-                etaBasis,
-                latestPassedCheckpoint
-        );
-    }
-
-    @Getter
-    @AllArgsConstructor
-    private static class EtaCalculationResult {
-        private LocalDateTime estimatedArrivalAt;
-        private Long delayMinutes;
-        private boolean delayed;
-        private EtaBasis etaBasis;
-        private ShipmentCheckpoint latestPassedCheckpoint;
     }
 }
