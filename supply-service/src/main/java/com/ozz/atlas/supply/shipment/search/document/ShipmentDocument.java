@@ -172,6 +172,12 @@ public class ShipmentDocument {
     @Field(type = FieldType.Boolean)
     private Boolean temperatureRequired;
 
+    @Field(type = FieldType.Boolean)
+    private Boolean sealedPackagingRequired;
+
+    @Field(type = FieldType.Boolean)
+    private Boolean fragile;
+
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime createdAt;
 
@@ -212,6 +218,8 @@ public class ShipmentDocument {
                 .actualArrivedAt(shipment.getActualArrivedAt())
                 .status(shipment.getStatus())
                 .temperatureRequired(shipment.isTemperatureRequired())
+                .sealedPackagingRequired(shipment.isSealedPackagingRequired())
+                .fragile(shipment.isFragile())
                 .createdAt(shipment.getCreatedAt())
                 .updatedAt(shipment.getUpdatedAt())
                 .build();

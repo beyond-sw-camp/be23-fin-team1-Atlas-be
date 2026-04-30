@@ -26,32 +26,20 @@ public class CreateShipmentRequestDto {
     @Schema(description = "하위 발주 공개 식별자", example = "subpo_01HZY1SUBPO123456789", nullable = true)
     private String subPurchaseOrderPublicId;
 
-    @Schema(description = "운송사명", example = "CJ Logistics", nullable = true)
-    private String carrierName;
-
-    @Schema(description = "차량 번호", example = "12가3456", nullable = true)
-    private String vehicleNo;
-
-    @Schema(description = "운송 추적 번호", example = "TRK-ATLAS-20260417", nullable = true)
-    private String trackingNo;
-
     @NotBlank
-    @Schema(description = "출발 물류 노드 공개 식별자", example = "node_origin_01HZY1AAA")
+    @Schema(description = "출발 물류 거점 공개 식별자", example = "node_origin_01HZY1AAA")
     private String originNodePublicId;
 
-    @NotBlank
-    @Schema(description = "도착 물류 노드 공개 식별자", example = "node_dest_01HZY1BBB")
-    private String destinationNodePublicId;
-
     @NotNull
-    @Schema(description = "예상 출발 시각", example = "2026-04-18T08:00:00")
+    @Schema(description = "출발 예정 시각", example = "2026-04-18T08:00:00")
     private LocalDateTime departureEta;
-
-    @NotNull
-    @Schema(description = "예상 도착 시각", example = "2026-04-18T14:00:00")
-    private LocalDateTime arrivalEta;
 
     @Schema(description = "냉장/냉동 등 온도 관리 필요 여부", example = "true")
     private boolean temperatureRequired;
 
+    @Schema(description = "밀봉 포장 필요 여부", example = "true")
+    private boolean sealedPackagingRequired;
+
+    @Schema(description = "파손 위험 여부", example = "true")
+    private boolean fragile;
 }

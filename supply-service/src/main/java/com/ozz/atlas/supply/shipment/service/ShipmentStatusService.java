@@ -71,7 +71,7 @@ public class ShipmentStatusService {
                 shipment.getDestinationNodeId(),
                 shipment.getOriginNodeId(),
                 shipment.getDepartureEta(),
-                shipment.getArrivalEta()
+                now.plusHours(24)
         );
 
         shipment.markInTransit(shipment.getOriginNodeId(), now);

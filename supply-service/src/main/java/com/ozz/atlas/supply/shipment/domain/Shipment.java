@@ -65,7 +65,13 @@ public class Shipment extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean temperatureRequired;
 
-//    출발 체크포인트를 통과했을 때 호출
+    @Column(nullable = false)
+    private boolean sealedPackagingRequired;
+
+    @Column(nullable = false)
+    private boolean fragile;
+
+    //    출발 체크포인트를 통과했을 때 호출
     public void markInTransit(Long currentNodeId, LocalDateTime actualDepartedAt) {
         if (this.status == ShipmentStatus.ARRIVED || this.status == ShipmentStatus.CANCELLED) {
             throw new IllegalStateException("이미 종료된 출하입니다.");
