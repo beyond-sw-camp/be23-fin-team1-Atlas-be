@@ -145,6 +145,8 @@ public class ChatRoomController {
         chatRoomService.unpinRoom(roomPublicId, userPublicId);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{roomPublicId}/read")
     @Operation(
             summary = "채팅 읽음 처리",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
