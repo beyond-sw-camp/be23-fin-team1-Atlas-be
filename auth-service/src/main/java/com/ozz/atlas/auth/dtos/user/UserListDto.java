@@ -19,6 +19,10 @@ public class UserListDto {
     private String userPublicId;
     @Schema(description = "소속 조직 공개 식별자", example = "org_01HZX9X5D4P2Q7F8R9S1T2U3V4")
     private String organizationPublicId;
+    @Schema(description = "소속 조직명", example = "아틀라스 푸드 서플라이어")
+    private String organizationName;
+    @Schema(description = "소속 조직 영문명", example = "Atlas Foods Supplier")
+    private String organizationEnglishName;
     @Schema(description = "로그인 ID", example = "atlas_user01")
     private String loginId;
     @Schema(description = "이름", example = "철수")
@@ -51,6 +55,8 @@ public class UserListDto {
         return UserListDto.builder()
                 .userPublicId(user.getPublicId())
                 .organizationPublicId(user.getOrganization().getPublicId())
+                .organizationName(user.getOrganization().getOrganizationName())
+                .organizationEnglishName(user.getOrganization().getOrganizationEnglishName())
                 .loginId(user.getLoginId())
                 .email(user.getEmail())
                 .phone(user.getPhone())
@@ -71,6 +77,8 @@ public class UserListDto {
         return UserListDto.builder()
                 .userPublicId(user.getPublicId())
                 .organizationPublicId(user.getOrganizationPublicId())
+                .organizationName(user.getOrganizationName())
+                .organizationEnglishName(user.getOrganizationEnglishName())
                 .loginId(user.getLoginId())
                 .email(user.getEmail())
                 .userRole(user.getUserRole())
