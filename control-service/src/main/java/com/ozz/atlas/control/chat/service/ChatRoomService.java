@@ -248,6 +248,15 @@ public class ChatRoomService {
                 .map(ChatRoomPin::getPinnedAt)
                 .orElse(null);
 
+        List<com.ozz.atlas.control.chat.dto.ChatParticipantDto> participantDtos = chatParticipantSearchService.getParticipantsByRoomPublicId(chatRoom.getPublicId())
+                .stream()
+                .map(doc -> com.ozz.atlas.control.chat.dto.ChatParticipantDto.builder()
+                        .userPublicId(doc.getUserPublicId())
+                        .displayName(doc.getDisplayName())
+                        .profileImageThumbPath(doc.getProfileImageThumbPath())
+                        .build())
+                .toList();
+
         return ChatRoomDto.builder()
                 .publicId(chatRoom.getPublicId())
                 .roomName(chatRoom.getRoomName())
@@ -255,6 +264,7 @@ public class ChatRoomService {
                 .userAccountPublicId(chatRoom.getUserAccountPublicId())
                 .createdAt(chatRoom.getCreatedAt())
                 .pinnedAt(pinnedAt)
+                .participants(participantDtos)
                 .build();
     }
 

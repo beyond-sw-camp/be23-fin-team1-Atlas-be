@@ -100,6 +100,10 @@ public class ChatParticipantDocument {
     @Field(type = FieldType.Long)
     private Long lastReadMessageId;
 
+    // 프로필 이미지 썸네일 경로
+    @Field(type = FieldType.Keyword)
+    private String profileImageThumbPath;
+
     // 생성 시각
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime createdAt;
@@ -122,6 +126,7 @@ public class ChatParticipantDocument {
                 .participantRole(participant.getParticipantRole())
                 .activeYn(participant.isActiveYn())
                 .lastReadMessageId(participant.getLastReadMessageId())
+                .profileImageThumbPath(user != null ? user.getProfileImageThumbPath() : null)
                 .createdAt(participant.getCreatedAt())
                 .updatedAt(participant.getUpdatedAt())
                 .build();
