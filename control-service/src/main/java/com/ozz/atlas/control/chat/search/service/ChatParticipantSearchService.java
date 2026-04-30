@@ -101,6 +101,10 @@ public class ChatParticipantSearchService {
         chatParticipantRepository.findAll().forEach(this::saveChatParticipantDocument);
     }
 
+    public List<ChatParticipantDocument> getParticipantsByRoomPublicId(String roomPublicId) {
+        return chatParticipantSearchRepository.findByRoomPublicIdAndActiveYnTrue(roomPublicId);
+    }
+
     // must 조건과 filter 조건을 합쳐 최종 bool 쿼리를 만듬
     // 조건이 아무것도 없으면 matchAll 로 전체 조회
     private Query buildFinalQuery(List<Query> mustQueries, List<Query> filterQueries) {

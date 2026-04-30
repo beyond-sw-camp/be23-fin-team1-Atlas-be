@@ -33,4 +33,7 @@ public class ChatRoomDto {
 
     @Schema(description = "고정된 시각", example = "2026-04-17T10:35:00", nullable = true)
     private LocalDateTime pinnedAt;
+
+    @Schema(description = "참여자 목록")
+    private java.util.List<ChatParticipantDto> participants;
 }

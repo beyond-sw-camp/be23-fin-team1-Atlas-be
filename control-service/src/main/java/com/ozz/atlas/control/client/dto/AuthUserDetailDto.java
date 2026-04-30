@@ -30,4 +30,6 @@ public class AuthUserDetailDto {
     private String phone;
 
     private String jobTitle;
+
+    private String profileImageThumbPath;
 }

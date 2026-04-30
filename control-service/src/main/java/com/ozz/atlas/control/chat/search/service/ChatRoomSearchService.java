@@ -34,6 +34,7 @@ public class ChatRoomSearchService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatParticipantSearchService chatParticipantSearchService;
 
     // 채팅방 엔티티를 ES 문서로 저장
     // 방 생성, 참여자 변경, 마지막 메시지 변경 시 계속 다시 저장
@@ -120,6 +121,15 @@ public class ChatRoomSearchService {
             }
         }
 
+        List<com.ozz.atlas.control.chat.dto.ChatParticipantDto> participantDtos = chatParticipantSearchService.getParticipantsByRoomPublicId(document.getPublicId())
+                .stream()
+                .map(doc -> com.ozz.atlas.control.chat.dto.ChatParticipantDto.builder()
+                        .userPublicId(doc.getUserPublicId())
+                        .displayName(doc.getDisplayName())
+                        .profileImageThumbPath(doc.getProfileImageThumbPath())
+                        .build())
+                .toList();
+
         return ChatRoomDto.builder()
                 .publicId(document.getPublicId())
                 .roomName(document.getRoomName())
@@ -129,6 +139,7 @@ public class ChatRoomSearchService {
                 .unreadCount(unreadCount)
                 .lastMessage(document.getLastMessageBody())
                 .lastMessageAt(document.getLastMessageAt())
+                .participants(participantDtos)
                 .build();
     }
 
