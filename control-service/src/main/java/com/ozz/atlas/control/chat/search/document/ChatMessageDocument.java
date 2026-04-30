@@ -97,6 +97,22 @@ public class ChatMessageDocument {
     @Field(type = FieldType.Keyword)
     private Status status;
 
+    // 답장 원본 메시지 식별자
+    @Field(type = FieldType.Keyword)
+    private String parentMessagePublicId;
+
+    // 답장 원본 메시지 본문 미리보기
+    @Field(type = FieldType.Text)
+    private String parentMessageBody;
+
+    // 답장 원본 발신자 publicId
+    @Field(type = FieldType.Keyword)
+    private String parentSenderUserPublicId;
+
+    // 답장 원본 발신자 표시명
+    @Field(type = FieldType.Text)
+    private String parentSenderDisplayName;
+
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime createdAt;
 
@@ -120,6 +136,10 @@ public class ChatMessageDocument {
                 .referenceTitle(chatMessage.getReferenceTitle())
                 .attachmentPublicIds(splitAttachmentIds(chatMessage.getAttachmentPublicIds()))
                 .status(chatMessage.getStatus())
+                .parentMessagePublicId(chatMessage.getParentMessagePublicId())
+                .parentMessageBody(chatMessage.getParentMessageBody())
+                .parentSenderUserPublicId(chatMessage.getParentSenderUserPublicId())
+                .parentSenderDisplayName(chatMessage.getParentSenderDisplayName())
                 .createdAt(chatMessage.getCreatedAt())
                 .updatedAt(chatMessage.getUpdatedAt())
                 .editedAt(chatMessage.getEditedAt())

@@ -57,6 +57,18 @@ public class ChatMessage extends SoftDeleteEntity {
     @Column(name = "edited_at")
     private LocalDateTime editedAt;
 
+    @Column(name = "parent_message_public_id", length = 26)
+    private String parentMessagePublicId;
+
+    @Column(name = "parent_message_body", length = 100)
+    private String parentMessageBody;
+
+    @Column(name = "parent_sender_user_public_id", length = 26)
+    private String parentSenderUserPublicId;
+
+    @Column(name = "parent_sender_display_name", length = 100)
+    private String parentSenderDisplayName;
+
     @PrePersist
     public void prePersist() {
         if (this.messageType == null) {
