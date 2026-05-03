@@ -5,11 +5,13 @@ import com.ozz.atlas.supply.inventory.domain.InventoryStatus;
 import com.ozz.atlas.supply.inventory.domain.SupplyItemInventory;
 import com.ozz.atlas.supply.inventory.dtos.CreateItemInventoryRequest;
 import com.ozz.atlas.supply.inventory.dtos.ItemInventoryResponse;
+import com.ozz.atlas.supply.inventory.dtos.ItemInventorySummaryResponse;
 import com.ozz.atlas.supply.inventory.dtos.UpdateItemInventoryRequest;
 import com.ozz.atlas.supply.inventory.exception.ItemInventoryErrorCode;
 import com.ozz.atlas.supply.inventory.exception.ItemInventoryException;
 import com.ozz.atlas.supply.inventory.repository.SupplyItemInventoryRepository;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.item.domain.SupplyType;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
@@ -40,13 +42,17 @@ public class ItemInventoryService {
     ) {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
         SupplyItem item = getManagedItem(supplier, request.getItemPublicId());
-        validateInventoryDates(request.getManufacturedDate(), request.getExpirationDate());
+
+        LocalDate expirationDate = request.getManufacturedDate()
+                .plusDays(item.getShelfLifeDays());
+
+        validateInventoryDates(request.getManufacturedDate(), expirationDate);
 
         SupplyItemInventory inventory = SupplyItemInventory.create(
                 supplier,
                 item,
                 request.getManufacturedDate(),
-                request.getExpirationDate(),
+                expirationDate,
                 request.getQty(),
                 request.getMemo()
         );
@@ -56,6 +62,7 @@ public class ItemInventoryService {
 
         return ItemInventoryResponse.from(saved);
     }
+
 
     @Transactional(readOnly = true)
     public List<ItemInventoryResponse> getInventories(String organizationPublicId, String organizationType) {
@@ -79,12 +86,16 @@ public class ItemInventoryService {
     ) {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
         SupplyItemInventory inventory = getOwnedInventory(supplier, inventoryPublicId);
-        validateInventoryDates(request.getManufacturedDate(), request.getExpirationDate());
+
+        LocalDate expirationDate = request.getManufacturedDate()
+                .plusDays(inventory.getItem().getShelfLifeDays());
+
+        validateInventoryDates(request.getManufacturedDate(), expirationDate);
 
         try {
             inventory.update(
                     request.getManufacturedDate(),
-                    request.getExpirationDate(),
+                    expirationDate,
                     request.getQty(),
                     request.getMemo()
             );
@@ -96,6 +107,7 @@ public class ItemInventoryService {
 
         return ItemInventoryResponse.from(inventory);
     }
+
 
     public void deleteInventory(String organizationPublicId, String organizationType, String inventoryPublicId) {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
@@ -144,6 +156,41 @@ public class ItemInventoryService {
     }
 
     public void deductShipmentQty(SupplySupplier supplier, SupplyItem item, Long shipmentQty) {
+        if (item.getSupplyType() == SupplyType.MAKE_TO_ORDER) {
+            deductMakeToOrderShipmentQty(supplier, item, shipmentQty);
+            return;
+        }
+
+        deductStockBasedShipmentQty(supplier, item, shipmentQty);
+    }
+
+    private void deductMakeToOrderShipmentQty(SupplySupplier supplier, SupplyItem item, Long shipmentQty) {
+        long remaining = shipmentQty;
+
+        List<SupplyItemInventory> inventories = inventoryRepository.findAvailableForDeductUpdate(
+                supplier.getId(),
+                item.getId(),
+                List.of(InventoryStatus.ACTIVE, InventoryStatus.RESERVED),
+                LocalDate.now()
+        );
+
+        for (SupplyItemInventory inventory : inventories) {
+            if (remaining <= 0) {
+                break;
+            }
+
+            long deductQty = Math.min(inventory.getRemainingQty(), remaining);
+            inventory.deductRemainingOnly(deductQty);
+            remaining -= deductQty;
+        }
+
+        if (remaining > 0) {
+            throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_INSUFFICIENT);
+        }
+    }
+
+
+    private void deductStockBasedShipmentQty(SupplySupplier supplier, SupplyItem item, Long shipmentQty) {
         long remaining = shipmentQty;
 
         List<SupplyItemInventory> inventories = inventoryRepository.findReservedForUpdate(
@@ -208,7 +255,15 @@ public class ItemInventoryService {
     }
 
     private void syncCapabilityAvailableQty(SupplySupplier supplier, SupplyItem item) {
-        Long availableQty = inventoryRepository.sumAvailableQty(supplier.getId(), item.getId(), LocalDate.now());
+        if (item.getSupplyType() != SupplyType.STOCK_BASED) {
+            return;
+        }
+
+        Long availableQty = inventoryRepository.sumAvailableQty(
+                supplier.getId(),
+                item.getId(),
+                LocalDate.now()
+        );
 
         SupplySupplierItemCapability capability = capabilityRepository
                 .findBySupplier_IdAndItem_Id(supplier.getId(), item.getId())
@@ -218,4 +273,43 @@ public class ItemInventoryService {
             capability.syncAvailableQty(availableQty);
         }
     }
+
+    @Transactional(readOnly = true)
+    public ItemInventorySummaryResponse getInventorySummary(
+            String organizationPublicId,
+            String organizationType
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
+
+        Long remainingQty = inventoryRepository.sumRemainingQtyByOrganizationPublicId(organizationPublicId);
+        Long reservedQty = inventoryRepository.sumReservedQtyByOrganizationPublicId(organizationPublicId);
+        Long availableQty = inventoryRepository.sumAvailableQtyByOrganizationPublicId(
+                organizationPublicId,
+                LocalDate.now()
+        );
+
+        return ItemInventorySummaryResponse.of(remainingQty, reservedQty, availableQty);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemInventoryResponse> getItemInventories(
+            String organizationPublicId,
+            String organizationType,
+            String itemPublicId
+    ) {
+        SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
+        getManagedItem(supplier, itemPublicId);
+
+        return inventoryRepository
+                .findAllBySupplier_OrganizationPublicIdAndItem_PublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
+                        organizationPublicId,
+                        itemPublicId,
+                        InventoryStatus.DELETED
+                )
+                .stream()
+                .map(ItemInventoryResponse::from)
+                .toList();
+    }
+
+
 }

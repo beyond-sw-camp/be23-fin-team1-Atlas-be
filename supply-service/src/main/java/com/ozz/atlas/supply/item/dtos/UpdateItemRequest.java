@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.item.dtos;
 
 import com.ozz.atlas.supply.item.domain.ItemUnit;
+import com.ozz.atlas.supply.item.domain.SupplyType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,6 +23,9 @@ public class UpdateItemRequest {
     @Size(max = 26)
     private String itemCategoryPublicId;
 
+    @NotNull
+    private SupplyType supplyType;
+
     @NotBlank
     @Size(max = 100)
     private String itemName;
@@ -38,4 +42,7 @@ public class UpdateItemRequest {
     @NotNull
     @Min(0)
     private Integer shelfLifeDays;
+
+    private String originLogisticsNodePublicId;
+
 }

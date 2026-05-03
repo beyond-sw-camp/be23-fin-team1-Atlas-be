@@ -196,12 +196,24 @@ public class SupplierService {
                         loginSupplier.getId()
                 );
 
+        Map<Long, List<SupplyPurchaseOrder>> receivedPurchaseOrdersByBuyerSupplierId =
+                groupReceivedPurchaseOrdersByBuyerSupplierId(loginSupplier);
+
+
         Map<Long, SupplySupplier> connectedSupplierMap = new LinkedHashMap<>(aggregation.relatedSupplierMap());
 
         purchaseOrdersBySupplierId.values().stream()
                 .flatMap(List::stream)
                 .forEach(po -> connectedSupplierMap.putIfAbsent(po.getSupplier().getId(), po.getSupplier()));
 
+        receivedPurchaseOrdersByBuyerSupplierId.values().stream()
+                .flatMap(List::stream)
+                .forEach(po ->
+                        supplierRepository.findByOrganizationPublicId(po.getBuyerOrganizationPublicId())
+                                .ifPresent(buyerSupplier ->
+                                        connectedSupplierMap.putIfAbsent(buyerSupplier.getId(), buyerSupplier)
+                                )
+                );
         List<SupplierListResponse> content = connectedSupplierMap.values().stream()
                 .map(relatedSupplier -> {
                     List<SupplySubPurchaseOrder> relatedSubOrders =
@@ -848,6 +860,28 @@ public class SupplierService {
                 .esgFileCount(esgFileCount)
                 .build();
     }
+
+    private Map<Long, List<SupplyPurchaseOrder>> groupReceivedPurchaseOrdersByBuyerSupplierId(
+            SupplySupplier loginSupplier
+    ) {
+        return purchaseOrderRepository.findAllBySupplier_OrganizationPublicIdAndPoStatusNot(
+                        loginSupplier.getOrganizationPublicId(),
+                        PoStatus.DELETED
+                )
+                .stream()
+                .flatMap(po ->
+                        supplierRepository.findByOrganizationPublicId(po.getBuyerOrganizationPublicId())
+                                .stream()
+                                .filter(buyerSupplier -> !buyerSupplier.getId().equals(loginSupplier.getId()))
+                                .map(buyerSupplier -> Map.entry(buyerSupplier.getId(), po))
+                )
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        LinkedHashMap::new,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())
+                ));
+    }
+
 
 
 
