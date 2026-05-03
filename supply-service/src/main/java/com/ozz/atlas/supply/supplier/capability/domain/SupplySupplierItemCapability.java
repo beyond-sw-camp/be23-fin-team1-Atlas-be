@@ -131,5 +131,13 @@ public class SupplySupplierItemCapability {
         this.availableQty = availableQty != null ? availableQty : 0L;
     }
 
+    public Long getOrderableQty() {
+        if (this.item.getSupplyType() == com.ozz.atlas.supply.item.domain.SupplyType.MAKE_TO_ORDER) {
+            return this.availableQty;
+        }
+
+        return this.availableQty;
+    }
+
 
 }

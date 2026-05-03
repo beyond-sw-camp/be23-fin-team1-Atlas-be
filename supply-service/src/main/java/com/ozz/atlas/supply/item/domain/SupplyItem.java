@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.item.domain;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -35,6 +36,11 @@ public class SupplyItem extends BaseTimeEntity {
     @JoinColumn(name = "item_category_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.CONSTRAINT))
     private SupplyItemCategory itemCategory;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    @Builder.Default
+    private SupplyType supplyType = SupplyType.STOCK_BASED;
+
     @Column(nullable = false, length = 50)
     private String itemCode;
 
@@ -59,15 +65,21 @@ public class SupplyItem extends BaseTimeEntity {
     @Builder.Default
     private Status status = Status.ACTIVE;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "origin_logistics_node_id")
+    private LogisticsNode originLogisticsNode;
+
     public static SupplyItem create(
             SupplySupplier supplier,
             SupplyItemCategory itemCategory,
+            LogisticsNode originLogisticsNode,
             String itemCode,
             String itemName,
             ItemUnit unit,
             BigDecimal unitPrice,
             String spec,
-            Integer shelfLifeDays
+            Integer shelfLifeDays,
+            SupplyType supplyType
     ) {
         return SupplyItem.builder()
                 .supplier(supplier)
@@ -78,9 +90,11 @@ public class SupplyItem extends BaseTimeEntity {
                 .unitPrice(unitPrice)
                 .spec(spec)
                 .shelfLifeDays(shelfLifeDays)
+                .supplyType(supplyType != null ? supplyType : SupplyType.STOCK_BASED)
                 .status(Status.ACTIVE)
                 .build();
     }
+
 
 
     public void update(
@@ -89,7 +103,8 @@ public class SupplyItem extends BaseTimeEntity {
             ItemUnit unit,
             BigDecimal unitPrice,
             String spec,
-            Integer shelfLifeDays
+            Integer shelfLifeDays,
+            SupplyType supplyType
     ) {
         this.itemCategory = itemCategory;
         this.itemName = itemName;
@@ -97,8 +112,10 @@ public class SupplyItem extends BaseTimeEntity {
         this.unitPrice = unitPrice;
         this.spec = spec;
         this.shelfLifeDays = shelfLifeDays;
+        this.supplyType = supplyType != null ? supplyType : SupplyType.STOCK_BASED;
         this.status = Status.ACTIVE;
     }
+
 
     public void changeActiveYn(Status status) {
         this.status = status;

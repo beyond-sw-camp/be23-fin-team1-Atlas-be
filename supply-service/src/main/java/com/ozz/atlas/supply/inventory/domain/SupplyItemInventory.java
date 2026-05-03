@@ -141,4 +141,13 @@ public class SupplyItemInventory extends BaseTimeEntity {
         this.status = InventoryStatus.ACTIVE;
     }
 
+    public void deductRemainingOnly(Long qty) {
+        if (qty == null || qty <= 0 || this.remainingQty < qty) {
+            throw new IllegalArgumentException("차감 가능한 재고 수량이 부족합니다.");
+        }
+
+        this.remainingQty -= qty;
+        refreshStatus();
+    }
+
 }
