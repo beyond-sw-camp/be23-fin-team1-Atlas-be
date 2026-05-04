@@ -5,12 +5,14 @@ import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.control.config.RedisConstants;
 import com.ozz.atlas.control.client.SupplyServiceClient;
 import com.ozz.atlas.control.chat.domain.ChatMessage;
+import com.ozz.atlas.control.chat.domain.ChatParticipant;
 import com.ozz.atlas.control.chat.domain.ChatRoom;
 import com.ozz.atlas.control.chat.dto.ChatMessageDto;
 import com.ozz.atlas.control.chat.event.ChatSystemEvent;
 import com.ozz.atlas.control.chat.repository.ChatMessageRepository;
 import com.ozz.atlas.control.chat.repository.ChatParticipantRepository;
 import com.ozz.atlas.control.chat.search.service.ChatMessageSearchService;
+import com.ozz.atlas.control.chat.search.service.ChatParticipantSearchService;
 import com.ozz.atlas.control.chat.search.service.ChatRoomSearchService;
 import com.ozz.atlas.control.client.AuthServiceClient;
 import com.ozz.atlas.control.client.dto.AuthUserDetailDto;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.time.LocalDateTime;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -42,6 +45,7 @@ public class ChatMessageService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final SupplyServiceClient supplyServiceClient;
     private final ChatMessageSearchService chatMessageSearchService;
+    private final ChatParticipantSearchService chatParticipantSearchService;
     private final ChatRoomSearchService chatRoomSearchService;
     private final AuthServiceClient authServiceClient;
 
@@ -140,6 +144,17 @@ public class ChatMessageService {
                 .build();
         
         chatMessageRepository.save(chatMessage);
+
+        // 1:1 방에서 상대가 나간 상태라면 새 메시지를 기준으로 다시 방을 보이게 합니다.
+        List<ChatParticipant> allParticipants = chatParticipantRepository.findByChatRoom(chatRoom);
+        if (allParticipants.size() == 2) {
+            allParticipants.stream()
+                    .filter(participant -> !participant.isActiveYn())
+                    .forEach(participant -> {
+                        participant.activateFrom(chatMessage.getCreatedAt());
+                        chatParticipantSearchService.saveChatParticipantDocument(participant);
+                    });
+        }
 
         // 3. 현재 방을 보고 있는 유저들(Presence) 실시간 읽음 처리 (발신자 포함)
         Set<String> viewingUsers = chatPresenceService.getViewingUsers(chatRoom.getPublicId());
@@ -252,19 +267,24 @@ public class ChatMessageService {
     /**
      * 채팅방 이력 조회 (페이지네이션) - cursor(public_id) 기반
      */
-    public Page<ChatMessageDto> getMessageHistory(String roomPublicId, String cursor, Pageable pageable) {
+    public Page<ChatMessageDto> getMessageHistory(String roomPublicId, String cursor, String userPublicId, Pageable pageable) {
         ChatRoom chatRoom = chatRoomService.findRoomByPublicId(roomPublicId);
+        LocalDateTime visibleFromAt = StringUtils.hasText(userPublicId)
+                ? chatParticipantRepository.findByChatRoomAndUserPublicId(chatRoom, userPublicId)
+                        .map(ChatParticipant::getVisibleFromAt)
+                        .orElse(null)
+                : null;
         
         if (StringUtils.hasText(cursor)) {
             // 커서가 존재할 경우: 커서 메시지의 PK 조회 후 그 이전 메시지들 반환
             return chatMessageRepository.findByPublicId(cursor)
-                    .map(message -> chatMessageRepository.findByChatRoomAndIdLessThanOrderByIdDesc(chatRoom, message.getId(), pageable))
-                    .orElseGet(() -> chatMessageRepository.findByChatRoomOrderByIdDesc(chatRoom, pageable))
+                    .map(message -> chatMessageRepository.findVisibleByChatRoomAndIdLessThanOrderByIdDesc(chatRoom, message.getId(), visibleFromAt, pageable))
+                    .orElseGet(() -> chatMessageRepository.findVisibleByChatRoomOrderByIdDesc(chatRoom, visibleFromAt, pageable))
                     .map(this::convertToDto);
         }
         
         // 커서가 없는 경우: 가장 최신 메시지부터 반환
-        return chatMessageRepository.findByChatRoomOrderByIdDesc(chatRoom, pageable)
+        return chatMessageRepository.findVisibleByChatRoomOrderByIdDesc(chatRoom, visibleFromAt, pageable)
                 .map(this::convertToDto);
     }
 

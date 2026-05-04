@@ -22,6 +22,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
@@ -109,9 +110,8 @@ public class ChatRoomService {
         chatParticipantRepository.findByChatRoomAndUserPublicId(chatRoom, userPublicId).ifPresentOrElse(
             participant -> {
                 if (!participant.isActiveYn()) {
-                    // 재입장의 경우엔 Update 쿼리가 필요할 수 있으나, 현재 JPA 영속성 컨텍스트 상 단순 저장이 아님.
-                    // 실제 구현시엔 findByChatRoomAndUserPublicId 로 가져와서 setter 로 변경 후 save 해야 함.
-                    // 여기서는 단순 추가를 위해 아래 로직 무시 (시간관계상 생략)
+                    participant.activateFrom(LocalDateTime.now());
+                    chatParticipantSearchService.saveChatParticipantDocument(participant);
                 }
             },
             () -> {
@@ -138,11 +138,18 @@ public class ChatRoomService {
                     ChatRoomDto dto = convertToDto(chatRoom, userPublicId);
                     
                     // 안 읽은 메시지 수 계산
-                    Long unreadCount = chatMessageRepository.countUnreadMessages(chatRoom, participant.getLastReadMessageId());
+                    Long unreadCount = chatMessageRepository.countVisibleUnreadMessages(
+                            chatRoom,
+                            participant.getLastReadMessageId(),
+                            participant.getVisibleFromAt()
+                    );
                     dto.setUnreadCount(unreadCount);
                     
                     // 마지막 메시지 조회
-                    chatMessageRepository.findTopByChatRoomOrderByIdDesc(chatRoom).ifPresent(lastMessage -> {
+                    chatMessageRepository.findLatestVisibleByChatRoom(chatRoom, participant.getVisibleFromAt(), PageRequest.of(0, 1))
+                            .stream()
+                            .findFirst()
+                            .ifPresent(lastMessage -> {
                         dto.setLastMessage(lastMessage.getMessageBody());
                         dto.setLastMessageAt(lastMessage.getCreatedAt());
                     });
@@ -190,9 +197,14 @@ public class ChatRoomService {
                 chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, List.of(userPublicId), message.getId());
             });
         } else {
-            chatMessageRepository.findTopByChatRoomOrderByIdDesc(chatRoom).ifPresent(lastMessage -> {
-                chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, List.of(userPublicId), lastMessage.getId());
-            });
+            chatParticipantRepository.findByChatRoomAndUserPublicIdActive(chatRoom, userPublicId)
+                    .flatMap(participant -> chatMessageRepository
+                            .findLatestVisibleByChatRoom(chatRoom, participant.getVisibleFromAt(), PageRequest.of(0, 1))
+                            .stream()
+                            .findFirst())
+                    .ifPresent(lastMessage -> {
+                        chatParticipantRepository.updateLastReadMessageIdForUsers(chatRoom, List.of(userPublicId), lastMessage.getId());
+                    });
         }
     }
 
@@ -227,14 +239,11 @@ public class ChatRoomService {
         boolean directRoom = participants.size() == 2;
         
         // 해당 유저를 비활성(soft delete) 처리
-        chatParticipantRepository.deactivateParticipant(chatRoom, targetUserPublicId);
-
-
-        // 비활성화된 상태를 ES 문서에도 다시 반영
-        // 검색 서비스에서는 activeYn=true 조건만 조회하므로,
-        // 이 문서가 갱신되면 검색 결과에서 빠지게 됨
         chatParticipantRepository.findByChatRoomAndUserPublicId(chatRoom, targetUserPublicId)
-                .ifPresent(chatParticipantSearchService::saveChatParticipantDocument);
+                .ifPresent(participant -> {
+                    participant.deactivate();
+                    chatParticipantSearchService.saveChatParticipantDocument(participant);
+                });
 
         if (!directRoom) {
             // 시스템 이벤트 발행 (퇴장 메시지용)
@@ -287,22 +296,33 @@ public class ChatRoomService {
             throw new IllegalArgumentException("자기 자신과는 1:1 채팅을 시작할 수 없습니다.");
         }
 
-        // 내가 참여 중인 방 중에서 나를 포함해서 정확히 2명만 있고, 그 2명이 나와 상대인 방을 찾음
-        for (ChatParticipant myParticipant : chatParticipantRepository.findByUserPublicIdActive(creatorPublicId)) {
+        // 활성 여부와 무관하게 두 사용자로만 구성된 기존 1:1 방을 먼저 찾습니다.
+        for (ChatParticipant myParticipant : chatParticipantRepository.findByUserPublicId(creatorPublicId)) {
             ChatRoom room = myParticipant.getChatRoom();
 
-            List<String> participantIds = chatParticipantRepository.findByChatRoomActive(room)
+            List<ChatParticipant> participants = chatParticipantRepository.findByChatRoom(room);
+            List<String> participantIds = participants
                     .stream()
                     .map(ChatParticipant::getUserPublicId)
                     .toList();
 
             boolean isSameDirectRoom =
-                    participantIds.size() == 2
+                    participants.size() == 2
                             && participantIds.contains(creatorPublicId)
                             && participantIds.contains(targetUserPublicId);
 
-            // 이미 정확한 1:1 방이 있으면 새로 만들지 않고 기존 방을 돌려줌
+            // 이미 정확한 1:1 방이 있으면 새로 만들지 않고 기존 방을 재활성화해서 돌려줌
             if (isSameDirectRoom) {
+                participants.stream()
+                        .filter(participant -> participant.getUserPublicId().equals(creatorPublicId))
+                        .findFirst()
+                        .ifPresent(participant -> {
+                            if (!participant.isActiveYn()) {
+                                participant.activateFrom(LocalDateTime.now());
+                                chatParticipantSearchService.saveChatParticipantDocument(participant);
+                            }
+                        });
+                chatRoomSearchService.saveChatRoomDocument(room);
                 return convertToDto(room, creatorPublicId);
             }
         }
