@@ -38,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
 import com.ozz.atlas.supply.settlement.service.SettlementService;
@@ -597,6 +598,8 @@ public class ReturnService {
                 .subPoId(sourceShipment.getSubPoId())
                 .purchaseOrderPublicId(sourceShipment.getPurchaseOrderPublicId())
                 .subPurchaseOrderPublicId(sourceShipment.getSubPurchaseOrderPublicId())
+                .sourceType(ShipmentSourceType.RETURN)
+                .sourcePublicId(returnRequest.getPublicId())
                 .carrierName(null)
                 .vehicleNo(null)
                 .trackingNo(null)
@@ -607,6 +610,8 @@ public class ReturnService {
                 .arrivalEta(null)
                 .status(ShipmentStatus.READY)
                 .temperatureRequired(sourceShipment.isTemperatureRequired())
+                .sealedPackagingRequired(sourceShipment.isSealedPackagingRequired())
+                .fragile(sourceShipment.isFragile())
                 .build();
 
         Shipment savedReturnShipment = shipmentRepository.save(returnShipment);
@@ -631,6 +636,8 @@ public class ReturnService {
                 .subPoId(sourceShipment.getSubPoId())
                 .purchaseOrderPublicId(sourceShipment.getPurchaseOrderPublicId())
                 .subPurchaseOrderPublicId(sourceShipment.getSubPurchaseOrderPublicId())
+                .sourceType(ShipmentSourceType.EXCHANGE)
+                .sourcePublicId(returnRequest.getPublicId())
                 .carrierName(null)
                 .vehicleNo(null)
                 .trackingNo(null)
@@ -641,6 +648,8 @@ public class ReturnService {
                 .arrivalEta(null)
                 .status(ShipmentStatus.READY)
                 .temperatureRequired(sourceShipment.isTemperatureRequired())
+                .sealedPackagingRequired(sourceShipment.isSealedPackagingRequired())
+                .fragile(sourceShipment.isFragile())
                 .build();
 
         Shipment savedExchangeShipment = shipmentRepository.save(exchangeShipment);

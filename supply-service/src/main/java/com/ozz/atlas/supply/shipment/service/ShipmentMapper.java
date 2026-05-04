@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.shipment.service;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
+import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
 import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
@@ -35,6 +36,8 @@ public class ShipmentMapper {
         return ShipmentResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
+                .sourceType(resolveSourceType(shipment))
+                .sourcePublicId(shipment.getSourcePublicId())
                 .poId(shipment.getPoId())
                 .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
                 .subPoId(shipment.getSubPoId())
@@ -78,6 +81,8 @@ public class ShipmentMapper {
         return ShipmentListResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
+                .sourceType(resolveSourceType(shipment))
+                .sourcePublicId(shipment.getSourcePublicId())
                 .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
                 .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
                 .carrierName(shipment.getCarrierName())
@@ -90,8 +95,12 @@ public class ShipmentMapper {
                 .currentNodePublicId(currentNode != null ? currentNode.getPublicId() : null)
                 .currentNodeName(currentNode != null ? currentNode.getNodeName() : null)
                 .currentNodeCode(currentNode != null ? currentNode.getNodeCode() : null)
+                .departureEta(shipment.getDepartureEta())
                 .arrivalEta(shipment.getArrivalEta())
                 .status(shipment.getStatus())
+                .temperatureRequired(shipment.isTemperatureRequired())
+                .sealedPackagingRequired(shipment.isSealedPackagingRequired())
+                .fragile(shipment.isFragile())
                 .build();
     }
 
@@ -115,5 +124,9 @@ public class ShipmentMapper {
 
         return logisticsNodeRepository.findByIdIn(nodeIds).stream()
                 .collect(Collectors.toMap(LogisticsNode::getId, node -> node));
+    }
+
+    private ShipmentSourceType resolveSourceType(Shipment shipment) {
+        return shipment.getSourceType() != null ? shipment.getSourceType() : ShipmentSourceType.ORDER;
     }
 }

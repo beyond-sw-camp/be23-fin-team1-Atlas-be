@@ -16,6 +16,7 @@ import com.ozz.atlas.supply.shipment.domain.CheckpointType;
 import com.ozz.atlas.supply.shipment.domain.EtaProjection;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentCheckpoint;
+import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatusHistory;
 import com.ozz.atlas.supply.shipment.dtos.CreateShipmentRequestDto;
@@ -151,6 +152,8 @@ public class ShipmentService {
                 .purchaseOrderPublicId(order.purchaseOrderPublicId())
                 .subPoId(order.subPoId())
                 .subPurchaseOrderPublicId(order.subPurchaseOrderPublicId())
+                .sourceType(ShipmentSourceType.ORDER)
+                .sourcePublicId(resolveOrderSourcePublicId(order))
                 .originNodeId(originNode.getId())
                 .destinationNodeId(destinationNode.getId())
                 .currentNodeId(originNode.getId())
@@ -268,6 +271,12 @@ public class ShipmentService {
                 shipment.getArrivalEta()
         );
 
+        shipment.updateShipmentOptions(
+                resolveUpdateFlag(dto.getTemperatureRequired(), shipment.isTemperatureRequired()),
+                resolveUpdateFlag(dto.getSealedPackagingRequired(), shipment.isSealedPackagingRequired()),
+                resolveUpdateFlag(dto.getFragile(), shipment.isFragile())
+        );
+
         Shipment savedShipment = shipmentRepository.save(shipment);
         shipmentSearchService.saveShipmentDocument(savedShipment);
 
@@ -339,6 +348,10 @@ public class ShipmentService {
         if (dto.getDepartureEta() == null) {
             throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
         }
+    }
+
+    private boolean resolveUpdateFlag(Boolean value, boolean currentValue) {
+        return value != null ? value : currentValue;
     }
 
     // 출하 위치/상태 추적
@@ -777,6 +790,12 @@ public class ShipmentService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String resolveOrderSourcePublicId(ResolvedShipmentOrder order) {
+        return hasText(order.subPurchaseOrderPublicId())
+                ? order.subPurchaseOrderPublicId()
+                : order.purchaseOrderPublicId();
     }
 
     private boolean isShippablePurchaseOrderStatus(PoStatus poStatus) {

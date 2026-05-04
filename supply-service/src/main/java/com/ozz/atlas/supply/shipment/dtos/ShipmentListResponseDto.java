@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.shipment.dtos;
 
+import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -20,6 +21,10 @@ public class ShipmentListResponseDto {
     private String publicId;
     @Schema(description = "출하 번호", example = "SHIP-2026-0001")
     private String shipmentNumber;
+    @Schema(description = "출하 유형", example = "ORDER")
+    private ShipmentSourceType sourceType;
+    @Schema(description = "출하 기준 공개 식별자", example = "01HZY1SOURCE12345678901234", nullable = true)
+    private String sourcePublicId;
     @Schema(description = "상위 발주 공개 식별자", example = "po_01HZY1PO123456789", nullable = true)
     private String purchaseOrderPublicId;
     @Schema(description = "하위 발주 공개 식별자", example = "subpo_01HZY1SUBPO123456789", nullable = true)
@@ -44,9 +49,17 @@ public class ShipmentListResponseDto {
     private String currentNodeName;
     @Schema(description = "현재 물류거점 코드", example = "WH-HUB1-002", nullable = true)
     private String currentNodeCode;
+    @Schema(description = "예상 출발 시각", example = "2026-04-18T08:00:00")
+    private LocalDateTime departureEta;
     @Schema(description = "예상 도착 시각", example = "2026-04-18T14:00:00")
     private LocalDateTime arrivalEta;
     @Schema(description = "출하 상태", example = "IN_TRANSIT")
     private ShipmentStatus status;
+    @Schema(description = "온도 관리 필요 여부", example = "true")
+    private boolean temperatureRequired;
+    @Schema(description = "밀봉 포장 필요 여부", example = "true")
+    private boolean sealedPackagingRequired;
+    @Schema(description = "파손 위험 여부", example = "true")
+    private boolean fragile;
 
 }

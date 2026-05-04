@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.shipment.search.document;
 
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
+import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -51,6 +52,12 @@ public class ShipmentDocument {
 
     @Field(type = FieldType.Keyword)
     private String subPurchaseOrderPublicId;
+
+    @Field(type = FieldType.Keyword)
+    private ShipmentSourceType sourceType;
+
+    @Field(type = FieldType.Keyword)
+    private String sourcePublicId;
 
     @MultiField(
             mainField = @Field(type = FieldType.Text),
@@ -198,6 +205,8 @@ public class ShipmentDocument {
                 .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
                 .subPoId(shipment.getSubPoId())
                 .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
+                .sourceType(shipment.getSourceType() != null ? shipment.getSourceType() : ShipmentSourceType.ORDER)
+                .sourcePublicId(shipment.getSourcePublicId())
                 .carrierName(shipment.getCarrierName())
                 .vehicleNo(shipment.getVehicleNo())
                 .trackingNo(shipment.getTrackingNo())

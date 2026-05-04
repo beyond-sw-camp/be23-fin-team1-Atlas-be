@@ -38,6 +38,14 @@ public class Shipment extends BaseTimeEntity {
     @Column(length = 26)
     private String subPurchaseOrderPublicId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private ShipmentSourceType sourceType = ShipmentSourceType.ORDER;
+
+    @Column(length = 26)
+    private String sourcePublicId;
+
     @Column(length = 100)
     private String carrierName;
 
@@ -132,6 +140,16 @@ public class Shipment extends BaseTimeEntity {
         this.currentNodeId = currentNodeId;
         this.departureEta = departureEta;
         this.arrivalEta = arrivalEta;
+    }
+
+    public void updateShipmentOptions(
+            boolean temperatureRequired,
+            boolean sealedPackagingRequired,
+            boolean fragile
+    ) {
+        this.temperatureRequired = temperatureRequired;
+        this.sealedPackagingRequired = sealedPackagingRequired;
+        this.fragile = fragile;
     }
 
 }
