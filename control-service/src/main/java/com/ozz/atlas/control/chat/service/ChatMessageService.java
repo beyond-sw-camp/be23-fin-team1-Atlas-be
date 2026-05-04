@@ -16,6 +16,7 @@ import com.ozz.atlas.control.client.AuthServiceClient;
 import com.ozz.atlas.control.client.dto.AuthUserDetailDto;
 import com.ozz.atlas.control.chat.enums.MessageType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,7 @@ public class ChatMessageService {
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatRoomService chatRoomService;
     private final ChatPresenceService chatPresenceService;
+    @Qualifier("chatRedisTemplate")
     private final RedisTemplate<String, Object> redisTemplate;
     private final SupplyServiceClient supplyServiceClient;
     private final ChatMessageSearchService chatMessageSearchService;

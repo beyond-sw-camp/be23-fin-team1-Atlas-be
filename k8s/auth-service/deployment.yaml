@@ -35,6 +35,10 @@ spec:
               value: redis
             - name: SPRING_DATA_REDIS_PORT
               value: "6379"
+            - name: ATLAS_REDIS_VERIFICATION_DATABASE
+              value: "0"
+            - name: ATLAS_REDIS_SESSION_DATABASE
+              value: "1"
             - name: JWT_ACCESS_TOKEN_SECRET
               valueFrom:
                 secretKeyRef:

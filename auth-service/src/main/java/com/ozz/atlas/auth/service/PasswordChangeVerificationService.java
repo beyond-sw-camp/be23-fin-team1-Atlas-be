@@ -1,18 +1,21 @@
 package com.ozz.atlas.auth.service;
 
 import com.ozz.atlas.auth.common.config.AuthPrincipal;
-import com.ozz.atlas.auth.domain.PasswordChangeVerification;
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.dtos.user.PasswordVerificationRequestResponseDto;
 import com.ozz.atlas.auth.dtos.user.UserPasswordUpdateDto;
-import com.ozz.atlas.auth.repository.PasswordChangeVerificationRepository;
 import com.ozz.atlas.auth.repository.UserRepository;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
 import com.ozz.atlas.auth.dtos.user.PasswordVerificationConfirmDto;
 import com.ozz.atlas.common.jpa.Status;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,8 +26,10 @@ public class PasswordChangeVerificationService {
 
     // 인증코드는 3분 동안만 유효하게
     private static final int EXPIRE_MINUTES = 3;
+    private static final String VERIFICATION_KEY_PREFIX = "auth:password-change-verification:";
+    private static final String USER_INDEX_KEY_PREFIX = "auth:password-change-verification:user:";
 
-    private final PasswordChangeVerificationRepository passwordChangeVerificationRepository;
+    private final StringRedisTemplate verificationRedisTemplate;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CredentialMailService credentialMailService;
@@ -35,12 +40,12 @@ public class PasswordChangeVerificationService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     public PasswordChangeVerificationService(
-            PasswordChangeVerificationRepository passwordChangeVerificationRepository,
+            @Qualifier("authVerificationStringRedisTemplate") StringRedisTemplate verificationRedisTemplate,
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             CredentialMailService credentialMailService, JwtTokenProvider jwtTokenProvider
     ) {
-        this.passwordChangeVerificationRepository = passwordChangeVerificationRepository;
+        this.verificationRedisTemplate = verificationRedisTemplate;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.credentialMailService = credentialMailService;
@@ -87,9 +92,7 @@ public class PasswordChangeVerificationService {
             throw new IllegalArgumentException("현재 비밀번호와 다른 비밀번호를 입력해 주세요.");
         }
 
-        // 같은 사용자의 이전 인증 요청이 남아 있으면 먼저 지움
-        // 항상 마지막 요청 1건만 유효하게 두기 위한 처리
-        passwordChangeVerificationRepository.deleteByUser(user);
+        deletePreviousVerification(user.getUserId());
 
         // 프론트가 나중에 인증 확인할 때 사용할 요청 ID
         String verificationRequestId = UUID.randomUUID().toString();
@@ -103,19 +106,22 @@ public class PasswordChangeVerificationService {
         // 인증코드 만료 시각을 3분
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(EXPIRE_MINUTES);
 
-        // 비밀번호 변경 인증 요청 엔티티
-        PasswordChangeVerification verification = PasswordChangeVerification.builder()
-                .verificationRequestId(verificationRequestId)
-                .user(user)
-                .verificationCode(verificationCode)
-                .encodedNewPassword(encodedNewPassword)
-                .expiresAt(expiresAt)
-                .ipAddress(ipAddress)
-                .userAgent(userAgent != null ? userAgent : "UNKNOWN")
-                .build();
-
-        // DB 에 인증 요청을 저장
-        passwordChangeVerificationRepository.save(verification);
+        String key = verificationKey(verificationRequestId);
+        Map<String, String> verificationPayload = new HashMap<>();
+        verificationPayload.put("userId", String.valueOf(user.getUserId()));
+        verificationPayload.put("verificationCode", verificationCode);
+        verificationPayload.put("encodedNewPassword", encodedNewPassword);
+        verificationPayload.put("expiresAt", expiresAt.toString());
+        verificationPayload.put("ipAddress", ipAddress != null ? ipAddress : "UNKNOWN");
+        verificationPayload.put("userAgent", userAgent != null ? userAgent : "UNKNOWN");
+        verificationRedisTemplate.opsForHash().putAll(key, verificationPayload);
+        verificationRedisTemplate.expire(key, EXPIRE_MINUTES, TimeUnit.MINUTES);
+        verificationRedisTemplate.opsForValue().set(
+                userIndexKey(user.getUserId()),
+                verificationRequestId,
+                EXPIRE_MINUTES,
+                TimeUnit.MINUTES
+        );
 
         // 사용자 이메일로 인증코드를 발송
         credentialMailService.sendPasswordChangeVerificationMail(
@@ -149,13 +155,14 @@ public class PasswordChangeVerificationService {
             throw new IllegalArgumentException("비밀번호 변경 권한이 없습니다.");
         }
 
-        // 요청 ID 로 인증 요청을 찾음
-        PasswordChangeVerification verification = passwordChangeVerificationRepository.findById(
-                        dto.getVerificationRequestId()
-                )
-                .orElseThrow(() -> new IllegalArgumentException("비밀번호 변경 인증 요청을 찾을 수 없습니다."));
+        String verificationRequestId = dto.getVerificationRequestId();
+        Map<Object, Object> storedVerification = verificationRedisTemplate.opsForHash().entries(verificationKey(verificationRequestId));
+        if (storedVerification.isEmpty()) {
+            throw new IllegalArgumentException("비밀번호 변경 인증 요청을 찾을 수 없습니다.");
+        }
 
-        User user = verification.getUser();
+        User user = userRepository.findById(Long.valueOf((String) storedVerification.get("userId")))
+                .orElseThrow(() -> new IllegalArgumentException("비밀번호 변경 인증 요청을 찾을 수 없습니다."));
 
         // 요청한 사용자와 인증 요청의 사용자가 다르면 막음
         if (!user.getUserId().equals(userId)) {
@@ -163,18 +170,19 @@ public class PasswordChangeVerificationService {
         }
 
         // 만료된 인증 요청이면 삭제하고 실패 처리
-        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
-            passwordChangeVerificationRepository.delete(verification);
+        LocalDateTime expiresAt = LocalDateTime.parse((String) storedVerification.get("expiresAt"));
+        if (expiresAt.isBefore(LocalDateTime.now())) {
+            deleteVerification(verificationRequestId, user.getUserId());
             throw new IllegalArgumentException("인증 시간이 만료되었습니다. 다시 요청해 주세요.");
         }
 
         // 인증코드가 다르면 실패 처리
-        if (!verification.getVerificationCode().equals(dto.getVerificationCode())) {
+        if (!storedVerification.get("verificationCode").equals(dto.getVerificationCode())) {
             throw new IllegalArgumentException("인증코드가 올바르지 않습니다.");
         }
 
         // 인증이 성공했으므로 저장해둔 새 비밀번호를 실제 비밀번호로 반영
-        user.updatePassword(verification.getEncodedNewPassword());
+        user.updatePassword((String) storedVerification.get("encodedNewPassword"));
 
         // 비밀번호 변경이 끝났으므로 강제 변경 상태가 있으면 해제
         user.clearPasswordChangeRequired();
@@ -183,7 +191,28 @@ public class PasswordChangeVerificationService {
         jwtTokenProvider.revokeRefreshToken(user.getUserId());
 
         // 사용한 인증 요청은 다시 못 쓰게 삭제
-        passwordChangeVerificationRepository.delete(verification);
+        deleteVerification(verificationRequestId, user.getUserId());
+    }
+
+    private void deletePreviousVerification(Long userId) {
+        String previousRequestId = verificationRedisTemplate.opsForValue().get(userIndexKey(userId));
+        if (previousRequestId != null) {
+            verificationRedisTemplate.delete(verificationKey(previousRequestId));
+        }
+        verificationRedisTemplate.delete(userIndexKey(userId));
+    }
+
+    private void deleteVerification(String verificationRequestId, Long userId) {
+        verificationRedisTemplate.delete(verificationKey(verificationRequestId));
+        verificationRedisTemplate.delete(userIndexKey(userId));
+    }
+
+    private String verificationKey(String verificationRequestId) {
+        return VERIFICATION_KEY_PREFIX + verificationRequestId;
+    }
+
+    private String userIndexKey(Long userId) {
+        return USER_INDEX_KEY_PREFIX + userId;
     }
 
 }

@@ -35,6 +35,10 @@ spec:
               value: redis
             - name: SPRING_DATA_REDIS_PORT
               value: "6379"
+            - name: ATLAS_REDIS_NOTIFICATION_DATABASE
+              value: "2"
+            - name: ATLAS_REDIS_CHAT_DATABASE
+              value: "3"
             - name: SPRING_ELASTICSEARCH_URIS
               value: http://elasticsearch:9200
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS

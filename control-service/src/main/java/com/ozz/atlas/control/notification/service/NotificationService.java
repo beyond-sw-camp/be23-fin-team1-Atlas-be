@@ -9,6 +9,7 @@ import com.ozz.atlas.control.notification.domain.NotificationToastType;
 import com.ozz.atlas.control.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -24,6 +25,7 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    @Qualifier("notificationRedisTemplate")
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**

@@ -3,14 +3,19 @@ package com.ozz.atlas.auth.service;
 import com.ozz.atlas.auth.common.exception.LoginFailedException;
 import com.ozz.atlas.auth.domain.LoginVerification;
 import com.ozz.atlas.auth.domain.User;
-import com.ozz.atlas.auth.repository.LoginVerificationRepository;
+import com.ozz.atlas.auth.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Transactional
@@ -18,25 +23,29 @@ public class LoginVerificationService {
 
     // 인증 코드는 3분 안에 입력
     private static final int EXPIRE_MINUTES = 3;
+    private static final String VERIFICATION_KEY_PREFIX = "auth:login-verification:";
+    private static final String USER_INDEX_KEY_PREFIX = "auth:login-verification:user:";
 
-    private final LoginVerificationRepository loginVerificationRepository;
+    private final StringRedisTemplate verificationRedisTemplate;
+    private final UserRepository userRepository;
     private final CredentialMailService credentialMailService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
     public LoginVerificationService(
-            LoginVerificationRepository loginVerificationRepository,
+            @Qualifier("authVerificationStringRedisTemplate") StringRedisTemplate verificationRedisTemplate,
+            UserRepository userRepository,
             CredentialMailService credentialMailService
     ) {
-        this.loginVerificationRepository = loginVerificationRepository;
+        this.verificationRedisTemplate = verificationRedisTemplate;
+        this.userRepository = userRepository;
         this.credentialMailService = credentialMailService;
     }
 
     // 새 IP 로그인용 이메일 인증 요청을 생성
     public LoginVerification createVerification(User user, String ipAddress, String userAgent) {
-        // 이전에 남아 있던 같은 사용자 인증 요청은 지움
-        loginVerificationRepository.deleteByUser(user);
+        deletePreviousVerification(user.getUserId());
 
         // 6자리 숫자 코드를 만듬
         String verificationCode = generateVerificationCode();
@@ -57,7 +66,21 @@ public class LoginVerificationService {
                 .expiresAt(expiresAt)
                 .build();
 
-        loginVerificationRepository.save(verification);
+        String key = verificationKey(verificationRequestId);
+        Map<String, String> verificationPayload = new HashMap<>();
+        verificationPayload.put("userId", String.valueOf(user.getUserId()));
+        verificationPayload.put("verificationCode", verificationCode);
+        verificationPayload.put("ipAddress", ipAddress != null ? ipAddress : "UNKNOWN");
+        verificationPayload.put("userAgent", userAgent != null ? userAgent : "UNKNOWN");
+        verificationPayload.put("expiresAt", expiresAt.toString());
+        verificationRedisTemplate.opsForHash().putAll(key, verificationPayload);
+        verificationRedisTemplate.expire(key, EXPIRE_MINUTES, TimeUnit.MINUTES);
+        verificationRedisTemplate.opsForValue().set(
+                userIndexKey(user.getUserId()),
+                verificationRequestId,
+                EXPIRE_MINUTES,
+                TimeUnit.MINUTES
+        );
 
         // 사용자 이메일로 인증 코드를 보냄
         credentialMailService.sendLoginVerificationMail(
@@ -72,16 +95,21 @@ public class LoginVerificationService {
 
     // 인증 요청을 검증
     public LoginVerification verify(String verificationRequestId, String verificationCode) {
-        // 요청 ID 로 인증 요청을 찾습니다.
-        LoginVerification verification = loginVerificationRepository.findById(verificationRequestId)
+        String key = verificationKey(verificationRequestId);
+        Map<Object, Object> storedVerification = verificationRedisTemplate.opsForHash().entries(key);
+        if (storedVerification.isEmpty()) {
+            throw new IllegalArgumentException("인증 요청을 찾을 수 없습니다. 다시 로그인해 주세요.");
+        }
+
+        Long userId = Long.valueOf((String) storedVerification.get("userId"));
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("인증 요청을 찾을 수 없습니다. 다시 로그인해 주세요."));
 
-        // user 프록시를 먼저 꺼냅니다.
-        User user = verification.getUser();
+        LocalDateTime expiresAt = LocalDateTime.parse((String) storedVerification.get("expiresAt"));
 
         // 만료됐으면 실패 처리하고 요청을 지웁니다.
-        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
-            loginVerificationRepository.delete(verification);
+        if (expiresAt.isBefore(LocalDateTime.now())) {
+            deleteVerification(verificationRequestId, userId);
 
             throw new LoginFailedException(
                     "이메일 인증 시간이 만료되었습니다. 다시 로그인해 주세요.",
@@ -91,8 +119,8 @@ public class LoginVerificationService {
         }
 
         // 코드가 다르면 실패 처리하고 요청을 지웁니다.
-        if (!verification.getVerificationCode().equals(verificationCode)) {
-            loginVerificationRepository.delete(verification);
+        if (!storedVerification.get("verificationCode").equals(verificationCode)) {
+            deleteVerification(verificationRequestId, userId);
 
             throw new LoginFailedException(
                     "이메일 인증 코드가 올바르지 않습니다. 다시 로그인해 주세요.",
@@ -105,19 +133,47 @@ public class LoginVerificationService {
         // open-in-view=false 라서 여기서 미리 organization 을 초기화해 둡니다.
         user.getOrganization().getPublicId();
 
-        return verification;
+        return LoginVerification.builder()
+                .verificationRequestId(verificationRequestId)
+                .user(user)
+                .verificationCode((String) storedVerification.get("verificationCode"))
+                .ipAddress((String) storedVerification.get("ipAddress"))
+                .userAgent((String) storedVerification.get("userAgent"))
+                .expiresAt(expiresAt)
+                .build();
     }
 
 
 
     // 인증이 끝난 요청은 삭제
     public void consume(LoginVerification verification) {
-        loginVerificationRepository.delete(verification);
+        deleteVerification(verification.getVerificationRequestId(), verification.getUser().getUserId());
     }
 
     // 6자리 숫자 인증 코드를 생성
     private String generateVerificationCode() {
         int number = secureRandom.nextInt(900000) + 100000;
         return String.valueOf(number);
+    }
+
+    private void deletePreviousVerification(Long userId) {
+        String previousRequestId = verificationRedisTemplate.opsForValue().get(userIndexKey(userId));
+        if (previousRequestId != null) {
+            verificationRedisTemplate.delete(verificationKey(previousRequestId));
+        }
+        verificationRedisTemplate.delete(userIndexKey(userId));
+    }
+
+    private void deleteVerification(String verificationRequestId, Long userId) {
+        verificationRedisTemplate.delete(verificationKey(verificationRequestId));
+        verificationRedisTemplate.delete(userIndexKey(userId));
+    }
+
+    private String verificationKey(String verificationRequestId) {
+        return VERIFICATION_KEY_PREFIX + verificationRequestId;
+    }
+
+    private String userIndexKey(Long userId) {
+        return USER_INDEX_KEY_PREFIX + userId;
     }
 }
