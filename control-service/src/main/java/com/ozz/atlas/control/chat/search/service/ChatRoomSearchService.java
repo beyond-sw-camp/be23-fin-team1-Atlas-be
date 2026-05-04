@@ -113,9 +113,10 @@ public class ChatRoomSearchService {
                         .orElse(null);
 
                 if (participant != null) {
-                    unreadCount = chatMessageRepository.countUnreadMessages(
+                    unreadCount = chatMessageRepository.countVisibleUnreadMessages(
                             chatRoom,
-                            participant.getLastReadMessageId()
+                            participant.getLastReadMessageId(),
+                            participant.getVisibleFromAt()
                     );
                 }
             }

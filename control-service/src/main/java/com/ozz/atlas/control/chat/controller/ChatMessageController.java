@@ -55,8 +55,9 @@ public class ChatMessageController {
     public ResponseEntity<Page<ChatMessageDto>> getMessages(
             @PathVariable String roomPublicId,
             @RequestParam(required = false) String cursor,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String userPublicId,
             @PageableDefault(size = 50) Pageable pageable) {
-        return ResponseEntity.ok(chatMessageService.getMessageHistory(roomPublicId, cursor, pageable));
+        return ResponseEntity.ok(chatMessageService.getMessageHistory(roomPublicId, cursor, userPublicId, pageable));
     }
 
     /**
