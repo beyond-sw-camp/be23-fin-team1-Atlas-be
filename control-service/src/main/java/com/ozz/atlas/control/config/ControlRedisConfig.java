@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ozz.atlas.control.chat.service.RedisSubscriber;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,18 +25,21 @@ import org.springframework.util.StringUtils;
 @Configuration
 public class ControlRedisConfig {
 
-    private static final int NOTIFICATION_DATABASE = 2;
-    private static final int CHAT_DATABASE = 3;
+    @Value("${atlas.redis.notification.database:2}")
+    private int notificationDatabase;
+
+    @Value("${atlas.redis.chat.database:3}")
+    private int chatDatabase;
 
     @Bean
     public RedisConnectionFactory notificationRedisConnectionFactory(RedisProperties redisProperties) {
-        return redisConnectionFactory(redisProperties, NOTIFICATION_DATABASE);
+        return redisConnectionFactory(redisProperties, notificationDatabase);
     }
 
     @Primary
     @Bean
     public RedisConnectionFactory chatRedisConnectionFactory(RedisProperties redisProperties) {
-        return redisConnectionFactory(redisProperties, CHAT_DATABASE);
+        return redisConnectionFactory(redisProperties, chatDatabase);
     }
 
     @Bean

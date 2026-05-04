@@ -31,6 +31,12 @@ spring:
       security.protocol: ${SPRING_KAFKA_SECURITY_PROTOCOL:SASL_PLAINTEXT}
       sasl.mechanism: ${SPRING_KAFKA_SASL_MECHANISM:PLAIN}
       sasl.jaas.config: ${SPRING_KAFKA_SASL_JAAS_CONFIG}
+atlas:
+  redis:
+    notification:
+      database: ${ATLAS_REDIS_NOTIFICATION_DATABASE:2}
+    chat:
+      database: ${ATLAS_REDIS_CHAT_DATABASE:3}
 supply-service:
   url: http://supply-service:8080/
 server:

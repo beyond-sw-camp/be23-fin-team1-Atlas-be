@@ -36,6 +36,11 @@ atlas:
   mail:
     # 발신자 주소입니다.
     from: ${ATLAS_MAIL_FROM:${SPRING_MAIL_USERNAME}}
+  redis:
+    verification:
+      database: ${ATLAS_REDIS_VERIFICATION_DATABASE:0}
+    session:
+      database: ${ATLAS_REDIS_SESSION_DATABASE:1}
 
 server:
   port: 8080

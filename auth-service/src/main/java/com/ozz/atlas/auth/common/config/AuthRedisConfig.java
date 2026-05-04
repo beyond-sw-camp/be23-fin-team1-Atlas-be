@@ -1,6 +1,7 @@
 package com.ozz.atlas.auth.common.config;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,18 +16,21 @@ import org.springframework.util.StringUtils;
 @Configuration
 public class AuthRedisConfig {
 
-    private static final int VERIFICATION_DATABASE = 0;
-    private static final int SESSION_DATABASE = 1;
+    @Value("${atlas.redis.verification.database:0}")
+    private int verificationDatabase;
+
+    @Value("${atlas.redis.session.database:1}")
+    private int sessionDatabase;
 
     @Bean
     public RedisConnectionFactory authVerificationRedisConnectionFactory(RedisProperties redisProperties) {
-        return redisConnectionFactory(redisProperties, VERIFICATION_DATABASE);
+        return redisConnectionFactory(redisProperties, verificationDatabase);
     }
 
     @Primary
     @Bean
     public RedisConnectionFactory authSessionRedisConnectionFactory(RedisProperties redisProperties) {
-        return redisConnectionFactory(redisProperties, SESSION_DATABASE);
+        return redisConnectionFactory(redisProperties, sessionDatabase);
     }
 
     @Bean
