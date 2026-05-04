@@ -2,6 +2,7 @@ package com.ozz.atlas.control.chat.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ChatPresenceService {
 
+    @Qualifier("chatRedisTemplate")
     private final RedisTemplate<String, Object> redisTemplate;
     private static final String PRESENCE_KEY_PREFIX = "chat:presence:room:";
 

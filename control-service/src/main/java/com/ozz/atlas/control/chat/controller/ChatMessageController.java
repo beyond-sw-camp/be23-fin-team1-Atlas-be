@@ -1,15 +1,11 @@
 package com.ozz.atlas.control.chat.controller;
 
 import com.ozz.atlas.control.chat.dto.ChatMessageDto;
-import com.ozz.atlas.control.chat.dto.ChatTypingDto;
 import com.ozz.atlas.control.chat.service.ChatMessageService;
 import com.ozz.atlas.control.chat.search.service.ChatMessageSearchService;
-import com.ozz.atlas.control.config.RedisConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -24,7 +20,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class ChatMessageController {
 
     private final ChatMessageService chatMessageService;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final ChatMessageSearchService chatMessageSearchService;
 
 
@@ -49,28 +44,6 @@ public class ChatMessageController {
         
         // 메시지 저장 및 Redis를 통한 브로드캐스트
         chatMessageService.saveAndPublish(message);
-    }
-
-    /**
-     * 타이핑 상태 발행 엔드포인트: /pub/chat.typing.{roomPublicId}
-     * (DB 저장 없이 Redis Pub/Sub만 사용하여 휘발성 상태 브로드캐스트)
-     */
-    @MessageMapping("/chat.typing.{roomPublicId}")
-    public void typing(
-            @DestinationVariable String roomPublicId, 
-            ChatTypingDto typingDto, 
-            org.springframework.messaging.simp.SimpMessageHeaderAccessor headerAccessor
-    ) {
-        typingDto.setRoomPublicId(roomPublicId);
-
-        java.util.Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
-        if (sessionAttributes != null && sessionAttributes.containsKey("userPublicId")) {
-            typingDto.setUserPublicId((String) sessionAttributes.get("userPublicId"));
-        }
-
-        // Redis 토픽으로 타이핑 상태 브로드캐스트
-        String topic = RedisConstants.getChatTypingTopic(roomPublicId);
-        redisTemplate.convertAndSend(topic, typingDto);
     }
 
     /**

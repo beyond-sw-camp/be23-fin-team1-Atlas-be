@@ -7,8 +7,9 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -17,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class JwtTokenProvider {
+
+    private static final String REFRESH_TOKEN_KEY_PREFIX = "auth:refresh-token:";
 
     @Value("${jwt.access-token-secret}")
     private String accessTokenSecret;
@@ -30,13 +33,13 @@ public class JwtTokenProvider {
     @Value("${jwt.refresh-token-expiration-ms}")
     private long refreshTokenExpirationMs;
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
 
     private SecretKey accessKey;
 
     private SecretKey refreshKey;
 
-    public JwtTokenProvider(RedisTemplate<String, String> redisTemplate) {
+    public JwtTokenProvider(@Qualifier("authSessionStringRedisTemplate") StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
@@ -99,9 +102,9 @@ public class JwtTokenProvider {
                 .signWith(refreshKey)
                 .compact();
 
-        // Redis에 userId를 key로 해서 refresh token 저장
+        // Redis DB 1에 userId를 key로 해서 refresh token 저장
         redisTemplate.opsForValue().set(
-                String.valueOf(userId),
+                refreshTokenKey(userId),
                 refreshToken,
                 refreshTokenExpirationMs,
                 TimeUnit.MILLISECONDS
@@ -122,8 +125,8 @@ public class JwtTokenProvider {
 
             String userId = claims.getSubject();
 
-            // Redis에 저장된 refresh token과 비교
-            String savedToken = redisTemplate.opsForValue().get(userId);
+            // Redis DB 1에 저장된 refresh token과 비교
+            String savedToken = redisTemplate.opsForValue().get(refreshTokenKey(Long.valueOf(userId)));
 
             return refreshToken.equals(savedToken);
         } catch (JwtException | IllegalArgumentException e) {
@@ -179,7 +182,11 @@ public class JwtTokenProvider {
     }
 
     public void revokeRefreshToken(Long userId) {
-        redisTemplate.delete(String.valueOf(userId));
+        redisTemplate.delete(refreshTokenKey(userId));
+    }
+
+    private String refreshTokenKey(Long userId) {
+        return REFRESH_TOKEN_KEY_PREFIX + userId;
     }
 
 }
