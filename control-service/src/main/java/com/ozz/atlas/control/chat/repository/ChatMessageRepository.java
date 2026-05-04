@@ -23,7 +23,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     @Query("""
             SELECT m FROM ChatMessage m
             WHERE m.chatRoom = :chatRoom
-              AND (:visibleFromAt IS NULL OR m.createdAt >= :visibleFromAt)
+              AND m.createdAt >= :visibleFromAt
             ORDER BY m.id DESC
             """)
     Page<ChatMessage> findVisibleByChatRoomOrderByIdDesc(
@@ -36,7 +36,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             SELECT m FROM ChatMessage m
             WHERE m.chatRoom = :chatRoom
               AND m.id < :id
-              AND (:visibleFromAt IS NULL OR m.createdAt >= :visibleFromAt)
+              AND m.createdAt >= :visibleFromAt
             ORDER BY m.id DESC
             """)
     Page<ChatMessage> findVisibleByChatRoomAndIdLessThanOrderByIdDesc(
@@ -53,7 +53,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             SELECT COUNT(m) FROM ChatMessage m
             WHERE m.chatRoom = :chatRoom
               AND m.id > COALESCE(:lastReadMessageId, 0)
-              AND (:visibleFromAt IS NULL OR m.createdAt >= :visibleFromAt)
+              AND m.createdAt >= :visibleFromAt
             """)
     Long countVisibleUnreadMessages(
             @Param("chatRoom") ChatRoom chatRoom,
@@ -66,7 +66,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     @Query("""
             SELECT m FROM ChatMessage m
             WHERE m.chatRoom = :chatRoom
-              AND (:visibleFromAt IS NULL OR m.createdAt >= :visibleFromAt)
+              AND m.createdAt >= :visibleFromAt
             ORDER BY m.id DESC
             """)
     List<ChatMessage> findLatestVisibleByChatRoom(
