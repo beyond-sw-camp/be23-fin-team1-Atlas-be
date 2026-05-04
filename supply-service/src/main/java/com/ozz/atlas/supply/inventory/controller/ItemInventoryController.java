@@ -34,6 +34,21 @@ public class ItemInventoryController {
         return ResponseEntity.ok(itemInventoryService.getInventories(organizationPublicId, organizationType));
     }
 
+    @GetMapping("/{inventoryPublicId}")
+    public ResponseEntity<?> getInventory(
+            @PathVariable String inventoryPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                itemInventoryService.getInventory(
+                        organizationPublicId,
+                        organizationType,
+                        inventoryPublicId
+                )
+        );
+    }
+
     @PutMapping("/{inventoryPublicId}")
     public ResponseEntity<?> updateInventory(
             @PathVariable String inventoryPublicId,

@@ -72,6 +72,27 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
             @Param("today") LocalDate today
     );
 
+    @Query("""
+        select count(inv)
+        from SupplyItemInventory inv
+        where inv.supplier.organizationPublicId = :organizationPublicId
+          and inv.status in :statuses
+    """)
+    long countAttentionInventoryByOrganizationPublicId(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("statuses") Collection<InventoryStatus> statuses
+    );
+
+    @Query("""
+        select inv.publicId
+        from SupplyItemInventory inv
+        where inv.supplier.organizationPublicId = :organizationPublicId
+          and inv.status in :statuses
+    """)
+    List<String> findAttentionInventoryPublicIdsByOrganizationPublicId(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("statuses") Collection<InventoryStatus> statuses
+    );
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
     select inv
