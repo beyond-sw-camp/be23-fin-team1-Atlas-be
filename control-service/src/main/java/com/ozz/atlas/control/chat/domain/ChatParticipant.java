@@ -35,7 +35,7 @@ public class ChatParticipant extends BaseTimeEntity {
     @Column(name = "last_read_message_id")
     private Long lastReadMessageId;
 
-    @Column(name = "visible_from_at")
+    @Column(name = "visible_from_at", nullable = false)
     private LocalDateTime visibleFromAt;
 
     @Column(name = "active_yn", nullable = false)
@@ -44,6 +44,9 @@ public class ChatParticipant extends BaseTimeEntity {
     @PrePersist
     public void prePersist() {
         this.activeYn = true;
+        if (this.visibleFromAt == null) {
+            this.visibleFromAt = LocalDateTime.now();
+        }
     }
 
     public void activateFrom(LocalDateTime visibleFromAt) {

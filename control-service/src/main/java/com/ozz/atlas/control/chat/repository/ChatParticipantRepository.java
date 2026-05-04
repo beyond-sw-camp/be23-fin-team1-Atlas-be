@@ -42,7 +42,7 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
               AND cp.activeYn = true
               AND (cp.lastReadMessageId IS NULL OR cp.lastReadMessageId < :messageId)
               AND cp.createdAt <= (SELECT cm.createdAt FROM ChatMessage cm WHERE cm.id = :messageId)
-              AND (cp.visibleFromAt IS NULL OR cp.visibleFromAt <= (SELECT cm.createdAt FROM ChatMessage cm WHERE cm.id = :messageId))
+              AND cp.visibleFromAt <= (SELECT cm.createdAt FROM ChatMessage cm WHERE cm.id = :messageId)
             """)
     long countUnreadParticipants(@Param("chatRoom") ChatRoom chatRoom, @Param("messageId") Long messageId);
 }

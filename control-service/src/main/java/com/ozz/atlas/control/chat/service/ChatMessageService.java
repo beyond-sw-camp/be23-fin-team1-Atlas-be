@@ -269,11 +269,13 @@ public class ChatMessageService {
      */
     public Page<ChatMessageDto> getMessageHistory(String roomPublicId, String cursor, String userPublicId, Pageable pageable) {
         ChatRoom chatRoom = chatRoomService.findRoomByPublicId(roomPublicId);
-        LocalDateTime visibleFromAt = StringUtils.hasText(userPublicId)
-                ? chatParticipantRepository.findByChatRoomAndUserPublicId(chatRoom, userPublicId)
-                        .map(ChatParticipant::getVisibleFromAt)
-                        .orElse(null)
-                : null;
+        if (!StringUtils.hasText(userPublicId)) {
+            throw new IllegalArgumentException("채팅 메시지 조회 사용자 정보가 없습니다.");
+        }
+
+        LocalDateTime visibleFromAt = chatParticipantRepository.findByChatRoomAndUserPublicId(chatRoom, userPublicId)
+                .map(ChatParticipant::getVisibleFromAt)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방 참여자 정보가 없습니다."));
         
         if (StringUtils.hasText(cursor)) {
             // 커서가 존재할 경우: 커서 메시지의 PK 조회 후 그 이전 메시지들 반환
