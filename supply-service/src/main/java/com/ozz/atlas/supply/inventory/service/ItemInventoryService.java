@@ -71,6 +71,16 @@ public class ItemInventoryService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public ItemInventoryResponse getInventory(
+            String organizationPublicId,
+            String organizationType,
+            String inventoryPublicId
+    ) {
+        SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
+        return ItemInventoryResponse.from(getOwnedInventory(supplier, inventoryPublicId));
+    }
+
     public ItemInventoryResponse updateInventory(
             String organizationPublicId,
             String organizationType,

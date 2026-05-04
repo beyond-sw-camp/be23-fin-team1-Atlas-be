@@ -148,4 +148,32 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             @Param("organizationPublicId") String organizationPublicId
     );
 
+    @Query("""
+        select count(s)
+        from Settlement s
+        where s.settlementStatus = :settlementStatus
+          and (
+              s.buyerOrganizationPublicId = :organizationPublicId
+              or s.supplierOrganizationPublicId = :organizationPublicId
+          )
+    """)
+    long countReadableByOrganizationPublicIdAndStatus(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("settlementStatus") SettlementStatus settlementStatus
+    );
+
+    @Query("""
+        select s.publicId
+        from Settlement s
+        where s.settlementStatus = :settlementStatus
+          and (
+              s.buyerOrganizationPublicId = :organizationPublicId
+              or s.supplierOrganizationPublicId = :organizationPublicId
+          )
+    """)
+    List<String> findReadablePublicIdsByOrganizationPublicIdAndStatus(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("settlementStatus") SettlementStatus settlementStatus
+    );
+
 }

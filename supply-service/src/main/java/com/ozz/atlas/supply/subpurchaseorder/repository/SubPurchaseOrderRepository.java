@@ -142,6 +142,36 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
     );
 
     @Query("""
+    select count(subPo)
+    from SupplySubPurchaseOrder subPo
+    where subPo.subPoStatus in :statuses
+      and (
+          subPo.parentPurchaseOrder.buyerOrganizationPublicId = :organizationPublicId
+          or subPo.parentPurchaseOrder.supplier.organizationPublicId = :organizationPublicId
+          or subPo.supplier.organizationPublicId = :organizationPublicId
+      )
+    """)
+    long countReadableByOrganizationPublicIdAndStatuses(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("statuses") Collection<SubPoStatus> statuses
+    );
+
+    @Query("""
+    select subPo.publicId
+    from SupplySubPurchaseOrder subPo
+    where subPo.subPoStatus in :statuses
+      and (
+          subPo.parentPurchaseOrder.buyerOrganizationPublicId = :organizationPublicId
+          or subPo.parentPurchaseOrder.supplier.organizationPublicId = :organizationPublicId
+          or subPo.supplier.organizationPublicId = :organizationPublicId
+      )
+    """)
+    List<String> findReadablePublicIdsByOrganizationPublicIdAndStatuses(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("statuses") Collection<SubPoStatus> statuses
+    );
+
+    @Query("""
     select coalesce(sum(subPo.totalAmount), 0)
     from SupplySubPurchaseOrder subPo
     where subPo.parentPurchaseOrder.supplier.organizationPublicId = :issuerOrganizationPublicId

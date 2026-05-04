@@ -158,5 +158,19 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
             @Param("statuses") Collection<PoStatus> statuses
     );
 
+    @Query("""
+    select po.publicId
+    from SupplyPurchaseOrder po
+    where po.poStatus in :statuses
+      and (
+            po.buyerOrganizationPublicId = :organizationPublicId
+            or po.supplier.organizationPublicId = :organizationPublicId
+      )
+    """)
+    List<String> findRelatedPurchaseOrderPublicIdsByStatuses(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("statuses") Collection<PoStatus> statuses
+    );
+
 
 }

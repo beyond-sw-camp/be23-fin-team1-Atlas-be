@@ -4,6 +4,8 @@ import com.ozz.atlas.supply.supplier.relation.domain.SupplierRelationStatus;
 import com.ozz.atlas.supply.supplier.relation.domain.SupplySupplierRelation;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -45,5 +47,33 @@ public interface SupplierRelationRepository extends JpaRepository<SupplySupplier
             String publicId,
             Long parentSupplierId,
             Collection<SupplierRelationStatus> relationStatuses
+    );
+
+    @Query("""
+        select count(rel)
+        from SupplySupplierRelation rel
+        where rel.relationStatus in :relationStatuses
+          and (
+              rel.parentSupplier.organizationPublicId = :organizationPublicId
+              or rel.childSupplier.organizationPublicId = :organizationPublicId
+          )
+    """)
+    long countAttentionRelationsByOrganizationPublicId(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("relationStatuses") Collection<SupplierRelationStatus> relationStatuses
+    );
+
+    @Query("""
+        select rel.publicId
+        from SupplySupplierRelation rel
+        where rel.relationStatus in :relationStatuses
+          and (
+              rel.parentSupplier.organizationPublicId = :organizationPublicId
+              or rel.childSupplier.organizationPublicId = :organizationPublicId
+          )
+    """)
+    List<String> findAttentionRelationPublicIdsByOrganizationPublicId(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("relationStatuses") Collection<SupplierRelationStatus> relationStatuses
     );
 }

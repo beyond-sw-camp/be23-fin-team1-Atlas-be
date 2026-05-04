@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import com.ozz.atlas.control.kafka.log.search.dtos.EventLogSearchDto;
 import com.ozz.atlas.control.kafka.log.search.dtos.EventLogSearchResponse;
 import com.ozz.atlas.control.kafka.log.search.service.EventLogSearchService;
@@ -103,9 +105,17 @@ public class KafkaMonitoringController {
     )
     public ResponseEntity<PageResponse<EventLogSearchResponse>> getEventLogs(
             EventLogSearchDto searchDto,
-            @PageableDefault(size = 20) Pageable pageable
+            @PageableDefault(size = 20) Pageable pageable,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType
     ) {
+        requirePlatformAdmin(userRole, organizationType);
         return ResponseEntity.ok(PageResponse.from(eventLogSearchService.search(pageable, searchDto)));
     }
 
+    private void requirePlatformAdmin(String userRole, String organizationType) {
+        if (!"ADMIN".equalsIgnoreCase(userRole) || !"ADMIN".equalsIgnoreCase(organizationType)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "플랫폼 관리자만 접근할 수 있습니다.");
+        }
+    }
 }
