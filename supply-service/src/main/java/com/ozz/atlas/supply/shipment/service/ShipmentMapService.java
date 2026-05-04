@@ -5,6 +5,7 @@ import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.shipment.domain.CheckpointType;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentCheckpoint;
+import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentMapCheckpointDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentMapResponseDto;
@@ -176,6 +177,8 @@ public class ShipmentMapService {
         return ShipmentMapResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
+                .sourceType(resolveSourceType(shipment))
+                .sourcePublicId(shipment.getSourcePublicId())
                 .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
                 .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
                 .carrierName(shipment.getCarrierName())
@@ -244,5 +247,9 @@ public class ShipmentMapService {
                 .longitude(node != null ? node.getLongitude() : null)
                 .note(checkpoint.getNote())
                 .build();
+    }
+
+    private ShipmentSourceType resolveSourceType(Shipment shipment) {
+        return shipment.getSourceType() != null ? shipment.getSourceType() : ShipmentSourceType.ORDER;
     }
 }

@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
+import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
 import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
@@ -166,6 +167,8 @@ public class ShipmentSearchService {
         return ShipmentListResponseDto.builder()
                 .publicId(document.getPublicId())
                 .shipmentNumber(document.getShipmentNumber())
+                .sourceType(document.getSourceType() != null ? document.getSourceType() : ShipmentSourceType.ORDER)
+                .sourcePublicId(document.getSourcePublicId())
                 .purchaseOrderPublicId(document.getPurchaseOrderPublicId())
                 .subPurchaseOrderPublicId(document.getSubPurchaseOrderPublicId())
                 .carrierName(document.getCarrierName())
@@ -178,8 +181,12 @@ public class ShipmentSearchService {
                 .currentNodePublicId(document.getCurrentNodePublicId())
                 .currentNodeName(document.getCurrentNodeName())
                 .currentNodeCode(document.getCurrentNodeCode())
+                .departureEta(document.getDepartureEta())
                 .arrivalEta(document.getArrivalEta())
                 .status(document.getStatus())
+                .temperatureRequired(Boolean.TRUE.equals(document.getTemperatureRequired()))
+                .sealedPackagingRequired(Boolean.TRUE.equals(document.getSealedPackagingRequired()))
+                .fragile(Boolean.TRUE.equals(document.getFragile()))
                 .build();
     }
 

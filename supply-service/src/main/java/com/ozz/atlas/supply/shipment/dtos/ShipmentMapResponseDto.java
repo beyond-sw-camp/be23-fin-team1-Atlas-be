@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.shipment.dtos;
 
 import com.ozz.atlas.supply.shipment.domain.CheckpointType;
 import com.ozz.atlas.supply.shipment.domain.EtaBasis;
+import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,12 @@ public class ShipmentMapResponseDto {
 
     @Schema(description = "출하 번호", example = "SHIP-PO-20260424-0001-001")
     private String shipmentNumber;
+
+    @Schema(description = "출하 유형", example = "ORDER")
+    private ShipmentSourceType sourceType;
+
+    @Schema(description = "출하 기준 공개 식별자", example = "01HZY1SOURCE12345678901234", nullable = true)
+    private String sourcePublicId;
 
     @Schema(description = "상위 발주 공개 식별자", example = "po_01HZY1PO123456789", nullable = true)
     private String purchaseOrderPublicId;
