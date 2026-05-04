@@ -45,19 +45,14 @@ public class ControlRedisConfig {
     @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
             @Qualifier("chatRedisConnectionFactory") RedisConnectionFactory connectionFactory,
-            MessageListenerAdapter listenerAdapter) {
+            RedisSubscriber subscriber) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
 
-        container.addMessageListener(listenerAdapter, new PatternTopic(RedisConstants.CHAT_ROOM_TOPIC_PREFIX + "*"));
-        container.addMessageListener(listenerAdapter, new PatternTopic(RedisConstants.NOTIFY_USER_TOPIC_PREFIX + "*"));
+        container.addMessageListener(subscriber, new PatternTopic(RedisConstants.CHAT_ROOM_TOPIC_PREFIX + "*"));
+        container.addMessageListener(subscriber, new PatternTopic(RedisConstants.NOTIFY_USER_TOPIC_PREFIX + "*"));
 
         return container;
-    }
-
-    @Bean
-    public MessageListenerAdapter listenerAdapter(RedisSubscriber subscriber) {
-        return new MessageListenerAdapter(subscriber, "onMessage");
     }
 
     @Bean
