@@ -223,6 +223,8 @@ public class ChatRoomService {
     @Transactional
     public void leaveRoom(String roomPublicId, String targetUserPublicId) {
         ChatRoom chatRoom = findRoomByPublicId(roomPublicId);
+        List<ChatParticipant> participants = chatParticipantRepository.findByChatRoom(chatRoom);
+        boolean directRoom = participants.size() == 2;
         
         // 해당 유저를 비활성(soft delete) 처리
         chatParticipantRepository.deactivateParticipant(chatRoom, targetUserPublicId);
@@ -234,12 +236,14 @@ public class ChatRoomService {
         chatParticipantRepository.findByChatRoomAndUserPublicId(chatRoom, targetUserPublicId)
                 .ifPresent(chatParticipantSearchService::saveChatParticipantDocument);
 
-        // 시스템 이벤트 발행 (퇴장 메시지용)
-        eventPublisher.publishEvent(ChatSystemEvent.builder()
-                .roomPublicId(roomPublicId)
-                .messageType(MessageType.SYSTEM_LEAVE)
-                .targetUserPublicIds(List.of(targetUserPublicId))
-                .build());
+        if (!directRoom) {
+            // 시스템 이벤트 발행 (퇴장 메시지용)
+            eventPublisher.publishEvent(ChatSystemEvent.builder()
+                    .roomPublicId(roomPublicId)
+                    .messageType(MessageType.SYSTEM_LEAVE)
+                    .targetUserPublicIds(List.of(targetUserPublicId))
+                    .build());
+        }
         chatRoomSearchService.saveChatRoomDocument(chatRoom);
     }
 
