@@ -75,4 +75,26 @@ public class ItemInventoryController {
         itemInventoryService.deleteInventory(organizationPublicId, organizationType, inventoryPublicId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/summary")
+    public ResponseEntity<?> getInventorySummary(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                itemInventoryService.getInventorySummary(organizationPublicId, organizationType)
+        );
+    }
+
+    @GetMapping("/items/{itemPublicId}")
+    public ResponseEntity<?> getItemInventories(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @PathVariable String itemPublicId
+    ) {
+        return ResponseEntity.ok(
+                itemInventoryService.getItemInventories(organizationPublicId, organizationType, itemPublicId)
+        );
+    }
+
 }

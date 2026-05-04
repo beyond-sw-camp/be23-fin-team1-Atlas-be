@@ -69,6 +69,11 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
             Pageable pageable
     );
 
+    List<SupplyPurchaseOrder> findAllBySupplier_OrganizationPublicIdAndPoStatusNot(
+            String organizationPublicId,
+            PoStatus poStatus
+    );
+
     Page<SupplyPurchaseOrder> findAllBySupplier_OrganizationPublicIdAndSupplier_PublicIdAndPoStatusNot(
             String organizationPublicId,
             String supplierPublicId,

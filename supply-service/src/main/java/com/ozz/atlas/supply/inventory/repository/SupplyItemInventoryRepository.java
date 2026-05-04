@@ -93,4 +93,60 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
             @Param("organizationPublicId") String organizationPublicId,
             @Param("statuses") Collection<InventoryStatus> statuses
     );
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+    select inv
+    from SupplyItemInventory inv
+    where inv.supplier.id = :supplierId
+      and inv.item.id = :itemId
+      and inv.status in :statuses
+      and inv.expirationDate >= :today
+      and inv.remainingQty > 0
+    order by inv.expirationDate asc, inv.manufacturedDate asc, inv.inventoryId asc
+""")
+    List<SupplyItemInventory> findAvailableForDeductUpdate(
+            @Param("supplierId") Long supplierId,
+            @Param("itemId") Long itemId,
+            @Param("statuses") Collection<InventoryStatus> statuses,
+            @Param("today") LocalDate today
+    );
+
+    @Query("""
+    select coalesce(sum(inv.remainingQty), 0)
+    from SupplyItemInventory inv
+    where inv.supplier.organizationPublicId = :organizationPublicId
+      and inv.status <> com.ozz.atlas.supply.inventory.domain.InventoryStatus.DELETED
+""")
+    Long sumRemainingQtyByOrganizationPublicId(@Param("organizationPublicId") String organizationPublicId);
+
+    @Query("""
+    select coalesce(sum(inv.reservedQty), 0)
+    from SupplyItemInventory inv
+    where inv.supplier.organizationPublicId = :organizationPublicId
+      and inv.status <> com.ozz.atlas.supply.inventory.domain.InventoryStatus.DELETED
+""")
+    Long sumReservedQtyByOrganizationPublicId(@Param("organizationPublicId") String organizationPublicId);
+
+    @Query("""
+    select coalesce(sum(inv.remainingQty - inv.reservedQty), 0)
+    from SupplyItemInventory inv
+    where inv.supplier.organizationPublicId = :organizationPublicId
+      and inv.status in (
+        com.ozz.atlas.supply.inventory.domain.InventoryStatus.ACTIVE,
+        com.ozz.atlas.supply.inventory.domain.InventoryStatus.RESERVED
+      )
+      and inv.expirationDate >= :today
+""")
+    Long sumAvailableQtyByOrganizationPublicId(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("today") LocalDate today
+    );
+
+    @EntityGraph(attributePaths = {"supplier", "item"})
+    List<SupplyItemInventory> findAllBySupplier_OrganizationPublicIdAndItem_PublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
+            String organizationPublicId,
+            String itemPublicId,
+            InventoryStatus status
+    );
+
 }

@@ -5,6 +5,7 @@ import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.inventory.service.ItemInventoryService;
+import com.ozz.atlas.supply.item.domain.SupplyType;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
 import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
@@ -32,6 +33,8 @@ import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapabil
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
+import com.ozz.atlas.supply.supplier.relation.domain.SupplierRelationStatus;
+import com.ozz.atlas.supply.supplier.relation.service.SupplierRelationService;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -69,6 +72,8 @@ public class PurchaseOrderService {
     private final SupplyChainContextResolver supplyChainContextResolver;
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ItemInventoryService itemInventoryService;
+    private final SupplierRelationService supplierRelationService;
+
 
     public PurchaseOrderDetailResponse createPurchaseOrder(
                         String buyerOrganizationPublicId,
@@ -133,6 +138,7 @@ public class PurchaseOrderService {
 
 
         SupplyPurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        syncSupplierRelationIfBuyerIsSupplier(buyerOrganizationPublicId, supplier);
         purchaseOrderSearchService.savePurchaseOrderDocument(savedPurchaseOrder);
         appendPurchaseOrderEvent(
                 EventTypes.PURCHASE_ORDER_CREATED,
@@ -466,11 +472,19 @@ public class PurchaseOrderService {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_CONFIRM_QTY_INVALID);
         }
 
-        itemInventoryService.reserveConfirmedQty(
-                purchaseOrder.getSupplier(),
-                purchaseOrderItem.getItem(),
-                request.getConfirmedQty()
-        );
+        if (purchaseOrderItem.getItem().getSupplyType() == SupplyType.STOCK_BASED) {
+            itemInventoryService.reserveConfirmedQty(
+                    purchaseOrder.getSupplier(),
+                    purchaseOrderItem.getItem(),
+                    request.getConfirmedQty()
+            );
+        } else {
+            validateMakeToOrderCapacity(
+                    purchaseOrder.getSupplier(),
+                    purchaseOrderItem.getItem(),
+                    request.getConfirmedQty()
+            );
+        }
 
         purchaseOrderItem.confirm(request.getConfirmedQty());
         purchaseOrder.refreshAfterItemChanged();
@@ -800,6 +814,34 @@ public class PurchaseOrderService {
                 })
                 .toList();
     }
+
+    private void validateMakeToOrderCapacity(
+            SupplySupplier supplier,
+            SupplyItem item,
+            Long confirmedQty
+    ) {
+        SupplySupplierItemCapability capability = getCapability(supplier, item);
+
+        if (capability.getAvailableQty() == null || capability.getAvailableQty() < confirmedQty) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_CONFIRM_QTY_INVALID);
+        }
+    }
+
+    private void syncSupplierRelationIfBuyerIsSupplier(
+            String buyerOrganizationPublicId,
+            SupplySupplier orderSupplier
+    ) {
+        supplierRepository.findByOrganizationPublicId(buyerOrganizationPublicId)
+                .filter(buyerSupplier -> !buyerSupplier.getId().equals(orderSupplier.getId()))
+                .ifPresent(buyerSupplier ->
+                        supplierRelationService.syncRelationStatus(
+                                buyerSupplier,
+                                orderSupplier,
+                                SupplierRelationStatus.ACTIVE
+                        )
+                );
+    }
+
 
 
 

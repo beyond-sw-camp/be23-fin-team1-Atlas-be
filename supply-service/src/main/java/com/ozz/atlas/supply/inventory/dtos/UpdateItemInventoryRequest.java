@@ -15,9 +15,6 @@ public class UpdateItemInventoryRequest {
     private LocalDate manufacturedDate;
 
     @NotNull
-    private LocalDate expirationDate;
-
-    @NotNull
     @Positive
     private Long qty;
 

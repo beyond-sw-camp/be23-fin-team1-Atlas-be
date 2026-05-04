@@ -129,6 +129,11 @@ public class SubPurchaseOrderService {
 
         SupplySubPurchaseOrder savedSubPurchaseOrder = subPurchaseOrderRepository.save(subPurchaseOrder);
         syncRelationStatus(savedSubPurchaseOrder);
+        supplierRelationService.syncRelationStatus(
+                parentPurchaseOrder.getSupplier(),
+                savedSubPurchaseOrder.getSupplier(),
+                SupplierRelationStatus.ACTIVE
+        );
         appendSubPurchaseOrderEvent(
                 EventTypes.SUB_PURCHASE_ORDER_CREATED,
                 savedSubPurchaseOrder,

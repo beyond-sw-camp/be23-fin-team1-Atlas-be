@@ -10,7 +10,11 @@ import com.ozz.atlas.supply.item.exception.ItemErrorCode;
 import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderItemRepository;
+import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
+import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.relation.service.SupplierRelationService;
@@ -40,6 +44,10 @@ public class SupplyItemService {
     private final SupplierRelationService supplierRelationService;
     private static final List<Status> MANAGED_ITEM_STATUSES = List.of(Status.ACTIVE, Status.DEACTIVE);
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
+    private final LogisticsNodeRepository logisticsNodeRepository;
+    private final SupplierItemCapabilityRepository supplierItemCapabilityRepository;
+
+
 
     public ItemResponse createItem(
             String organizationPublicId,
@@ -54,15 +62,22 @@ public class SupplyItemService {
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_CATEGORY_NOT_FOUND));
 
+        LogisticsNode originLogisticsNode = resolveOriginLogisticsNode(
+                organizationPublicId,
+                request.getOriginLogisticsNodePublicId()
+        );
+
         SupplyItem item = SupplyItem.create(
                 supplier,
                 category,
+                originLogisticsNode,
                 generateNextItemCode(),
                 request.getItemName(),
                 request.getUnit(),
                 request.getUnitPrice(),
                 request.getSpec(),
-                request.getShelfLifeDays()
+                request.getShelfLifeDays(),
+                request.getSupplyType()
         );
 
         SupplyItem savedItem = supplyItemRepository.save(item);
@@ -99,11 +114,12 @@ public class SupplyItemService {
                 request.getUnit(),
                 request.getUnitPrice(),
                 request.getSpec(),
-                request.getShelfLifeDays()
+                request.getShelfLifeDays(),
+                request.getSupplyType()
         );
 
         itemSearchService.saveItemDocument(item);
-        return ItemResponse.fromEntity(item);
+        return toItemResponseWithCapability(item);
     }
 
     public void deleteItem(
@@ -132,13 +148,13 @@ public class SupplyItemService {
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
-        return ItemResponse.fromEntity(item);
+        return toItemResponseWithCapability(item);
     }
 
     @Transactional(readOnly = true)
     public Page<ItemResponse> getItemList(Pageable pageable) {
         return supplyItemRepository.findAllByStatus(Status.ACTIVE, pageable)
-                .map(ItemResponse::fromEntity);
+                .map(this::toItemResponseWithCapability);
     }
 
     private SupplySupplier getWritableSupplier(
@@ -243,7 +259,7 @@ public class SupplyItemService {
                 supplier.getOrganizationPublicId(),
                 MANAGED_ITEM_STATUSES,
                 pageable
-        ).map(ItemResponse::fromEntity);
+        ).map(this::toItemResponseWithCapability);
     }
 
     @Transactional(readOnly = true)
@@ -324,8 +340,35 @@ public class SupplyItemService {
 
         item.changeActiveYn(request.getStatus());
         itemSearchService.saveItemDocument(item);
-        return ItemResponse.fromEntity(item);
+        return toItemResponseWithCapability(item);
     }
+
+    private LogisticsNode resolveOriginLogisticsNode(
+            String organizationPublicId,
+            String originLogisticsNodePublicId
+    ) {
+        if (originLogisticsNodePublicId == null || originLogisticsNodePublicId.isBlank()) {
+            throw new ItemException(ItemErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        return logisticsNodeRepository.findByPublicIdAndOrganizationPublicIdAndActiveTrue(
+                        originLogisticsNodePublicId,
+                        organizationPublicId
+                )
+                .orElseThrow(() -> new ItemException(ItemErrorCode.INVALID_INPUT_VALUE));
+    }
+
+    private ItemResponse toItemResponseWithCapability(SupplyItem item) {
+        SupplySupplierItemCapability capability = supplierItemCapabilityRepository
+                .findBySupplier_IdAndItem_Id(
+                        item.getSupplier().getId(),
+                        item.getId()
+                )
+                .orElse(null);
+
+        return ItemResponse.fromEntityWithCapability(item, capability);
+    }
+
 
 
 
