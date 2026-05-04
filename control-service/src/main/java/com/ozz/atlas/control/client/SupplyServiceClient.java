@@ -20,9 +20,9 @@ public class SupplyServiceClient {
 
     public boolean validateReturnRequest(String publicId) {
         try {
-            String url = supplyServiceUrl + "/api/supply/returns/" + publicId;
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-            return response.getStatusCode().is2xxSuccessful();
+            String url = supplyServiceUrl + "/api/supply/returns/" + publicId + "/exists";
+            ResponseEntity<Boolean> response = restTemplate.getForEntity(url, Boolean.class);
+            return response.getStatusCode().is2xxSuccessful() && Boolean.TRUE.equals(response.getBody());
         } catch (RestClientException e) {
             log.error("Failed to validate ReturnRequest {}: {}", publicId, e.getMessage());
             return false;
@@ -31,7 +31,7 @@ public class SupplyServiceClient {
 
     public boolean validatePurchaseOrder(String publicId) {
         try {
-            String url = supplyServiceUrl + "/api/supply/purchase-orders/" + publicId;
+            String url = supplyServiceUrl + "/api/supply/purchase-order/" + publicId;
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
             return response.getStatusCode().is2xxSuccessful();
         } catch (RestClientException e) {

@@ -198,6 +198,10 @@ public class ReturnService {
         return toResponseDto(returnRequest);
     }
 
+    public boolean existsReturnByPublicId(String publicId) {
+        return returnRequestRepository.findByPublicId(publicId).isPresent();
+    }
+
     @Transactional
     public ReturnRequestResponseDto updateReturn(
             String publicId,
