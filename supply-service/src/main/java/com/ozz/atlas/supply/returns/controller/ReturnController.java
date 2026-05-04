@@ -190,6 +190,12 @@ public class ReturnController {
         );
     }
 
+    @Operation(summary = "반품 존재 여부 확인 (내부용)")
+    @GetMapping("/{publicId}/exists")
+    public ResponseEntity<Boolean> existsReturn(@PathVariable String publicId) {
+        return ResponseEntity.ok(returnService.existsReturnByPublicId(publicId));
+    }
+
     @Operation(summary = "반품 상태 이력 조회")
     @GetMapping("/{publicId}/histories")
     public ResponseEntity<List<ReturnStatusHistoryResponseDto>> getReturnHistories(
