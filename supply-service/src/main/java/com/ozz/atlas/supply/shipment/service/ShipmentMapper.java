@@ -4,14 +4,15 @@ import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentLineResponseDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
-import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
-import com.ozz.atlas.supply.shipment.exception.ShipmentException;
+import com.ozz.atlas.supply.shipment.repository.ShipmentLineRepository;
 import org.springframework.stereotype.Component;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,9 +22,14 @@ import java.util.stream.Stream;
 public class ShipmentMapper {
 
     private final LogisticsNodeRepository logisticsNodeRepository;
+    private final ShipmentLineRepository shipmentLineRepository;
 
-    public ShipmentMapper(LogisticsNodeRepository logisticsNodeRepository) {
+    public ShipmentMapper(
+            LogisticsNodeRepository logisticsNodeRepository,
+            ShipmentLineRepository shipmentLineRepository
+    ) {
         this.logisticsNodeRepository = logisticsNodeRepository;
+        this.shipmentLineRepository = shipmentLineRepository;
     }
 
     public ShipmentResponseDto toShipmentResponseDto(Shipment shipment) {
@@ -68,6 +74,7 @@ public class ShipmentMapper {
                 .temperatureRequired(shipment.isTemperatureRequired())
                 .sealedPackagingRequired(shipment.isSealedPackagingRequired())
                 .fragile(shipment.isFragile())
+                .shipmentLines(getShipmentLineResponses(shipment))
                 .build();
 
     }
@@ -128,5 +135,17 @@ public class ShipmentMapper {
 
     private ShipmentSourceType resolveSourceType(Shipment shipment) {
         return shipment.getSourceType() != null ? shipment.getSourceType() : ShipmentSourceType.ORDER;
+    }
+
+    private List<ShipmentLineResponseDto> getShipmentLineResponses(
+            Shipment shipment
+    ) {
+        if (shipment == null || shipment.getId() == null) {
+            return List.of();
+        }
+
+        return shipmentLineRepository.findByShipmentIdOrderByIdAsc(shipment.getId()).stream()
+                .map(ShipmentLineResponseDto::from)
+                .toList();
     }
 }

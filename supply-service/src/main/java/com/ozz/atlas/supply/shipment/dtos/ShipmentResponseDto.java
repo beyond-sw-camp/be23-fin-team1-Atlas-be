@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -85,5 +86,8 @@ public class ShipmentResponseDto {
     private boolean sealedPackagingRequired;
     @Schema(description = "파손 위험 여부", example = "true")
     private boolean fragile;
+    @Builder.Default
+    @Schema(description = "출하 품목 라인 목록")
+    private List<ShipmentLineResponseDto> shipmentLines = List.of();
 
 }
