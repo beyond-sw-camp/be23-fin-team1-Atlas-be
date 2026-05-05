@@ -32,4 +32,26 @@ public class IntegratedSearchItemDto {
 
     // 상태값이 있으면 문자열로 내려줌
     private String status;
+
+    // 조직 영문명을 프론트 조직 프로필 화면으로 넘길 때 사용
+    private String organizationEnglishName;
+
+    // 조직 담당자 이메일을 프론트 조직 프로필 화면으로 넘길 때 사용
+    private String contactEmail;
+
+    // 조직 담당자 연락처를 프론트 조직 프로필 화면으로 넘길 때 사용
+    private String contactPhone;
+
+    // 조직 담당자명을 프론트 조직 프로필 화면으로 넘길 때 사용
+    private String contactName;
+
+    // 조직 주소를 통합검색 결과와 조직 프로필 화면으로 넘길 때 사용
+    private String address;
+
+    // 조직 상세주소를 통합검색 결과와 조직 프로필 화면으로 넘길 때 사용
+    private String addressDetail;
+
+    // 조직 우편번호를 통합검색 결과와 조직 프로필 화면으로 넘길 때 사용
+    private String zipCode;
+
 }

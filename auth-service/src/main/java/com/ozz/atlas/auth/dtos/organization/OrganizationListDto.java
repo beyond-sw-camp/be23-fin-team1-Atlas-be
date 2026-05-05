@@ -52,6 +52,12 @@ public class OrganizationListDto {
     @Schema(description = "조직 상태", example = "ACTIVE")
     private Status status;
 
+    private String address;
+
+    private String addressDetail;
+
+    private String zipCode;
+
     private String organizationImageThumbPath;
 
 
@@ -70,6 +76,9 @@ public class OrganizationListDto {
                 .contactPhone(organization.getContactPhone())
                 .status(organization.getStatus())
                 .organizationImageThumbPath(organization.getOrganizationImageThumbPath())
+                .address(organization.getAddress())
+                .addressDetail(organization.getAddressDetail())
+                .zipCode(organization.getZipCode())
                 .build();
 
     }

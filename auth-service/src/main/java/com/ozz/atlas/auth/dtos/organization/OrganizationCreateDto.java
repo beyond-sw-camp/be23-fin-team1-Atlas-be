@@ -55,6 +55,16 @@ public class OrganizationCreateDto {
     @Schema(description = "담당자 연락처", example = "010-1234-5678")
     private String contactPhone;
 
+    @NotBlank(message = "주소는 필수입니다.")
+    @Schema(description = "조직 주소", example = "서울특별시 강남구 테헤란로 123")
+    private String address;
+
+    @Schema(description = "조직 상세주소", example = "8층 Atlas Office")
+    private String addressDetail;
+
+    @Schema(description = "우편번호", example = "06234")
+    private String zipCode;
+
     public Organization toEntity() {
         return Organization.builder()
                 .organizationType(this.organizationType)
@@ -67,6 +77,9 @@ public class OrganizationCreateDto {
                 .contactLastName(this.contactLastName)
                 .contactEmail(this.contactEmail)
                 .contactPhone(this.contactPhone)
+                .address(this.address)
+                .addressDetail(this.addressDetail)
+                .zipCode(this.zipCode)
                 .build();
     }
 }
