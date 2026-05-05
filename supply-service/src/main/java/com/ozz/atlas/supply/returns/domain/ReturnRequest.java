@@ -26,7 +26,7 @@ public class ReturnRequest extends BaseTimeEntity {
     @Column(nullable = false, unique = true, updatable = false, length = 26)
     private String publicId;
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, unique = true, length = 50)
     private String returnNumber;
 
     @Column(length = 26)

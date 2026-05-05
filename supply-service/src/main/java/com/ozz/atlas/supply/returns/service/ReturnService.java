@@ -594,8 +594,7 @@ public class ReturnService {
             throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
         }
 
-        Shipment sourceShipment = shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId())
-                .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+        Shipment sourceShipment = resolveRequiredSourceShipment(returnRequest);
 
         String returnShipmentNumber = generateNextShipmentNumber(SequenceCodeType.RETURN_SHIPMENT);
 
@@ -628,8 +627,7 @@ public class ReturnService {
     }
 
     private void createExchangeShipment(ReturnRequest returnRequest) {
-        Shipment sourceShipment = shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId())
-                .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+        Shipment sourceShipment = resolveRequiredSourceShipment(returnRequest);
 
         String exchangeShipmentNumber = generateNextShipmentNumber(SequenceCodeType.EXCHANGE_SHIPMENT);
 
@@ -709,10 +707,21 @@ public class ReturnService {
     }
 
     private Shipment resolveSourceShipment(ReturnRequest returnRequest) {
+        if (returnRequest.getSourceShipmentId() != null) {
+            return shipmentRepository.findById(returnRequest.getSourceShipmentId()).orElse(null);
+        }
         if (returnRequest.getSourceShipmentPublicId() == null || returnRequest.getSourceShipmentPublicId().isBlank()) {
             return null;
         }
         return shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId()).orElse(null);
+    }
+
+    private Shipment resolveRequiredSourceShipment(ReturnRequest returnRequest) {
+        Shipment sourceShipment = resolveSourceShipment(returnRequest);
+        if (sourceShipment == null) {
+            throw new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND);
+        }
+        return sourceShipment;
     }
 
     private String resolveReturnStatusEventType(ReturnStatus returnStatus) {

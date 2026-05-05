@@ -25,7 +25,7 @@ public class Shipment extends BaseTimeEntity {
     @Builder.Default
     private String publicId = PublicIdGenerator.next();
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, unique = true, length = 50)
     private String shipmentNumber;
 
     private Long poId;
