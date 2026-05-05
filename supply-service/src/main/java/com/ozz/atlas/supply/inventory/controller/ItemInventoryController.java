@@ -49,6 +49,21 @@ public class ItemInventoryController {
         );
     }
 
+    @GetMapping("/nodes/{nodePublicId}")
+    public ResponseEntity<?> getNodeInventories(
+            @PathVariable String nodePublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                itemInventoryService.getNodeInventories(
+                        organizationPublicId,
+                        organizationType,
+                        nodePublicId
+                )
+        );
+    }
+
     @PutMapping("/{inventoryPublicId}")
     public ResponseEntity<?> updateInventory(
             @PathVariable String inventoryPublicId,

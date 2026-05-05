@@ -14,6 +14,7 @@ import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyType;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNodeType;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
@@ -349,6 +350,7 @@ public class ItemInventoryService {
             String nodePublicId
     ) {
         getWritableSupplier(organizationPublicId, organizationType);
+        getOwnedWarehouse(organizationPublicId, nodePublicId);
 
         return inventoryRepository
                 .findAllBySupplier_OrganizationPublicIdAndLogisticsNode_PublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
@@ -359,6 +361,16 @@ public class ItemInventoryService {
                 .stream()
                 .map(ItemInventoryResponse::from)
                 .toList();
+    }
+
+    private LogisticsNode getOwnedWarehouse(String organizationPublicId, String nodePublicId) {
+        return logisticsNodeRepository
+                .findByPublicIdAndOrganizationPublicIdAndNodeType(
+                        nodePublicId,
+                        organizationPublicId,
+                        LogisticsNodeType.WAREHOUSE
+                )
+                .orElseThrow(() -> new ItemInventoryException(ItemInventoryErrorCode.LOGISTICS_NODE_NOT_FOUND));
     }
 
 
