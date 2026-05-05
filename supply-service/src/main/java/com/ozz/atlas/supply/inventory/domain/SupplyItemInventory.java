@@ -106,6 +106,15 @@ public class SupplyItemInventory extends BaseTimeEntity {
         refreshStatus();
     }
 
+    public void releaseReserved(Long qty) {
+        if (qty == null || qty <= 0 || this.reservedQty < qty) {
+            throw new IllegalArgumentException("해제 가능한 예약 재고 수량이 부족합니다.");
+        }
+
+        this.reservedQty -= qty;
+        refreshStatus();
+    }
+
     public void update(LogisticsNode logisticsNode, LocalDate manufacturedDate, LocalDate expirationDate, Long qty, String memo) {
         if (this.status != InventoryStatus.ACTIVE || this.reservedQty > 0) {
             throw new IllegalStateException("예약된 재고는 수정할 수 없습니다.");

@@ -3,12 +3,9 @@ package com.ozz.atlas.supply.shipment.service;
 import com.ozz.atlas.common.kafka.AggregateType;
 import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
-import com.ozz.atlas.supply.common.code.SequenceCodeType;
-import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
 import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
-import com.ozz.atlas.supply.kafka.shipment.ShipmentFactory;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
@@ -18,16 +15,9 @@ import com.ozz.atlas.supply.shipment.domain.CheckpointType;
 import com.ozz.atlas.supply.shipment.domain.EtaProjection;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentCheckpoint;
-import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatusHistory;
-import com.ozz.atlas.supply.shipment.dtos.CreateShipmentRequestDto;
-import com.ozz.atlas.supply.shipment.dtos.EtaProjectionResponseDto;
-import com.ozz.atlas.supply.shipment.dtos.ShipmentEtaResponseDto;
-import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
-import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
-import com.ozz.atlas.supply.shipment.dtos.ShipmentStatusHistoryResponseDto;
-import com.ozz.atlas.supply.shipment.dtos.TrackShipmentRequestDto;
+import com.ozz.atlas.supply.shipment.dtos.*;
 import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
 import com.ozz.atlas.supply.shipment.repository.EtaProjectionRepository;
@@ -39,15 +29,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
-import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
-import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
-import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
-import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrder;
-import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
-import com.ozz.atlas.supply.settlement.service.SettlementService;
-import com.ozz.atlas.supply.shipment.dtos.UpdateShipmentRequestDto;
-import com.ozz.atlas.supply.shipment.dtos.ShipmentMapResponseDto;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -65,16 +46,13 @@ public class ShipmentService {
     private final ShipmentSearchService shipmentSearchService;
     private final EtaProjectionRepository etaProjectionRepository;
     private final OutboxEventAppender outboxEventAppender;
-    private final ShipmentFactory shipmentFactory;
-    private final PurchaseOrderRepository purchaseOrderRepository;
-    private final SubPurchaseOrderRepository subPurchaseOrderRepository;
     private final ReturnRequestRepository returnRequestRepository;
     private final SupplyChainContextResolver supplyChainContextResolver;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
-    private final SettlementService settlementService;
     private final ShipmentAuthorizationService shipmentAuthorizationService;
     private final ShipmentMapService shipmentMapService;
     private final ShipmentStatusService shipmentStatusService;
+    private final ShipmentCreateService shipmentCreateService;
     private final ShipmentMapper shipmentMapper;
     private final ShipmentEtaCalculator shipmentEtaCalculator;
 
@@ -87,16 +65,13 @@ public class ShipmentService {
             ShipmentSearchService shipmentSearchService,
             EtaProjectionRepository etaProjectionRepository,
             OutboxEventAppender outboxEventAppender,
-            ShipmentFactory shipmentFactory,
-            PurchaseOrderRepository purchaseOrderRepository,
-            SubPurchaseOrderRepository subPurchaseOrderRepository,
             ReturnRequestRepository returnRequestRepository,
             SupplyChainContextResolver supplyChainContextResolver,
             SupplyDomainEventFactory supplyDomainEventFactory,
-            SettlementService settlementService,
             ShipmentAuthorizationService shipmentAuthorizationService,
             ShipmentMapService shipmentMapService,
             ShipmentStatusService shipmentStatusService,
+            ShipmentCreateService shipmentCreateService,
             ShipmentMapper shipmentMapper,
             ShipmentEtaCalculator shipmentEtaCalculator
     ) {
@@ -108,16 +83,13 @@ public class ShipmentService {
         this.shipmentSearchService = shipmentSearchService;
         this.etaProjectionRepository = etaProjectionRepository;
         this.outboxEventAppender = outboxEventAppender;
-        this.shipmentFactory = shipmentFactory;
-        this.purchaseOrderRepository = purchaseOrderRepository;
-        this.subPurchaseOrderRepository = subPurchaseOrderRepository;
         this.returnRequestRepository = returnRequestRepository;
         this.supplyChainContextResolver = supplyChainContextResolver;
         this.supplyDomainEventFactory = supplyDomainEventFactory;
-        this.settlementService = settlementService;
         this.shipmentAuthorizationService = shipmentAuthorizationService;
         this.shipmentMapService = shipmentMapService;
         this.shipmentStatusService = shipmentStatusService;
+        this.shipmentCreateService = shipmentCreateService;
         this.shipmentMapper = shipmentMapper;
         this.shipmentEtaCalculator = shipmentEtaCalculator;
     }
@@ -130,72 +102,15 @@ public class ShipmentService {
             String organizationType,
             String userRole
     ) {
-        shipmentAuthorizationService.validateCreateShipmentActor(organizationPublicId, organizationType, userRole);
-        ResolvedShipmentOrder order = resolveShipmentOrder(dto, organizationPublicId);
-
-        if (dto.getDepartureEta() == null) {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        LogisticsNode originNode = getActiveNode(dto.getOriginNodePublicId());
-        LogisticsNode destinationNode = getActiveNode(order.destinationNodeId());
-
-        if (!originNode.getOrganizationPublicId().equals(organizationPublicId)) {
-            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
-        }
-
-        if (!destinationNode.getOrganizationPublicId().equals(order.buyerOrganizationPublicId())) {
-            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_CREATION_NOT_ALLOWED);
-        }
-
-        Shipment shipment = Shipment.builder()
-                .shipmentNumber(generateNextShipmentNumber())
-                .poId(order.poId())
-                .purchaseOrderPublicId(order.purchaseOrderPublicId())
-                .subPoId(order.subPoId())
-                .subPurchaseOrderPublicId(order.subPurchaseOrderPublicId())
-                .sourceType(ShipmentSourceType.ORDER)
-                .sourcePublicId(resolveOrderSourcePublicId(order))
-                .originNodeId(originNode.getId())
-                .destinationNodeId(destinationNode.getId())
-                .currentNodeId(originNode.getId())
-                .departureEta(dto.getDepartureEta())
-                .arrivalEta(null)
-                .status(ShipmentStatus.READY)
-                .temperatureRequired(dto.isTemperatureRequired())
-                .sealedPackagingRequired(dto.isSealedPackagingRequired())
-                .fragile(dto.isFragile())
-                .build();
-
-        Shipment savedShipment = shipmentRepository.save(shipment);
-
-        saveShipmentStatusHistory(
-                savedShipment,
-                LocalDateTime.now(),
-                "출하 생성",
-                originNode.getNodeName(),
-                originNode.getLatitude(),
-                originNode.getLongitude(),
-                actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
+        return shipmentCreateService.createShipment(
+                dto,
+                actorUserPublicId,
+                organizationPublicId,
+                organizationType,
+                userRole
         );
-
-        shipmentSearchService.saveShipmentDocument(savedShipment);
-
-        outboxEventAppender.append(
-                shipmentFactory.createShipmentCreatedEvent(
-                        savedShipment,
-                        originNode.getPublicId(),
-                        destinationNode.getPublicId(),
-                        supplyChainContextResolver.fromShipment(savedShipment),
-                        actorUserPublicId,
-                        organizationPublicId
-                )
-        );
-
-        return shipmentMapper.toShipmentResponseDto(savedShipment);
     }
 
-    // 출하 목록 조회
     @Transactional(readOnly = true)
     public Page<ShipmentListResponseDto> getShipments(
             String organizationPublicId,
@@ -218,6 +133,19 @@ public class ShipmentService {
         );
 
         return shipmentPage.map(shipmentMapper::toShipmentListResponseDto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShipmentCreatableOrderDto> getCreatableOrders(
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        return shipmentCreateService.getCreatableOrders(
+                organizationPublicId,
+                organizationType,
+                userRole
+        );
     }
 
     @Transactional(readOnly = true)
@@ -632,162 +560,6 @@ public class ShipmentService {
         return "배송 위치 업데이트";
     }
 
-    private ResolvedShipmentOrder resolveShipmentOrder(CreateShipmentRequestDto dto, String organizationPublicId) {
-        if (dto.getSubPoId() != null || hasText(dto.getSubPurchaseOrderPublicId())) {
-            SupplySubPurchaseOrder subPurchaseOrder = resolveSubPurchaseOrderForShipment(dto, organizationPublicId);
-
-            return new ResolvedShipmentOrder(
-                    null,
-                    null,
-                    subPurchaseOrder.getSubPoId(),
-                    subPurchaseOrder.getPublicId(),
-                    subPurchaseOrder.getParentPurchaseOrder().getSupplier().getOrganizationPublicId(),
-                    subPurchaseOrder.getSubPoNumber(),
-                    resolveSubPurchaseOrderDestinationNodeId(subPurchaseOrder)
-            );
-
-        }
-
-        SupplyPurchaseOrder purchaseOrder = resolvePurchaseOrderForShipment(dto, organizationPublicId);
-
-        return new ResolvedShipmentOrder(
-                purchaseOrder.getId(),
-                purchaseOrder.getPublicId(),
-                null,
-                null,
-                purchaseOrder.getBuyerOrganizationPublicId(),
-                purchaseOrder.getPoNumber(),
-                resolvePurchaseOrderDestinationNodeId(purchaseOrder)
-        );
-    }
-
-    private SupplyPurchaseOrder resolvePurchaseOrderForShipment(
-            CreateShipmentRequestDto dto,
-            String organizationPublicId
-    ) {
-        SupplyPurchaseOrder purchaseOrder;
-
-        if (dto.getPoId() != null) {
-            purchaseOrder = purchaseOrderRepository.findById(dto.getPoId())
-                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
-        } else if (hasText(dto.getPurchaseOrderPublicId())) {
-            purchaseOrder = purchaseOrderRepository.findByPublicIdAndPoStatusNot(
-                            dto.getPurchaseOrderPublicId(),
-                            PoStatus.DELETED
-                    )
-                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
-        } else {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        if (!purchaseOrder.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
-            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
-        }
-
-        if (!isShippablePurchaseOrderStatus(purchaseOrder.getPoStatus())) {
-            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_ORDER_STATUS_NOT_ALLOWED);
-        }
-
-        return purchaseOrder;
-    }
-
-    private SupplySubPurchaseOrder resolveSubPurchaseOrderForShipment(
-            CreateShipmentRequestDto dto,
-            String organizationPublicId
-    ) {
-        SupplySubPurchaseOrder subPurchaseOrder;
-
-        if (dto.getSubPoId() != null) {
-            subPurchaseOrder = subPurchaseOrderRepository.findById(dto.getSubPoId())
-                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
-        } else if (hasText(dto.getSubPurchaseOrderPublicId())) {
-            subPurchaseOrder = subPurchaseOrderRepository.findByPublicIdAndSubPoStatusNot(
-                            dto.getSubPurchaseOrderPublicId(),
-                            SubPoStatus.DELETED
-                    )
-                    .orElseThrow(() -> new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE));
-        } else {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        if (!subPurchaseOrder.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
-            throw new ShipmentException(ShipmentErrorCode.ACCESS_DENIED);
-        }
-
-        if (!isShippableSubPurchaseOrderStatus(subPurchaseOrder.getSubPoStatus())) {
-            throw new ShipmentException(ShipmentErrorCode.SHIPMENT_ORDER_STATUS_NOT_ALLOWED);
-        }
-
-        return subPurchaseOrder;
-    }
-
-    private Long resolvePurchaseOrderDestinationNodeId(SupplyPurchaseOrder purchaseOrder) {
-        Set<Long> destinationNodeIds = purchaseOrder.getActiveItems().stream()
-                .filter(item -> item.getItemStatus() == com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.CONFIRMED
-                        || item.getItemStatus() == com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.PARTIALLY_CONFIRMED)
-                .map(item -> item.getArrivalLogisticsNode())
-                .filter(Objects::nonNull)
-                .map(LogisticsNode::getId)
-                .collect(Collectors.toSet());
-
-        if (destinationNodeIds.size() != 1) {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        return destinationNodeIds.iterator().next();
-    }
-
-    private Long resolveSubPurchaseOrderDestinationNodeId(SupplySubPurchaseOrder subPurchaseOrder) {
-        Set<Long> destinationNodeIds = subPurchaseOrder.getActiveItems().stream()
-                .filter(item -> item.getLineStatus() == com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus.CONFIRMED
-                        || item.getLineStatus() == com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus.PARTIALLY_CONFIRMED)
-                .map(item -> item.getParentPurchaseOrderItem().getArrivalLogisticsNode())
-                .filter(Objects::nonNull)
-                .map(LogisticsNode::getId)
-                .collect(Collectors.toSet());
-
-        if (destinationNodeIds.size() != 1) {
-            throw new ShipmentException(ShipmentErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        return destinationNodeIds.iterator().next();
-    }
-
-    private String generateNextShipmentNumber() {
-        String prefix = YearlySequenceCodeGenerator.currentPrefix(SequenceCodeType.SHIPMENT);
-        String lastShipmentNumber = shipmentRepository
-                .findTopByShipmentNumberStartingWithOrderByShipmentNumberDesc(prefix)
-                .map(Shipment::getShipmentNumber)
-                .orElse(null);
-
-        String candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.SHIPMENT, lastShipmentNumber, 7);
-        while (shipmentRepository.existsByShipmentNumber(candidate)) {
-            candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.SHIPMENT, candidate, 7);
-        }
-
-        return candidate;
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
-
-    private String resolveOrderSourcePublicId(ResolvedShipmentOrder order) {
-        return hasText(order.subPurchaseOrderPublicId())
-                ? order.subPurchaseOrderPublicId()
-                : order.purchaseOrderPublicId();
-    }
-
-    private boolean isShippablePurchaseOrderStatus(PoStatus poStatus) {
-        return poStatus == PoStatus.PARTIALLY_CONFIRMED
-                || poStatus == PoStatus.CONFIRMED;
-    }
-
-    private boolean isShippableSubPurchaseOrderStatus(SubPoStatus subPoStatus) {
-        return subPoStatus == SubPoStatus.PARTIALLY_CONFIRMED
-                || subPoStatus == SubPoStatus.CONFIRMED;
-    }
-
     private void saveEtaProjectionIfChanged(
             Shipment shipment,
             ShipmentEtaCalculator.Result previousEtaResult,
@@ -879,15 +651,5 @@ public class ShipmentService {
             return "출하 완료 시";
         }
         return "출하 도착 시";
-    }
-    private record ResolvedShipmentOrder(
-            Long poId,
-            String purchaseOrderPublicId,
-            Long subPoId,
-            String subPurchaseOrderPublicId,
-            String buyerOrganizationPublicId,
-            String orderNumber,
-            Long destinationNodeId
-    ) {
     }
 }

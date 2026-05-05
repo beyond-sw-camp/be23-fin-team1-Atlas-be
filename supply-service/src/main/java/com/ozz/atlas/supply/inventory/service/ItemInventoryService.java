@@ -148,11 +148,7 @@ public class ItemInventoryService {
     }
 
     public void reserveConfirmedQty(SupplySupplier supplier, SupplyItem item, Long confirmQty) {
-        Long availableQty = inventoryRepository.sumAvailableQty(supplier.getId(), item.getId(), LocalDate.now());
-
-        if (availableQty < confirmQty) {
-            throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_INSUFFICIENT);
-        }
+        validateAvailableQty(supplier, item, confirmQty);
 
         long remaining = confirmQty;
 
@@ -177,6 +173,18 @@ public class ItemInventoryService {
             throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_INSUFFICIENT);
         }
 
+        syncCapabilityAvailableQty(supplier, item);
+    }
+
+    public void validateAvailableQty(SupplySupplier supplier, SupplyItem item, Long confirmQty) {
+        Long availableQty = inventoryRepository.sumAvailableQty(supplier.getId(), item.getId(), LocalDate.now());
+
+        if (availableQty < confirmQty) {
+            throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_INSUFFICIENT);
+        }
+    }
+
+    public void syncAvailableQtyForShipment(SupplySupplier supplier, SupplyItem item) {
         syncCapabilityAvailableQty(supplier, item);
     }
 

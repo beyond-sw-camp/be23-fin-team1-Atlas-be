@@ -47,6 +47,27 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
         from SupplyItemInventory inv
         where inv.supplier.id = :supplierId
           and inv.item.id = :itemId
+          and inv.logisticsNode.id = :logisticsNodeId
+          and inv.status in :statuses
+          and inv.expirationDate >= :today
+          and inv.remainingQty > inv.reservedQty
+          and inv.logisticsNode.active = true
+        order by inv.expirationDate asc, inv.manufacturedDate asc, inv.inventoryId asc
+    """)
+    List<SupplyItemInventory> findReservableForUpdateByNode(
+            @Param("supplierId") Long supplierId,
+            @Param("itemId") Long itemId,
+            @Param("logisticsNodeId") Long logisticsNodeId,
+            @Param("statuses") Collection<InventoryStatus> statuses,
+            @Param("today") LocalDate today
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select inv
+        from SupplyItemInventory inv
+        where inv.supplier.id = :supplierId
+          and inv.item.id = :itemId
           and inv.status = com.ozz.atlas.supply.inventory.domain.InventoryStatus.RESERVED
           and inv.reservedQty > 0
           and inv.expirationDate >= :today
@@ -56,6 +77,26 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
     List<SupplyItemInventory> findReservedForUpdate(
             @Param("supplierId") Long supplierId,
             @Param("itemId") Long itemId,
+            @Param("today") LocalDate today
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select inv
+        from SupplyItemInventory inv
+        where inv.supplier.id = :supplierId
+          and inv.item.id = :itemId
+          and inv.logisticsNode.id = :logisticsNodeId
+          and inv.status = com.ozz.atlas.supply.inventory.domain.InventoryStatus.RESERVED
+          and inv.reservedQty > 0
+          and inv.expirationDate >= :today
+          and inv.logisticsNode.active = true
+        order by inv.expirationDate asc, inv.manufacturedDate asc, inv.inventoryId asc
+    """)
+    List<SupplyItemInventory> findReservedForUpdateByNode(
+            @Param("supplierId") Long supplierId,
+            @Param("itemId") Long itemId,
+            @Param("logisticsNodeId") Long logisticsNodeId,
             @Param("today") LocalDate today
     );
 
@@ -77,6 +118,51 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
             @Param("itemId") Long itemId,
             @Param("today") LocalDate today
     );
+
+    @Query("""
+        select coalesce(sum(inv.remainingQty - inv.reservedQty), 0)
+        from SupplyItemInventory inv
+        where inv.supplier.id = :supplierId
+          and inv.item.id = :itemId
+          and inv.logisticsNode.id = :logisticsNodeId
+          and inv.status in (
+            com.ozz.atlas.supply.inventory.domain.InventoryStatus.ACTIVE,
+            com.ozz.atlas.supply.inventory.domain.InventoryStatus.RESERVED
+          )
+          and inv.logisticsNode.active = true
+          and inv.expirationDate >= :today
+    """)
+    Long sumAvailableQtyByNode(
+            @Param("supplierId") Long supplierId,
+            @Param("itemId") Long itemId,
+            @Param("logisticsNodeId") Long logisticsNodeId,
+            @Param("today") LocalDate today
+    );
+
+    @Query("""
+        select coalesce(sum(inv.reservedQty), 0)
+        from SupplyItemInventory inv
+        where inv.supplier.id = :supplierId
+          and inv.item.id = :itemId
+          and inv.logisticsNode.id = :logisticsNodeId
+          and inv.status = com.ozz.atlas.supply.inventory.domain.InventoryStatus.RESERVED
+          and inv.logisticsNode.active = true
+          and inv.expirationDate >= :today
+    """)
+    Long sumReservedQtyByNode(
+            @Param("supplierId") Long supplierId,
+            @Param("itemId") Long itemId,
+            @Param("logisticsNodeId") Long logisticsNodeId,
+            @Param("today") LocalDate today
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select inv
+        from SupplyItemInventory inv
+        where inv.inventoryId = :inventoryId
+    """)
+    Optional<SupplyItemInventory> findByInventoryIdForUpdate(@Param("inventoryId") Long inventoryId);
 
     @Query("""
         select count(inv)
