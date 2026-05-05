@@ -2,10 +2,12 @@ package com.ozz.atlas.supply.subpurchaseorder.repository;
 
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrder;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -91,6 +93,8 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
     );
 
     boolean existsBySubPoNumber(String subPoNumber);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<SupplySubPurchaseOrder> findTopBySubPoNumberStartingWithOrderBySubPoNumberDesc(String prefix);
 
     @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
