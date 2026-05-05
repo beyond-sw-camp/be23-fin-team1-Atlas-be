@@ -2,6 +2,7 @@ package com.ozz.atlas.supply.shipment.controller;
 
 import com.ozz.atlas.supply.shipment.dtos.CreateShipmentRequestDto;
 import com.ozz.atlas.supply.shipment.dtos.EtaProjectionResponseDto;
+import com.ozz.atlas.supply.shipment.dtos.ShipmentCreatableOrderDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentEtaResponseDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
@@ -125,6 +126,21 @@ public class ShipmentController {
 
     // 출하 상세 조회
     @Operation(summary = "출하 상세 조회")
+    @GetMapping("/creatable-orders")
+    public ResponseEntity<List<ShipmentCreatableOrderDto>> getCreatableOrders(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.getCreatableOrders(
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
+    }
+
     @GetMapping("/{publicId}")
     public ResponseEntity<ShipmentResponseDto> getShipment(
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
