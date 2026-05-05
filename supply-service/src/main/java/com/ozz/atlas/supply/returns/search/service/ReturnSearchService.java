@@ -249,6 +249,7 @@ public class ReturnSearchService {
                 .returnNumber(document.getReturnNumber())
                 .sourceShipmentPublicId(document.getSourceShipmentPublicId())
                 .returnShipmentPublicId(document.getReturnShipmentPublicId())
+                .exchangeShipmentPublicId(document.getExchangeShipmentPublicId())
                 .requestOrganizationPublicId(document.getRequestOrganizationPublicId())
                 .targetOrganizationPublicId(document.getTargetOrganizationPublicId())
                 .requestOrganizationName(reqOrgName)

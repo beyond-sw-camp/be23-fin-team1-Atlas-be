@@ -1,7 +1,9 @@
 package com.ozz.atlas.supply.returns.repository;
 
 import com.ozz.atlas.supply.returns.domain.ReturnRequest;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 import com.ozz.atlas.supply.returns.domain.ReturnStatus;
 import java.util.Collection;
@@ -29,7 +31,12 @@ public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, Lo
     );
     boolean existsBySourceShipmentPublicId(String sourceShipmentPublicId);
 
+    boolean existsByReturnNumber(String returnNumber);
+
     Optional<ReturnRequest> findByReturnShipmentPublicId(String returnShipmentPublicId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<ReturnRequest> findTopByReturnNumberStartingWithOrderByReturnNumberDesc(String prefix);
 
     long countByReturnStatusInAndRequestOrganizationPublicIdOrReturnStatusInAndTargetOrganizationPublicId(
             Collection<ReturnStatus> requestStatuses,

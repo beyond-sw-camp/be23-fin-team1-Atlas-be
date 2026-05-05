@@ -8,7 +8,11 @@ import lombok.RequiredArgsConstructor;
 public enum SequenceCodeType {
     ITEM("ITM"),
     PURCHASE_ORDER("PO"),
-    SUB_PURCHASE_ORDER("SUBPO");
+    SUB_PURCHASE_ORDER("SUBPO"),
+    SHIPMENT("SHIP"),
+    RETURN("RTN"),
+    RETURN_SHIPMENT("RS"),
+    EXCHANGE_SHIPMENT("EX");
 
     private final String prefix;
 }

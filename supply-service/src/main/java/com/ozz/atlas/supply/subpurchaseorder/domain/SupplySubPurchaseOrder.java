@@ -33,7 +33,7 @@ public class SupplySubPurchaseOrder extends BaseTimeEntity {
     @Builder.Default
     private String publicId = PublicIdGenerator.next();
 
-    @Column(name = "sub_po_number", nullable = false, length = 50)
+    @Column(name = "sub_po_number", nullable = false, unique = true, length = 50)
     private String subPoNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -1,10 +1,12 @@
 package com.ozz.atlas.supply.shipment.repository;
 
 import com.ozz.atlas.supply.shipment.domain.Shipment;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
+import org.springframework.data.jpa.repository.Lock;
 
 import java.util.Collection;
 import java.util.List;
@@ -21,6 +23,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
             Collection<Long> destinationNodeIds,
             Pageable pageable
     );
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Shipment> findTopByShipmentNumberStartingWithOrderByShipmentNumberDesc(String prefix);
 
     boolean existsByShipmentNumber(String shipmentNumber);

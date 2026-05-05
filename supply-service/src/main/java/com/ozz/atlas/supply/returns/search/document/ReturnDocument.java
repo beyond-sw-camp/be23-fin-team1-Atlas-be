@@ -58,6 +58,9 @@ public class ReturnDocument {
     @Field(type = FieldType.Keyword)
     private String returnShipmentPublicId;
 
+    @Field(type = FieldType.Keyword)
+    private String exchangeShipmentPublicId;
+
     // 요청 조직 publicId
     @Field(type = FieldType.Keyword)
     private String requestOrganizationPublicId;
@@ -131,6 +134,7 @@ public class ReturnDocument {
                 .returnNumber(returnRequest.getReturnNumber())
                 .sourceShipmentPublicId(returnRequest.getSourceShipmentPublicId())
                 .returnShipmentPublicId(returnRequest.getReturnShipmentPublicId())
+                .exchangeShipmentPublicId(returnRequest.getExchangeShipmentPublicId())
                 .requestOrganizationPublicId(returnRequest.getRequestOrganizationPublicId())
                 .targetOrganizationPublicId(returnRequest.getTargetOrganizationPublicId())
                 .returnType(returnRequest.getReturnType())

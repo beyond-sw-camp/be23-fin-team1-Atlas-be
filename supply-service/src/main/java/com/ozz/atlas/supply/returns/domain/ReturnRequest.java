@@ -26,14 +26,26 @@ public class ReturnRequest extends BaseTimeEntity {
     @Column(nullable = false, unique = true, updatable = false, length = 26)
     private String publicId;
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, unique = true, length = 50)
     private String returnNumber;
 
     @Column(length = 26)
     private String sourceShipmentPublicId;
 
+    @Column(name = "source_shipment_id")
+    private Long sourceShipmentId;
+
     @Column(length = 26)
     private String returnShipmentPublicId;
+
+    @Column(name = "return_shipment_id")
+    private Long returnShipmentId;
+
+    @Column(length = 26)
+    private String exchangeShipmentPublicId;
+
+    @Column(name = "exchange_shipment_id")
+    private Long exchangeShipmentId;
 
     @Column(nullable = false, length = 26)
     private String requestOrganizationPublicId;
@@ -89,9 +101,10 @@ public class ReturnRequest extends BaseTimeEntity {
     }
 
     @Builder
-    public ReturnRequest(String returnNumber, String sourceShipmentPublicId, String requestOrganizationPublicId, String targetOrganizationPublicId, ReturnType returnType, ResolutionType resolutionType, String returnReason, String createdByUserPublicId, String attachmentPublicIds) {
+    public ReturnRequest(String returnNumber, String sourceShipmentPublicId, Long sourceShipmentId, String requestOrganizationPublicId, String targetOrganizationPublicId, ReturnType returnType, ResolutionType resolutionType, String returnReason, String createdByUserPublicId, String attachmentPublicIds) {
         this.returnNumber = returnNumber;
         this.sourceShipmentPublicId = sourceShipmentPublicId;
+        this.sourceShipmentId = sourceShipmentId;
         this.requestOrganizationPublicId = requestOrganizationPublicId;
         this.targetOrganizationPublicId = targetOrganizationPublicId;
         this.returnType = returnType;
@@ -131,11 +144,20 @@ public class ReturnRequest extends BaseTimeEntity {
             this.completedAt = LocalDateTime.now();
         }
     }
-    public void assignReturnShipmentPublicId(String returnShipmentPublicId) {
+    public void assignReturnShipment(Long returnShipmentId, String returnShipmentPublicId) {
         if (this.returnShipmentPublicId != null && !this.returnShipmentPublicId.isBlank()) {
             throw new IllegalStateException("이미 반품출하가 생성된 반품 요청입니다.");
         }
+        this.returnShipmentId = returnShipmentId;
         this.returnShipmentPublicId = returnShipmentPublicId;
+    }
+
+    public void assignExchangeShipment(Long exchangeShipmentId, String exchangeShipmentPublicId) {
+        if (this.exchangeShipmentPublicId != null && !this.exchangeShipmentPublicId.isBlank()) {
+            throw new IllegalStateException("이미 교환출하가 생성된 반품 요청입니다.");
+        }
+        this.exchangeShipmentId = exchangeShipmentId;
+        this.exchangeShipmentPublicId = exchangeShipmentPublicId;
     }
 
 }

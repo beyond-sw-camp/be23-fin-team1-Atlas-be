@@ -3,6 +3,8 @@ package com.ozz.atlas.supply.shipment.service;
 import com.ozz.atlas.common.kafka.AggregateType;
 import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.common.code.SequenceCodeType;
+import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
 import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
@@ -147,7 +149,7 @@ public class ShipmentService {
         }
 
         Shipment shipment = Shipment.builder()
-                .shipmentNumber(generateShipmentNumber(order.orderNumber()))
+                .shipmentNumber(generateNextShipmentNumber())
                 .poId(order.poId())
                 .purchaseOrderPublicId(order.purchaseOrderPublicId())
                 .subPoId(order.subPoId())
@@ -751,41 +753,19 @@ public class ShipmentService {
         return destinationNodeIds.iterator().next();
     }
 
-    private String generateShipmentNumber(String orderNumber) {
-        String prefix = "SHIP-" + orderNumber + "-";
-
+    private String generateNextShipmentNumber() {
+        String prefix = YearlySequenceCodeGenerator.currentPrefix(SequenceCodeType.SHIPMENT);
         String lastShipmentNumber = shipmentRepository
                 .findTopByShipmentNumberStartingWithOrderByShipmentNumberDesc(prefix)
                 .map(Shipment::getShipmentNumber)
                 .orElse(null);
 
-        int nextSequence = extractNextShipmentSequence(lastShipmentNumber);
-
-        String candidate = prefix + String.format("%03d", nextSequence);
+        String candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.SHIPMENT, lastShipmentNumber, 7);
         while (shipmentRepository.existsByShipmentNumber(candidate)) {
-            nextSequence++;
-            candidate = prefix + String.format("%03d", nextSequence);
+            candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.SHIPMENT, candidate, 7);
         }
 
         return candidate;
-    }
-
-    private int extractNextShipmentSequence(String lastShipmentNumber) {
-        if (lastShipmentNumber == null || lastShipmentNumber.isBlank()) {
-            return 1;
-        }
-
-        int lastHyphenIndex = lastShipmentNumber.lastIndexOf('-');
-        if (lastHyphenIndex < 0 || lastHyphenIndex == lastShipmentNumber.length() - 1) {
-            return 1;
-        }
-
-        String lastSequenceText = lastShipmentNumber.substring(lastHyphenIndex + 1);
-        try {
-            return Integer.parseInt(lastSequenceText) + 1;
-        } catch (NumberFormatException e) {
-            return 1;
-        }
     }
 
     private boolean hasText(String value) {
