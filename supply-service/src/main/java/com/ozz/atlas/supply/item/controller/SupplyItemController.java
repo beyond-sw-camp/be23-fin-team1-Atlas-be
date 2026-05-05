@@ -89,7 +89,8 @@ public class SupplyItemController {
                 organizationPublicId,
                 organizationType,
                 supplierPublicId,
-                supplierOrganizationPublicId
+                supplierOrganizationPublicId,
+                status
         );
 
         ItemSearchDto searchDto = ItemSearchDto.builder()

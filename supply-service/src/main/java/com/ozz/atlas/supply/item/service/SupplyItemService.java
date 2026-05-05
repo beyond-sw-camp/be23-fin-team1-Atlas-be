@@ -194,7 +194,8 @@ public class SupplyItemService {
             String organizationPublicId,
             String organizationType,
             String supplierPublicId,
-            String supplierOrganizationPublicId
+            String supplierOrganizationPublicId,
+            Status status
     ) {
         if (!SUPPLIER_ORGANIZATION_TYPE.equals(organizationType)) {
             return;
@@ -205,6 +206,10 @@ public class SupplyItemService {
             return;
         }
 
+        if (status == null || status == Status.ACTIVE) {
+            return;
+        }
+
         SupplySupplier loginSupplier = getWritableSupplier(organizationPublicId, organizationType);
         SupplySupplier targetSupplier = resolveTargetSupplier(supplierPublicId, supplierOrganizationPublicId);
 
@@ -212,9 +217,12 @@ public class SupplyItemService {
             return;
         }
 
-        if (!supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId())) {
-            throw new ItemException(ItemErrorCode.ACCESS_DENIED);
+        if (supplierRelationService.hasVisibleRelation(loginSupplier.getId(), targetSupplier.getId())) {
+            return;
         }
+
+        throw new ItemException(ItemErrorCode.ACCESS_DENIED);
+
     }
 
     private SupplySupplier resolveTargetSupplier(
