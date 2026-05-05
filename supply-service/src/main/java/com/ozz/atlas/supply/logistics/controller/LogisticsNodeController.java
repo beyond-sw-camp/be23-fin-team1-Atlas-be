@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.logistics.controller;
 
+import com.ozz.atlas.supply.inventory.service.ItemInventoryService;
 import com.ozz.atlas.supply.logistics.dtos.CreateLogisticsNodeRequestDto;
 import com.ozz.atlas.supply.logistics.dtos.LogisticsNodeResponseDto;
 import com.ozz.atlas.supply.logistics.dtos.UpdateLogisticsNodeRequestDto;
@@ -22,9 +23,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class LogisticsNodeController {
 
     private final LogisticsNodeService logisticsNodeService;
+    private final ItemInventoryService itemInventoryService;
 
-    public LogisticsNodeController(LogisticsNodeService logisticsNodeService) {
+    public LogisticsNodeController(LogisticsNodeService logisticsNodeService, ItemInventoryService itemInventoryService) {
         this.logisticsNodeService = logisticsNodeService;
+        this.itemInventoryService = itemInventoryService;
     }
 
     // 물류거점 생성
@@ -142,6 +145,18 @@ public class LogisticsNodeController {
                         userRole,
                         publicId
                 )
+        );
+    }
+
+    // 특정 물류거점(창고)에 보관 중인 재고 목록 조회
+    @GetMapping("/{publicId}/inventories")
+    public ResponseEntity<?> getNodeInventories(
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                itemInventoryService.getNodeInventories(organizationPublicId, organizationType, publicId)
         );
     }
 }

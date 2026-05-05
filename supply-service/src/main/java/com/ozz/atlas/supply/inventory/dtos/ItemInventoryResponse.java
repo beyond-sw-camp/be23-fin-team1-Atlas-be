@@ -28,6 +28,9 @@ public class ItemInventoryResponse {
     private String memo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String logisticsNodePublicId;
+    private String logisticsNodeCode;
+    private String logisticsNodeName;
 
     public static ItemInventoryResponse from(SupplyItemInventory inventory) {
         return ItemInventoryResponse.builder()
@@ -44,6 +47,9 @@ public class ItemInventoryResponse {
                 .availableQty(inventory.getAvailableQty())
                 .status(inventory.getStatus())
                 .memo(inventory.getMemo())
+                .logisticsNodePublicId(inventory.getLogisticsNode().getPublicId())
+                .logisticsNodeCode(inventory.getLogisticsNode().getNodeCode())
+                .logisticsNodeName(inventory.getLogisticsNode().getNodeName())
                 .createdAt(inventory.getCreatedAt())
                 .updatedAt(inventory.getUpdatedAt())
                 .build();

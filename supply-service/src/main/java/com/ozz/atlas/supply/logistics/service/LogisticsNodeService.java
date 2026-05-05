@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.logistics.service;
 import com.ozz.atlas.common.kafka.AggregateType;
 import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.inventory.repository.SupplyItemInventoryRepository;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
 import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
@@ -38,19 +39,21 @@ public class LogisticsNodeService {
     private final AddressGeocodingClient addressGeocodingClient;
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
+    private final SupplyItemInventoryRepository inventoryRepository;
 
     public LogisticsNodeService(
             LogisticsNodeRepository logisticsNodeRepository,
             OrganizationAliasClient organizationAliasClient,
             AddressGeocodingClient addressGeocodingClient,
             OutboxEventAppender outboxEventAppender,
-            SupplyDomainEventFactory supplyDomainEventFactory
+            SupplyDomainEventFactory supplyDomainEventFactory, SupplyItemInventoryRepository inventoryRepository
     ) {
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.organizationAliasClient = organizationAliasClient;
         this.addressGeocodingClient = addressGeocodingClient;
         this.outboxEventAppender = outboxEventAppender;
         this.supplyDomainEventFactory = supplyDomainEventFactory;
+        this.inventoryRepository = inventoryRepository;
     }
 
     // 물류거점 생성
@@ -196,7 +199,10 @@ public class LogisticsNodeService {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
 
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
-
+        // 물류거점 비활성화 불가 검증
+        if (inventoryRepository.existsLiveInventoryInNode(organizationPublicId, publicId)) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.NODE_HAS_REMAINING_INVENTORY);
+        }
         node.deactivate();
 
         return LogisticsNodeResponseDto.from(node);
@@ -287,7 +293,7 @@ public class LogisticsNodeService {
                                 node.getNodeCode(),
                                 node.getCapacityStatus().name(),
                                 "물류 거점 용량 상태 변경",
-                                "물류 거점 용량 상태 변경 시",
+                                "물류 거점 용량 상태가 변경되었습니다.",
                                 null
                         )
                 )

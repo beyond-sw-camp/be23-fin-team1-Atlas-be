@@ -13,11 +13,14 @@ import com.ozz.atlas.supply.inventory.repository.SupplyItemInventoryRepository;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyType;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
+import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
 import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +37,7 @@ public class ItemInventoryService {
     private final SupplierRepository supplierRepository;
     private final SupplyItemRepository itemRepository;
     private final SupplierItemCapabilityRepository capabilityRepository;
+    private final LogisticsNodeRepository logisticsNodeRepository;
 
     public ItemInventoryResponse createInventory(
             String organizationPublicId,
@@ -43,6 +47,10 @@ public class ItemInventoryService {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
         SupplyItem item = getManagedItem(supplier, request.getItemPublicId());
 
+        LogisticsNode logisticsNode = getActiveOwnedLogisticsNode(
+                organizationPublicId,
+                request.getLogisticsNodePublicId()
+        );
         LocalDate expirationDate = request.getManufacturedDate()
                 .plusDays(item.getShelfLifeDays());
 
@@ -51,6 +59,7 @@ public class ItemInventoryService {
         SupplyItemInventory inventory = SupplyItemInventory.create(
                 supplier,
                 item,
+                logisticsNode,
                 request.getManufacturedDate(),
                 expirationDate,
                 request.getQty(),
@@ -97,6 +106,10 @@ public class ItemInventoryService {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
         SupplyItemInventory inventory = getOwnedInventory(supplier, inventoryPublicId);
 
+        LogisticsNode logisticsNode = getActiveOwnedLogisticsNode(
+                organizationPublicId,
+                request.getLogisticsNodePublicId()
+        );
         LocalDate expirationDate = request.getManufacturedDate()
                 .plusDays(inventory.getItem().getShelfLifeDays());
 
@@ -104,6 +117,7 @@ public class ItemInventoryService {
 
         try {
             inventory.update(
+                    logisticsNode,
                     request.getManufacturedDate(),
                     expirationDate,
                     request.getQty(),
@@ -205,7 +219,8 @@ public class ItemInventoryService {
 
         List<SupplyItemInventory> inventories = inventoryRepository.findReservedForUpdate(
                 supplier.getId(),
-                item.getId()
+                item.getId(),
+                LocalDate.now()
         );
 
         for (SupplyItemInventory inventory : inventories) {
@@ -320,6 +335,33 @@ public class ItemInventoryService {
                 .map(ItemInventoryResponse::from)
                 .toList();
     }
+    private LogisticsNode getActiveOwnedLogisticsNode(String organizationPublicId, String logisticsNodePublicId) {
+        return logisticsNodeRepository
+                .findByPublicIdAndOrganizationPublicIdAndActiveTrue(logisticsNodePublicId, organizationPublicId)
+                .orElseThrow(() -> new ItemInventoryException(ItemInventoryErrorCode.INVALID_INPUT_VALUE));
+    }
+
+    @Operation(summary = "물류 거점 재고 목록 조회")
+    @Transactional(readOnly = true)
+    public List<ItemInventoryResponse> getNodeInventories(
+            String organizationPublicId,
+            String organizationType,
+            String nodePublicId
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
+
+        return inventoryRepository
+                .findAllBySupplier_OrganizationPublicIdAndLogisticsNode_PublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
+                        organizationPublicId,
+                        nodePublicId,
+                        InventoryStatus.DELETED
+                )
+                .stream()
+                .map(ItemInventoryResponse::from)
+                .toList();
+    }
+
+
 
 
 }

@@ -13,10 +13,10 @@ import java.util.Optional;
 
 public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemInventory, Long> {
 
-    @EntityGraph(attributePaths = {"supplier", "item"})
+    @EntityGraph(attributePaths = {"supplier", "item", "logisticsNode"})
     Optional<SupplyItemInventory> findByPublicIdAndStatusNot(String publicId, InventoryStatus status);
 
-    @EntityGraph(attributePaths = {"supplier", "item"})
+    @EntityGraph(attributePaths = {"supplier", "item", "logisticsNode"})
     List<SupplyItemInventory> findAllBySupplier_OrganizationPublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
             String organizationPublicId,
             InventoryStatus status
@@ -31,6 +31,7 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
           and inv.status in :statuses
           and inv.expirationDate >= :today
           and inv.remainingQty > inv.reservedQty
+          and inv.logisticsNode.active = true
         order by inv.expirationDate asc, inv.manufacturedDate asc, inv.inventoryId asc
     """)
     List<SupplyItemInventory> findReservableForUpdate(
@@ -48,12 +49,16 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
           and inv.item.id = :itemId
           and inv.status = com.ozz.atlas.supply.inventory.domain.InventoryStatus.RESERVED
           and inv.reservedQty > 0
+          and inv.expirationDate >= :today
+          and inv.logisticsNode.active = true
         order by inv.expirationDate asc, inv.manufacturedDate asc, inv.inventoryId asc
     """)
     List<SupplyItemInventory> findReservedForUpdate(
             @Param("supplierId") Long supplierId,
-            @Param("itemId") Long itemId
+            @Param("itemId") Long itemId,
+            @Param("today") LocalDate today
     );
+
 
     @Query("""
         select coalesce(sum(inv.remainingQty - inv.reservedQty), 0)
@@ -64,6 +69,7 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
             com.ozz.atlas.supply.inventory.domain.InventoryStatus.ACTIVE,
             com.ozz.atlas.supply.inventory.domain.InventoryStatus.RESERVED
           )
+          and inv.logisticsNode.active = true
           and inv.expirationDate >= :today
     """)
     Long sumAvailableQty(
@@ -102,6 +108,7 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
       and inv.status in :statuses
       and inv.expirationDate >= :today
       and inv.remainingQty > 0
+      and inv.logisticsNode.active = true
     order by inv.expirationDate asc, inv.manufacturedDate asc, inv.inventoryId asc
 """)
     List<SupplyItemInventory> findAvailableForDeductUpdate(
@@ -136,17 +143,41 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
         com.ozz.atlas.supply.inventory.domain.InventoryStatus.RESERVED
       )
       and inv.expirationDate >= :today
+      and inv.logisticsNode.active = true
 """)
     Long sumAvailableQtyByOrganizationPublicId(
             @Param("organizationPublicId") String organizationPublicId,
             @Param("today") LocalDate today
     );
 
-    @EntityGraph(attributePaths = {"supplier", "item"})
-    List<SupplyItemInventory> findAllBySupplier_OrganizationPublicIdAndItem_PublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
+    @EntityGraph(attributePaths = {"supplier", "item", "logisticsNode"})    List<SupplyItemInventory> findAllBySupplier_OrganizationPublicIdAndItem_PublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
             String organizationPublicId,
             String itemPublicId,
             InventoryStatus status
     );
+
+    @EntityGraph(attributePaths = {"supplier", "item", "logisticsNode"})
+    List<SupplyItemInventory> findAllBySupplier_OrganizationPublicIdAndLogisticsNode_PublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
+            String organizationPublicId,
+            String logisticsNodePublicId,
+            InventoryStatus status
+    );
+
+    @Query("""
+    select count(inv) > 0
+    from SupplyItemInventory inv
+    where inv.logisticsNode.publicId = :nodePublicId
+      and inv.logisticsNode.organizationPublicId = :organizationPublicId
+      and inv.status not in (
+        com.ozz.atlas.supply.inventory.domain.InventoryStatus.DELETED,
+        com.ozz.atlas.supply.inventory.domain.InventoryStatus.EXHAUSTED
+      )
+      and inv.remainingQty > 0
+""")
+    boolean existsLiveInventoryInNode(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("nodePublicId") String nodePublicId
+    );
+
 
 }
