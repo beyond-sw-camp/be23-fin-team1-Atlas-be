@@ -34,6 +34,9 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
     private String arrivalLogisticsNodePublicId;
     private String arrivalLogisticsNodeName;
     private String arrivalLogisticsNodeAddress;
+    private String arrivalLogisticsNodeCode;
+    private Long alreadyShippedQty;
+    private Long remainingShippableQty;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -55,9 +58,12 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
                 .partialConfirmationAllowed(purchaseOrderItem.getPartialConfirmationAllowed())
                 .createdAt(purchaseOrderItem.getCreatedAt())
                 .updatedAt(purchaseOrderItem.getUpdatedAt())
+                .alreadyShippedQty(0L)
+                .remainingShippableQty(purchaseOrderItem.getConfirmedQty())
                 .arrivalLogisticsNodePublicId(arrivalLogisticsNode != null ? arrivalLogisticsNode.getPublicId() : null)
                 .arrivalLogisticsNodeName(arrivalLogisticsNode  != null ? arrivalLogisticsNode.getNodeName() : null)
                 .arrivalLogisticsNodeAddress(arrivalLogisticsNode  != null ? arrivalLogisticsNode.getAddress() : null)
+                .arrivalLogisticsNodeCode(arrivalLogisticsNode != null ? arrivalLogisticsNode.getNodeCode() : null)
                 .build();
     }
 }

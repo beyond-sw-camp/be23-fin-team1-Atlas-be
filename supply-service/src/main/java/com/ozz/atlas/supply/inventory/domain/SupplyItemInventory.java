@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.inventory.domain;
 import com.ozz.atlas.common.id.PublicIdGenerator;
 import com.ozz.atlas.common.jpa.BaseTimeEntity;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import jakarta.persistence.*;
 import lombok.*;
@@ -55,9 +56,14 @@ public class SupplyItemInventory extends BaseTimeEntity {
     @Column(length = 500)
     private String memo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "logistics_node_id", nullable = false)
+    private LogisticsNode logisticsNode;
+
     public static SupplyItemInventory create(
             SupplySupplier supplier,
             SupplyItem item,
+            LogisticsNode logisticsNode,
             LocalDate manufacturedDate,
             LocalDate expirationDate,
             Long qty,
@@ -66,6 +72,7 @@ public class SupplyItemInventory extends BaseTimeEntity {
         return SupplyItemInventory.builder()
                 .supplier(supplier)
                 .item(item)
+                .logisticsNode(logisticsNode)
                 .manufacturedDate(manufacturedDate)
                 .expirationDate(expirationDate)
                 .initialQty(qty)
@@ -99,10 +106,11 @@ public class SupplyItemInventory extends BaseTimeEntity {
         refreshStatus();
     }
 
-    public void update(LocalDate manufacturedDate, LocalDate expirationDate, Long qty, String memo) {
+    public void update(LogisticsNode logisticsNode, LocalDate manufacturedDate, LocalDate expirationDate, Long qty, String memo) {
         if (this.status != InventoryStatus.ACTIVE || this.reservedQty > 0) {
             throw new IllegalStateException("예약된 재고는 수정할 수 없습니다.");
         }
+        this.logisticsNode = logisticsNode;
         this.manufacturedDate = manufacturedDate;
         this.expirationDate = expirationDate;
         this.initialQty = qty;

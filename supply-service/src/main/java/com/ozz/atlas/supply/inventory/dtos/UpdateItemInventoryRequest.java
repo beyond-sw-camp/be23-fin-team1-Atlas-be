@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.inventory.dtos;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
@@ -19,4 +20,7 @@ public class UpdateItemInventoryRequest {
     private Long qty;
 
     private String memo;
+
+    @NotBlank
+    private String logisticsNodePublicId;
 }

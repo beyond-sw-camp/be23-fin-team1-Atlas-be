@@ -23,4 +23,7 @@ public class CreateItemInventoryRequest {
     private Long qty;
 
     private String memo;
+
+    @NotBlank
+    private String logisticsNodePublicId;
 }
