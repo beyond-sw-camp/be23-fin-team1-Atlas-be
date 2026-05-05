@@ -29,7 +29,11 @@ public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, Lo
     );
     boolean existsBySourceShipmentPublicId(String sourceShipmentPublicId);
 
+    boolean existsByReturnNumber(String returnNumber);
+
     Optional<ReturnRequest> findByReturnShipmentPublicId(String returnShipmentPublicId);
+
+    Optional<ReturnRequest> findTopByReturnNumberStartingWithOrderByReturnNumberDesc(String prefix);
 
     long countByReturnStatusInAndRequestOrganizationPublicIdOrReturnStatusInAndTargetOrganizationPublicId(
             Collection<ReturnStatus> requestStatuses,

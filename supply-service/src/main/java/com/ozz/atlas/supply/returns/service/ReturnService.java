@@ -4,6 +4,8 @@ import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.common.kafka.AggregateType;
 import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.common.code.SequenceCodeType;
+import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
 import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
@@ -98,8 +100,9 @@ public class ReturnService {
                 : null;
 
         ReturnRequest returnRequest = ReturnRequest.builder()
-                .returnNumber(generateReturnNumber(shipment))
+                .returnNumber(generateNextReturnNumber())
                 .sourceShipmentPublicId(request.getSourceShipmentPublicId())
+                .sourceShipmentId(shipment.getId())
                 .requestOrganizationPublicId(requestOrganizationPublicId)
                 .targetOrganizationPublicId(targetOrganizationPublicId)
                 .returnType(request.getReturnType())
@@ -571,11 +574,19 @@ public class ReturnService {
         }
     }
 
-    private String generateReturnNumber(Shipment shipment) {
-        String baseNumber = shipment.getShipmentNumber();
-        long sequence = returnRequestRepository.count() + 1;
+    private String generateNextReturnNumber() {
+        String prefix = YearlySequenceCodeGenerator.currentPrefix(SequenceCodeType.RETURN);
+        String lastReturnNumber = returnRequestRepository
+                .findTopByReturnNumberStartingWithOrderByReturnNumberDesc(prefix)
+                .map(ReturnRequest::getReturnNumber)
+                .orElse(null);
 
-        return "RTN-" + baseNumber + "-" + String.format("%03d", sequence);
+        String candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.RETURN, lastReturnNumber, 7);
+        while (returnRequestRepository.existsByReturnNumber(candidate)) {
+            candidate = YearlySequenceCodeGenerator.next(SequenceCodeType.RETURN, candidate, 7);
+        }
+
+        return candidate;
     }
     private void createReturnShipment(ReturnRequest returnRequest) {
         if (returnRequest.getReturnShipmentPublicId() != null
@@ -586,11 +597,7 @@ public class ReturnService {
         Shipment sourceShipment = shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId())
                 .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
 
-        String returnShipmentNumber = generateReturnShipmentNumber(returnRequest);
-
-        if (shipmentRepository.existsByShipmentNumber(returnShipmentNumber)) {
-            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
-        }
+        String returnShipmentNumber = generateNextShipmentNumber(SequenceCodeType.RETURN_SHIPMENT);
 
         Shipment returnShipment = Shipment.builder()
                 .shipmentNumber(returnShipmentNumber)
@@ -617,18 +624,14 @@ public class ReturnService {
         Shipment savedReturnShipment = shipmentRepository.save(returnShipment);
         shipmentSearchService.saveShipmentDocument(savedReturnShipment);
 
-        returnRequest.assignReturnShipmentPublicId(savedReturnShipment.getPublicId());
+        returnRequest.assignReturnShipment(savedReturnShipment.getId(), savedReturnShipment.getPublicId());
     }
 
     private void createExchangeShipment(ReturnRequest returnRequest) {
         Shipment sourceShipment = shipmentRepository.findByPublicId(returnRequest.getSourceShipmentPublicId())
                 .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
 
-        String exchangeShipmentNumber = "EX-" + returnRequest.getReturnNumber();
-
-        if (shipmentRepository.existsByShipmentNumber(exchangeShipmentNumber)) {
-            throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
-        }
+        String exchangeShipmentNumber = generateNextShipmentNumber(SequenceCodeType.EXCHANGE_SHIPMENT);
 
         Shipment exchangeShipment = Shipment.builder()
                 .shipmentNumber(exchangeShipmentNumber)
@@ -654,12 +657,23 @@ public class ReturnService {
 
         Shipment savedExchangeShipment = shipmentRepository.save(exchangeShipment);
         shipmentSearchService.saveShipmentDocument(savedExchangeShipment);
-        
-        // Note: For EXCHANGE, we might want to track this new shipment somewhere, but ReturnRequest currently only has `returnShipmentPublicId` which is used for the backward flow.
+
+        returnRequest.assignExchangeShipment(savedExchangeShipment.getId(), savedExchangeShipment.getPublicId());
     }
 
-    private String generateReturnShipmentNumber(ReturnRequest returnRequest) {
-        return "RS-" + returnRequest.getReturnNumber();
+    private String generateNextShipmentNumber(SequenceCodeType type) {
+        String prefix = YearlySequenceCodeGenerator.currentPrefix(type);
+        String lastShipmentNumber = shipmentRepository
+                .findTopByShipmentNumberStartingWithOrderByShipmentNumberDesc(prefix)
+                .map(Shipment::getShipmentNumber)
+                .orElse(null);
+
+        String candidate = YearlySequenceCodeGenerator.next(type, lastShipmentNumber, 7);
+        while (shipmentRepository.existsByShipmentNumber(candidate)) {
+            candidate = YearlySequenceCodeGenerator.next(type, candidate, 7);
+        }
+
+        return candidate;
     }
 
 
