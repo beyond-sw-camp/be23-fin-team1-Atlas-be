@@ -184,10 +184,15 @@ public class IntegratedSearchService {
                 .filter(organization -> matchesKeyword(
                         keyword,
                         organization.getOrganizationName(),
+                        organization.getOrganizationEnglishName(),
                         buildOrganizationContactName(organization),
                         organization.getContactEmail(),
-                        organization.getContactPhone()
+                        organization.getContactPhone(),
+                        organization.getAddress(),
+                        organization.getAddressDetail(),
+                        organization.getZipCode()
                 ))
+
                 .map(organization -> IntegratedSearchItemDto.builder()
                         .type(IntegratedSearchSectionType.ORGANIZATION)
                         .id(organization.getOrganizationId())
@@ -196,7 +201,15 @@ public class IntegratedSearchService {
                         .subtitle(buildOrganizationSubtitle(organization))
                         .status(organization.getStatus())
                         .thumbnailUrl(organization.getOrganizationImageThumbPath())
+                        .organizationEnglishName(organization.getOrganizationEnglishName())
+                        .contactEmail(organization.getContactEmail())
+                        .contactPhone(organization.getContactPhone())
+                        .contactName(buildOrganizationContactName(organization))
+                        .address(organization.getAddress())
+                        .addressDetail(organization.getAddressDetail())
+                        .zipCode(organization.getZipCode())
                         .build())
+
                 .limit(size)
                 .toList();
 
@@ -402,6 +415,7 @@ public class IntegratedSearchService {
         private String organizationPublicId;
         private String organizationType;
         private String organizationName;
+        private String organizationEnglishName;
         private String contactFirstName;
         private String contactMiddleName;
         private String contactLastName;
@@ -410,7 +424,11 @@ public class IntegratedSearchService {
         private String status;
         private String organizationImageThumbPath;
         private Long organizationId;
+        private String address;
+        private String addressDetail;
+        private String zipCode;
     }
+
 
     // supply-service 통합검색 전체 응답을 받기 위한 내부 DTO
     @Data

@@ -94,7 +94,14 @@ public class OrganizationSearchService {
                             "contactEmail^2.0",
                             "contactEmail.ngram^2.0",
                             "contactPhone",
-                            "contactPhone.ngram^2.0"
+                            "contactPhone.ngram^2.0",
+                            "address^2.0",
+                            "address.ngram^2.0",
+                            "addressDetail^2.0",
+                            "addressDetail.ngram^2.0",
+                            "zipCode",
+                            "zipCode.ngram"
+
                     ))
             )));
         }
@@ -146,6 +153,9 @@ public class OrganizationSearchService {
                         .contactPhone(document.getContactPhone())
                         .status(document.getStatus())
                         .organizationImageThumbPath(document.getOrganizationImageThumbPath())
+                        .address(document.getAddress())
+                        .addressDetail(document.getAddressDetail())
+                        .zipCode(document.getZipCode())
                         .build())
                 .toList();
 

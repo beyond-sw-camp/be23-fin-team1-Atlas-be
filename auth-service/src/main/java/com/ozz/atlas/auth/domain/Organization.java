@@ -37,6 +37,18 @@ public class Organization extends BaseTimeEntity {
     @Column(length = 30)
     private String businessNo;
 
+    // 조직의 기본 주소
+    @Column(length = 200)
+    private String address;
+
+    // 건물명, 층, 호수 같은 상세 주소
+    @Column(length = 200)
+    private String addressDetail;
+
+    // 우편번호
+    @Column(length = 20)
+    private String zipCode;
+
     @Column(nullable = false, length = 10)
     private String contactFirstName;
 
@@ -98,6 +110,18 @@ public class Organization extends BaseTimeEntity {
 
         if (dto.getOrganizationImageThumbPath() != null) {
             this.organizationImageThumbPath = dto.getOrganizationImageThumbPath();
+        }
+
+        if (dto.getAddress() != null && !dto.getAddress().isBlank()) {
+            this.address = dto.getAddress();
+        }
+
+        if (dto.getAddressDetail() != null) {
+            this.addressDetail = dto.getAddressDetail();
+        }
+
+        if (dto.getZipCode() != null) {
+            this.zipCode = dto.getZipCode();
         }
 
     }

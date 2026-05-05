@@ -170,6 +170,49 @@ public class OrganizationDocument {
 
     private String organizationImageThumbPath;
 
+    @MultiField(
+            mainField = @Field(type = FieldType.Text),
+            otherFields = {
+                    @InnerField(suffix = "keyword", type = FieldType.Keyword),
+                    @InnerField(
+                            suffix = "ngram",
+                            type = FieldType.Text,
+                            analyzer = "organization_ngram_analyzer",
+                            searchAnalyzer = "organization_search_analyzer"
+                    )
+            }
+    )
+    private String address;
+
+    @MultiField(
+            mainField = @Field(type = FieldType.Text),
+            otherFields = {
+                    @InnerField(suffix = "keyword", type = FieldType.Keyword),
+                    @InnerField(
+                            suffix = "ngram",
+                            type = FieldType.Text,
+                            analyzer = "organization_ngram_analyzer",
+                            searchAnalyzer = "organization_search_analyzer"
+                    )
+            }
+    )
+    private String addressDetail;
+
+
+    @MultiField(
+            mainField = @Field(type = FieldType.Text),
+            otherFields = {
+                    @InnerField(suffix = "keyword", type = FieldType.Keyword),
+                    @InnerField(
+                            suffix = "ngram",
+                            type = FieldType.Text,
+                            analyzer = "organization_ngram_analyzer",
+                            searchAnalyzer = "organization_search_analyzer"
+                    )
+            }
+    )
+    private String zipCode;
+
 
 
     public static OrganizationDocument fromEntity(Organization organization) {
@@ -189,6 +232,9 @@ public class OrganizationDocument {
                 .status(organization.getStatus())
                 .organizationImageAttachmentPublicId(organization.getOrganizationImageAttachmentPublicId())
                 .organizationImageThumbPath(organization.getOrganizationImageThumbPath())
+                .address(organization.getAddress())
+                .addressDetail(organization.getAddressDetail())
+                .zipCode(organization.getZipCode())
                 .build();
     }
 }

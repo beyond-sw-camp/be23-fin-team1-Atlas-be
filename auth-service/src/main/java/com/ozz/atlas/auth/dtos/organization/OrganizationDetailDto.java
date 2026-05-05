@@ -55,6 +55,12 @@ public class OrganizationDetailDto {
     @Schema(description = "조직 상태", example = "ACTIVE")
     private Status status;
 
+    private String address;
+
+    private String addressDetail;
+
+    private String zipCode;
+
     private String organizationImageAttachmentPublicId;
 
     private String organizationImageThumbPath;
@@ -80,6 +86,9 @@ public class OrganizationDetailDto {
                 .organizationImageAttachmentPublicId(organization.getOrganizationImageAttachmentPublicId())
                 .organizationImageThumbPath(organization.getOrganizationImageThumbPath())
                 .memberCount(memberCount)
+                .address(organization.getAddress())
+                .addressDetail(organization.getAddressDetail())
+                .zipCode(organization.getZipCode())
                 .build();
     }
 }
