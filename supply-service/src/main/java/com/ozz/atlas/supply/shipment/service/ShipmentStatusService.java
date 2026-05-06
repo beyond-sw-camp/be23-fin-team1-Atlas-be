@@ -3,11 +3,14 @@ package com.ozz.atlas.supply.shipment.service;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
+import com.ozz.atlas.supply.shipment.domain.ShipmentLine;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatusHistory;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
 import com.ozz.atlas.supply.shipment.exception.ShipmentErrorCode;
 import com.ozz.atlas.supply.shipment.exception.ShipmentException;
+import com.ozz.atlas.supply.settlement.service.SettlementService;
+import com.ozz.atlas.supply.shipment.repository.ShipmentLineRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentStatusHistoryRepository;
 import com.ozz.atlas.supply.shipment.search.service.ShipmentSearchService;
@@ -17,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @Transactional
@@ -28,6 +32,9 @@ public class ShipmentStatusService {
     private final ShipmentSearchService shipmentSearchService;
     private final ShipmentAuthorizationService shipmentAuthorizationService;
     private final ShipmentMapper shipmentMapper;
+    private final ShipmentLineRepository shipmentLineRepository;
+    private final ShipmentInventoryService shipmentInventoryService;
+    private final SettlementService settlementService;
 
     public ShipmentStatusService(
             ShipmentRepository shipmentRepository,
@@ -35,7 +42,10 @@ public class ShipmentStatusService {
             ShipmentStatusHistoryRepository shipmentStatusHistoryRepository,
             ShipmentSearchService shipmentSearchService,
             ShipmentAuthorizationService shipmentAuthorizationService,
-            ShipmentMapper shipmentMapper
+            ShipmentMapper shipmentMapper,
+            ShipmentLineRepository shipmentLineRepository,
+            ShipmentInventoryService shipmentInventoryService,
+            SettlementService settlementService
     ) {
         this.shipmentRepository = shipmentRepository;
         this.logisticsNodeRepository = logisticsNodeRepository;
@@ -43,6 +53,9 @@ public class ShipmentStatusService {
         this.shipmentSearchService = shipmentSearchService;
         this.shipmentAuthorizationService = shipmentAuthorizationService;
         this.shipmentMapper = shipmentMapper;
+        this.shipmentLineRepository = shipmentLineRepository;
+        this.shipmentInventoryService = shipmentInventoryService;
+        this.settlementService = settlementService;
     }
 
     public ShipmentResponseDto startShipment(
@@ -125,6 +138,45 @@ public class ShipmentStatusService {
                 destinationNode.getNodeName(),
                 destinationNode.getLatitude(),
                 destinationNode.getLongitude(),
+                actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
+        );
+
+        shipmentSearchService.saveShipmentDocument(savedShipment);
+        settlementService.createShipmentSettlementIfAbsent(savedShipment.getPublicId());
+
+        return shipmentMapper.toShipmentResponseDto(savedShipment);
+    }
+
+    public ShipmentResponseDto cancelShipment(
+            String publicId,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        shipmentAuthorizationService.validateShipmentActor(organizationPublicId, organizationType, userRole);
+
+        Shipment shipment = getReadableShipment(publicId, organizationPublicId);
+        shipmentAuthorizationService.validateSenderCanStartShipment(shipment, organizationPublicId);
+
+        if (shipment.getStatus() != ShipmentStatus.READY) {
+            throw new ShipmentException(ShipmentErrorCode.INVALID_SHIPMENT_STATUS_TRANSITION);
+        }
+
+        List<ShipmentLine> shipmentLines = shipmentLineRepository.findByShipmentIdOrderByIdAsc(shipment.getId());
+        shipmentInventoryService.restoreDeductedForShipmentLines(shipmentLines);
+        shipment.cancel();
+
+        Shipment savedShipment = shipmentRepository.save(shipment);
+        LogisticsNode originNode = getNode(savedShipment.getOriginNodeId());
+
+        saveShipmentStatusHistory(
+                savedShipment,
+                LocalDateTime.now(),
+                "출하 취소",
+                originNode.getNodeName(),
+                originNode.getLatitude(),
+                originNode.getLongitude(),
                 actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
         );
 

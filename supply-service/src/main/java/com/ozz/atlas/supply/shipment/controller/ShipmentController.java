@@ -310,6 +310,25 @@ public class ShipmentController {
             @ApiResponse(responseCode = "403", description = "추적 등록 권한 없음"),
             @ApiResponse(responseCode = "404", description = "출하를 찾을 수 없음")
     })
+    @PatchMapping("/{publicId}/cancel")
+    public ResponseEntity<ShipmentResponseDto> cancelShipment(
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                shipmentService.cancelShipment(
+                        publicId,
+                        actorUserPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole
+                )
+        );
+    }
+
     @PostMapping("/{publicId}/track")
     public ResponseEntity<ShipmentResponseDto> trackShipment(
             @Parameter(description = "요청 사용자 공개 식별자", example = "01HQUSER789ABCDEF01HQUSER")

@@ -131,6 +131,16 @@ public class SupplyItemInventory extends BaseTimeEntity {
         refreshStatus();
     }
 
+    public void restoreDeductedReserved(Long qty) {
+        if (qty == null || qty <= 0) {
+            return;
+        }
+
+        this.reservedQty += qty;
+        this.remainingQty += qty;
+        refreshStatus();
+    }
+
     public void releaseReserved(Long qty) {
         if (qty == null || qty <= 0 || this.reservedQty < qty) {
             throw new IllegalArgumentException("해제 가능한 예약 재고 수량이 부족합니다.");

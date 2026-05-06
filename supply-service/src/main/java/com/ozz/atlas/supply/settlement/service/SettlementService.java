@@ -16,6 +16,7 @@ import com.ozz.atlas.supply.settlement.exception.SettlementException;
 import com.ozz.atlas.supply.settlement.repository.SettlementDetailRepository;
 import com.ozz.atlas.supply.settlement.repository.SettlementRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
+import com.ozz.atlas.supply.shipment.repository.ShipmentLineRepository;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
@@ -57,6 +58,7 @@ public class SettlementService {
     private final SupplierRepository supplierRepository;
     private final ReturnRequestRepository returnRequestRepository;
     private final ShipmentRepository shipmentRepository;
+    private final ShipmentLineRepository shipmentLineRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final SubPurchaseOrderRepository subPurchaseOrderRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
@@ -99,9 +101,14 @@ public class SettlementService {
 
         Settlement savedSettlement = settlementRepository.save(settlement);
 
-        List<SettlementDetail> details = request.getTargetType() == SettlementTargetType.RETURN
-                ? createReturnSettlementDetails(savedSettlement, request)
-                : createShipmentSettlementDetails(savedSettlement, request.getTargetPublicId());
+        List<SettlementDetail> details;
+        if (request.getTargetType() == SettlementTargetType.RETURN) {
+            details = createReturnSettlementDetails(savedSettlement, request);
+        } else if (request.getTargetType() == SettlementTargetType.ORDER) {
+            details = createOrderSettlementDetails(savedSettlement, request.getTargetPublicId());
+        } else {
+            details = createShipmentSettlementDetails(savedSettlement, request.getTargetPublicId());
+        }
 
         List<SettlementDetail> savedDetails = settlementDetailRepository.saveAll(details);
 
@@ -118,6 +125,17 @@ public class SettlementService {
 
     @Transactional
     public void createShipmentSettlementIfAbsent(String shipmentPublicId) {
+        Shipment shipment = getShipmentByPublicId(shipmentPublicId);
+
+        if (shipment.getStatus() != ShipmentStatus.ARRIVED) {
+            return;
+        }
+
+        if (shipment.getPoId() != null && shipment.getPurchaseOrderPublicId() != null) {
+            createPurchaseOrderSettlementIfReady(shipment);
+            return;
+        }
+
         if (settlementRepository.existsByTargetTypeAndTargetPublicIdAndSettlementStatusNot(
                 SettlementTargetType.SHIPMENT,
                 shipmentPublicId,
@@ -126,9 +144,7 @@ public class SettlementService {
             return;
         }
 
-        Shipment shipment = getShipmentByPublicId(shipmentPublicId);
         LogisticsNode destinationNode = getLogisticsNodeById(shipment.getDestinationNodeId());
-
         createSettlement(
                 CreateSettlementRequestDto.builder()
                         .targetType(SettlementTargetType.SHIPMENT)
@@ -375,7 +391,8 @@ public class SettlementService {
 
 //    반품-정산 요청 검증
     private void validateCreateRequest(CreateSettlementRequestDto request) {
-        if (request.getTargetType() != SettlementTargetType.SHIPMENT
+        if (request.getTargetType() != SettlementTargetType.ORDER
+                && request.getTargetType() != SettlementTargetType.SHIPMENT
                 && request.getTargetType() != SettlementTargetType.RETURN) {
             throw new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST);
         }
@@ -393,6 +410,10 @@ public class SettlementService {
             CreateSettlementRequestDto request,
             String actorOrganizationPublicId
     ) {
+        if (request.getTargetType() == SettlementTargetType.ORDER) {
+            return resolveOrderSettlementContext(request.getTargetPublicId(), actorOrganizationPublicId);
+        }
+
         if (request.getTargetType() == SettlementTargetType.SHIPMENT) {
             return resolveShipmentSettlementContext(request.getTargetPublicId(), actorOrganizationPublicId);
         }
@@ -430,6 +451,31 @@ public class SettlementService {
                 supplier,
                 buyerOrganizationPublicId,
                 supplierOrganizationPublicId
+        );
+    }
+
+    private SettlementContext resolveOrderSettlementContext(
+            String orderPublicId,
+            String actorOrganizationPublicId
+    ) {
+        SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findByPublicIdAndPoStatusNot(
+                        orderPublicId,
+                        PoStatus.DELETED
+                )
+                .orElseThrow(() -> new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST));
+
+        if (!actorOrganizationPublicId.equals(purchaseOrder.getBuyerOrganizationPublicId())) {
+            throw new SettlementException(SettlementErrorCode.FORBIDDEN_SETTLEMENT_CREATE);
+        }
+
+        SupplySupplier supplier = getSettlementSupplierByOrganizationPublicId(
+                purchaseOrder.getSupplier().getOrganizationPublicId()
+        );
+
+        return new SettlementContext(
+                supplier,
+                purchaseOrder.getBuyerOrganizationPublicId(),
+                purchaseOrder.getSupplier().getOrganizationPublicId()
         );
     }
 
@@ -474,6 +520,19 @@ public class SettlementService {
         }
 
         throw new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST);
+    }
+
+    private List<SettlementDetail> createOrderSettlementDetails(
+            Settlement settlement,
+            String orderPublicId
+    ) {
+        SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findByPublicIdAndPoStatusNot(
+                        orderPublicId,
+                        PoStatus.DELETED
+                )
+                .orElseThrow(() -> new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST));
+
+        return createPurchaseOrderSettlementDetails(settlement, purchaseOrder.getId());
     }
 
     private List<SettlementDetail> createPurchaseOrderSettlementDetails(
@@ -556,6 +615,60 @@ public class SettlementService {
         }
 
         return BigDecimal.valueOf(qty);
+    }
+
+    private void createPurchaseOrderSettlementIfReady(Shipment arrivedShipment) {
+        String orderPublicId = arrivedShipment.getPurchaseOrderPublicId();
+
+        if (settlementRepository.existsByTargetTypeAndTargetPublicIdAndSettlementStatusNot(
+                SettlementTargetType.ORDER,
+                orderPublicId,
+                SettlementStatus.CANCELLED
+        )) {
+            return;
+        }
+
+        SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findById(arrivedShipment.getPoId())
+                .orElseThrow(() -> new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_REQUEST));
+
+        if (!isPurchaseOrderFullyArrived(purchaseOrder)) {
+            return;
+        }
+
+        createSettlement(
+                CreateSettlementRequestDto.builder()
+                        .targetType(SettlementTargetType.ORDER)
+                        .targetPublicId(orderPublicId)
+                        .currencyCode(toSettlementCurrency(purchaseOrder.getCurrencyCode().name()))
+                        .build(),
+                purchaseOrder.getBuyerOrganizationPublicId(),
+                "SYSTEM"
+        );
+    }
+
+    private boolean isPurchaseOrderFullyArrived(SupplyPurchaseOrder purchaseOrder) {
+        List<Shipment> shipments = shipmentRepository.findByPoId(purchaseOrder.getId()).stream()
+                .filter(shipment -> shipment.getStatus() != ShipmentStatus.CANCELLED)
+                .toList();
+
+        if (shipments.isEmpty() || shipments.stream().anyMatch(shipment -> shipment.getStatus() != ShipmentStatus.ARRIVED)) {
+            return false;
+        }
+
+        return purchaseOrder.getActiveItems().stream()
+                .allMatch(item -> {
+                    Long confirmedQty = item.getConfirmedQty();
+                    if (confirmedQty == null || confirmedQty <= 0) {
+                        return true;
+                    }
+
+                    Long arrivedQty = shipmentLineRepository.sumQuantityBySourceItemPublicIdAndShipmentStatusIn(
+                            item.getPublicId(),
+                            List.of(ShipmentStatus.ARRIVED)
+                    );
+
+                    return arrivedQty != null && arrivedQty >= confirmedQty;
+                });
     }
 
     private Shipment getShipmentByPublicId(String shipmentPublicId) {
@@ -1171,6 +1284,10 @@ public class SettlementService {
 
     // 정산 대상 유형 코드를 화면용 한글 라벨로
     private String formatSettlementTargetTypeLabel(SettlementTargetType targetType) {
+        if (targetType == SettlementTargetType.ORDER) {
+            return "발주";
+        }
+
         if (targetType == SettlementTargetType.RETURN) {
             return "반품";
         }

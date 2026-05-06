@@ -250,7 +250,6 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
     );
 
     @EntityGraph(attributePaths = {"supplier", "item", "logisticsNode"})
-<<<<<<< Updated upstream
     List<SupplyItemInventory> findAllBySupplier_IdAndItem_IdAndStatusNotOrderByExpirationDateDesc(
             Long supplierId,
             Long itemId,
@@ -261,11 +260,13 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
     List<SupplyItemInventory> findAllBySupplier_IdAndItem_IdAndStatusNotOrderByExpirationDateAsc(
             Long supplierId,
             Long itemId,
-=======
+            InventoryStatus status
+    );
+
+    @EntityGraph(attributePaths = {"supplier", "item", "logisticsNode"})
     List<SupplyItemInventory> findTop5BySupplier_OrganizationPublicIdAndLogisticsNode_PublicIdAndStatusNotOrderByCreatedAtDescInventoryIdDesc(
             String organizationPublicId,
             String logisticsNodePublicId,
->>>>>>> Stashed changes
             InventoryStatus status
     );
 

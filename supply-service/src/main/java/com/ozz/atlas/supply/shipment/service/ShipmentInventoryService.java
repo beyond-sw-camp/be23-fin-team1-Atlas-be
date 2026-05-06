@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -81,5 +82,32 @@ public class ShipmentInventoryService {
         }
 
         itemInventoryService.syncAvailableQtyForShipment(supplier, item);
+    }
+
+    public void restoreDeductedForShipmentLines(Collection<ShipmentLine> shipmentLines) {
+        if (shipmentLines == null || shipmentLines.isEmpty()) {
+            return;
+        }
+
+        List<Long> shipmentLineIds = shipmentLines.stream()
+                .map(ShipmentLine::getId)
+                .toList();
+
+        List<ShipmentInventoryAllocation> allocations =
+                allocationRepository.findByShipmentLineIdIn(shipmentLineIds);
+
+        for (ShipmentInventoryAllocation allocation : allocations) {
+            Long deductedQty = allocation.getDeductedQty();
+            if (deductedQty == null || deductedQty <= 0) {
+                continue;
+            }
+
+            SupplyItemInventory inventory = inventoryRepository.findByInventoryIdForUpdate(
+                            allocation.getInventoryId()
+                    )
+                    .orElseThrow(() -> new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_NOT_FOUND));
+
+            inventory.restoreDeductedReserved(deductedQty);
+        }
     }
 }
