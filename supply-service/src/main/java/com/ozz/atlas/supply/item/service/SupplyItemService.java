@@ -108,8 +108,14 @@ public class SupplyItemService {
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_CATEGORY_NOT_FOUND));
 
 
+        LogisticsNode originLogisticsNode = resolveOriginLogisticsNode(
+                organizationPublicId,
+                request.getOriginLogisticsNodePublicId()
+        );
+
         item.update(
                 category,
+                originLogisticsNode,
                 request.getItemName(),
                 request.getUnit(),
                 request.getUnitPrice(),
