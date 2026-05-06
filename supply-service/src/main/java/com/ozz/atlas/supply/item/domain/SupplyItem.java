@@ -84,6 +84,7 @@ public class SupplyItem extends BaseTimeEntity {
         return SupplyItem.builder()
                 .supplier(supplier)
                 .itemCategory(itemCategory)
+                .originLogisticsNode(originLogisticsNode)
                 .itemCode(itemCode)
                 .itemName(itemName)
                 .unit(unit)
@@ -99,6 +100,7 @@ public class SupplyItem extends BaseTimeEntity {
 
     public void update(
             SupplyItemCategory itemCategory,
+            LogisticsNode originLogisticsNode,
             String itemName,
             ItemUnit unit,
             BigDecimal unitPrice,
@@ -107,6 +109,7 @@ public class SupplyItem extends BaseTimeEntity {
             SupplyType supplyType
     ) {
         this.itemCategory = itemCategory;
+        this.originLogisticsNode = originLogisticsNode;
         this.itemName = itemName;
         this.unit = unit;
         this.unitPrice = unitPrice;
