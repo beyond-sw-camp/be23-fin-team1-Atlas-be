@@ -330,6 +330,7 @@ public class ShipmentController {
     }
 
     @PostMapping("/{publicId}/track")
+    @Operation(summary = "출하 추적 정보 등록", description = "출하 체크포인트와 현재 위치 정보를 등록하고 출하 추적 상태를 갱신한다.")
     public ResponseEntity<ShipmentResponseDto> trackShipment(
             @Parameter(description = "요청 사용자 공개 식별자", example = "01HQUSER789ABCDEF01HQUSER")
             @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,

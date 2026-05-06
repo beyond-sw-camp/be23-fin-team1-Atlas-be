@@ -13,10 +13,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/supply/suppliers")
+@Tag(name = "Supplier", description = "협력사 생성, 조회, 수정 및 연결 요약 API")
 public class SupplierController {
 
     private final SupplierService supplierService;
@@ -130,6 +132,7 @@ public class SupplierController {
     }
 
     @GetMapping("/organizations/{organizationPublicId}/summary")
+    @Operation(summary = "조직 공급 요약 조회", description = "조직 공개 ID로 공급 관련 요약 정보를 조회한다.")
     public ResponseEntity<OrganizationSupplySummaryDto> getOrganizationSupplySummary(
             @PathVariable String organizationPublicId
     ) {
