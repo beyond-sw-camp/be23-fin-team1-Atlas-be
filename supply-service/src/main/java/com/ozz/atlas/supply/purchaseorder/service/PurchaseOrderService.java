@@ -831,16 +831,24 @@ public class PurchaseOrderService {
             String buyerOrganizationPublicId,
             SupplySupplier orderSupplier
     ) {
-        supplierRepository.findByOrganizationPublicId(buyerOrganizationPublicId)
-                .filter(buyerSupplier -> !buyerSupplier.getId().equals(orderSupplier.getId()))
-                .ifPresent(buyerSupplier ->
-                        supplierRelationService.syncRelationStatus(
-                                buyerSupplier,
-                                orderSupplier,
-                                SupplierRelationStatus.ACTIVE
-                        )
-                );
+        SupplySupplier buyerSupplier = supplierRepository.findByOrganizationPublicId(buyerOrganizationPublicId)
+                .orElse(null);
+
+        if (buyerSupplier == null) {
+            return;
+        }
+
+        if (buyerSupplier.getId().equals(orderSupplier.getId())) {
+            return;
+        }
+
+        supplierRelationService.syncRelationStatus(
+                buyerSupplier,
+                orderSupplier,
+                SupplierRelationStatus.ACTIVE
+        );
     }
+
 
 
 
