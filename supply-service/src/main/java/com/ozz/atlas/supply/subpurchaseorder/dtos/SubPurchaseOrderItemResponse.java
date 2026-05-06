@@ -21,6 +21,7 @@ public class SubPurchaseOrderItemResponse {
     private String itemPublicId;
     private String itemCode;
     private String itemName;
+    private String primaryMediaFilePublicId;
     private String unit;
     private BigDecimal unitPrice;
     private BigDecimal lineAmount;
@@ -39,6 +40,7 @@ public class SubPurchaseOrderItemResponse {
                 .itemPublicId(item.getItem().getPublicId())
                 .itemCode(item.getItem().getItemCode())
                 .itemName(item.getItem().getItemName())
+                .primaryMediaFilePublicId(item.getItem().getPrimaryMediaFilePublicId())
                 .unit(item.getItem().getUnit().name())
                 .unitPrice(item.getUnitPrice())
                 .lineAmount(item.getLineAmount())

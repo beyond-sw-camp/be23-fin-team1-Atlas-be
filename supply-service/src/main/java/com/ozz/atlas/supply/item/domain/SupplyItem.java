@@ -65,6 +65,9 @@ public class SupplyItem extends BaseTimeEntity {
     @Builder.Default
     private Status status = Status.ACTIVE;
 
+    @Column(length = 26)
+    private String primaryMediaFilePublicId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "origin_logistics_node_id")
     private LogisticsNode originLogisticsNode;
@@ -122,5 +125,9 @@ public class SupplyItem extends BaseTimeEntity {
 
     public void changeActiveYn(Status status) {
         this.status = status;
+    }
+
+    public void changePrimaryMedia(String filePublicId) {
+        this.primaryMediaFilePublicId = filePublicId;
     }
 }

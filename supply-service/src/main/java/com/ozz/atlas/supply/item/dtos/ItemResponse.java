@@ -31,6 +31,7 @@ public class ItemResponse {
     private BigDecimal unitPrice;
     private String spec;
     private Integer shelfLifeDays;
+    private String primaryMediaFilePublicId;
     private Status status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -58,6 +59,7 @@ public class ItemResponse {
                 .unitPrice(item.getUnitPrice())
                 .spec(item.getSpec())
                 .shelfLifeDays(item.getShelfLifeDays())
+                .primaryMediaFilePublicId(item.getPrimaryMediaFilePublicId())
                 .status(item.getStatus())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())

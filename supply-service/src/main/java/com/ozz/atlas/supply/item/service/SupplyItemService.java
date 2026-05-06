@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.item.service;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.common.code.SequenceCodeType;
 import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
+import com.ozz.atlas.supply.item.client.FileServiceClient;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
 import com.ozz.atlas.supply.item.dtos.*;
@@ -46,6 +47,7 @@ public class SupplyItemService {
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final SupplierItemCapabilityRepository supplierItemCapabilityRepository;
+    private final FileServiceClient fileServiceClient;
 
 
 
@@ -353,6 +355,28 @@ public class SupplyItemService {
         }
 
         item.changeActiveYn(request.getStatus());
+        itemSearchService.saveItemDocument(item);
+        return toItemResponseWithCapability(item);
+    }
+
+    public ItemResponse changePrimaryMedia(
+            String organizationPublicId,
+            String organizationType,
+            String itemPublicId,
+            String filePublicId
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
+
+        SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
+                        itemPublicId,
+                        MANAGED_ITEM_STATUSES
+                )
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        validateItemOwner(item, organizationPublicId);
+        fileServiceClient.getItemImageFile(itemPublicId, filePublicId);
+
+        item.changePrimaryMedia(filePublicId);
         itemSearchService.saveItemDocument(item);
         return toItemResponseWithCapability(item);
     }

@@ -22,6 +22,7 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
     private String itemPublicId;
     private String itemCode;
     private String itemName;
+    private String primaryMediaFilePublicId;
     private String unit;
     private Long orderedQty;
     private Long confirmedQty;
@@ -47,6 +48,7 @@ public class PurchaseOrderItemResponse { // 발주 개별 아이템 정보용
                 .itemPublicId(purchaseOrderItem.getItem().getPublicId())
                 .itemCode(purchaseOrderItem.getItem().getItemCode())
                 .itemName(purchaseOrderItem.getItem().getItemName())
+                .primaryMediaFilePublicId(purchaseOrderItem.getItem().getPrimaryMediaFilePublicId())
                 .unit(purchaseOrderItem.getItem().getUnit().name())
                 .orderedQty(purchaseOrderItem.getOrderedQty())
                 .confirmedQty(purchaseOrderItem.getConfirmedQty())
