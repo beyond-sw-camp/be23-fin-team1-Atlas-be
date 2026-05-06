@@ -26,6 +26,8 @@ public enum ItemErrorCode implements ErrorCode {
     SUPPLIER_NOT_APPROVED(403, "ITEM_016", "승인된 협력사만 품목을 관리할 수 있습니다."),
     SUPPLIER_NOT_ACTIVE(403, "ITEM_017", "활성 상태의 협력사만 품목을 관리할 수 있습니다."),
     SELF_SUPPLIER_ORDER_NOT_ALLOWED(409, "ITEM_018", "자기 회사 품목으로는 발주할 수 없습니다."),
+    ITEM_MEDIA_NOT_FOUND(404, "ITEM_019", "해당 품목의 미디어 파일을 찾을 수 없습니다."),
+    ITEM_MEDIA_NOT_IMAGE(400, "ITEM_020", "대표 미디어는 이미지 파일만 지정할 수 있습니다."),
     INTERNAL_SERVER_ERROR(500, "ITEM_999", "서버 내부 오류가 발생했습니다.");
 
     private final int status;

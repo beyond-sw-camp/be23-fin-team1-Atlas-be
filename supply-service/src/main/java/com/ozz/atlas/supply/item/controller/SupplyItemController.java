@@ -157,4 +157,21 @@ public class SupplyItemController {
         );
     }
 
+    @PatchMapping("/{itemPublicId}/media/{filePublicId}/primary")
+    public ResponseEntity<?> changePrimaryMedia(
+            @PathVariable String itemPublicId,
+            @PathVariable String filePublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                supplyItemService.changePrimaryMedia(
+                        organizationPublicId,
+                        organizationType,
+                        itemPublicId,
+                        filePublicId
+                )
+        );
+    }
+
 }

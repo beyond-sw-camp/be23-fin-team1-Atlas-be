@@ -175,6 +175,7 @@ public class ItemSearchService {
                 .unit(document.getUnit() != null ? document.getUnit().name() : null)
                 .spec(document.getSpec())
                 .shelfLifeDays(document.getShelfLifeDays())
+                .primaryMediaFilePublicId(document.getPrimaryMediaFilePublicId())
                 .status(document.getStatus())
                 .createdAt(document.getCreatedAt())
                 .updatedAt(document.getUpdatedAt())

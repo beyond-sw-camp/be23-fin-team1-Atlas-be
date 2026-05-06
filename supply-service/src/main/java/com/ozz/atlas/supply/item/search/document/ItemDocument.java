@@ -127,6 +127,9 @@ public class ItemDocument {
     @Field(type = FieldType.Integer)
     private Integer shelfLifeDays;
 
+    @Field(type = FieldType.Keyword)
+    private String primaryMediaFilePublicId;
+
     // 품목 상태
     @Field(type = FieldType.Keyword)
     private Status status;
@@ -156,6 +159,7 @@ public class ItemDocument {
                 .unit(item.getUnit())
                 .spec(item.getSpec())
                 .shelfLifeDays(item.getShelfLifeDays())
+                .primaryMediaFilePublicId(item.getPrimaryMediaFilePublicId())
                 .status(item.getStatus())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())

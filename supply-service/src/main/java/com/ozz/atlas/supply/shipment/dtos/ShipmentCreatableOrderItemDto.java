@@ -23,6 +23,8 @@ public class ShipmentCreatableOrderItemDto {
     private String itemCode;
     @Schema(description = "품목명", example = "냉장 포장재")
     private String itemName;
+    @Schema(description = "대표 미디어 파일 공개 식별자", example = "file_01HZY3FILE123456789")
+    private String primaryMediaFilePublicId;
     @Schema(description = "승인 수량", example = "100")
     private Long confirmedQty;
     @Schema(description = "이미 출하 생성된 수량", example = "30")

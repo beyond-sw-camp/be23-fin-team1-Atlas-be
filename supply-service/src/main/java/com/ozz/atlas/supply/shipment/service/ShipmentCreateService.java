@@ -475,6 +475,7 @@ public class ShipmentCreateService {
                 .itemPublicId(orderItem.getItem().getPublicId())
                 .itemCode(orderItem.getItem().getItemCode())
                 .itemName(orderItem.getItem().getItemName())
+                .primaryMediaFilePublicId(orderItem.getItem().getPrimaryMediaFilePublicId())
                 .confirmedQty(confirmedQty)
                 .alreadyShipmentQty(confirmedQty - shippableQty)
                 .shippableQty(shippableQty)
