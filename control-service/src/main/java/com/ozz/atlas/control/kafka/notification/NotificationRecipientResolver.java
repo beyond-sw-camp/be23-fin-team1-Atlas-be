@@ -61,6 +61,14 @@ public class NotificationRecipientResolver {
         Set<String> organizationPublicIds = resolveOrganizationPublicIds(eventEnvelope);
         String actorUserPublicId = resolveActorUserPublicId(eventEnvelope);
 
+        if (EventTypes.SUPPLIER_CERTIFICATE_CREATED.equals(eventEnvelope.eventType())) {
+            authServiceClient.getPlatformAdminNotificationRecipients().stream()
+                    .map(AuthUserRecipientDto::userPublicId)
+                    .filter(StringUtils::hasText)
+                    .filter(userPublicId -> !userPublicId.equals(actorUserPublicId))
+                    .forEach(recipientUserPublicIds::add);
+        }
+
         for (String organizationPublicId : organizationPublicIds) {
             authServiceClient.getNotificationRecipients(organizationPublicId, departmentCode).stream()
                     .map(AuthUserRecipientDto::userPublicId)

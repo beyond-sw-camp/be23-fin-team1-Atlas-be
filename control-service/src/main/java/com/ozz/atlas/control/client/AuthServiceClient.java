@@ -54,4 +54,15 @@ public class AuthServiceClient {
             return List.of();
         }
     }
+
+    public List<AuthUserRecipientDto> getPlatformAdminNotificationRecipients() {
+        try {
+            String url = authServiceUrl + "/api/auth/internal/users/platform-admin-recipients";
+            AuthUserRecipientDto[] response = restTemplate.getForObject(url, AuthUserRecipientDto[].class);
+            return response == null ? List.of() : Arrays.asList(response);
+        } catch (RestClientException e) {
+            log.error("Failed to fetch platform admin notification recipients. error={}", e.getMessage());
+            return List.of();
+        }
+    }
 }
