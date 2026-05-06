@@ -251,4 +251,22 @@ public class OrganizationService {
         return OrganizationDetailDto.fromEntity(organization, memberCount);
     }
 
+    // supply-service 엑셀 내보내기에서 조직 Public ID를 조직명으로 바꾸기 위해 사용
+    @Transactional(readOnly = true)
+    public OrganizationNameLookupDto organizationNameByPublicId(String organizationPublicId) {
+        Organization organization = organizationRepository.findByPublicId(organizationPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("조직을 찾을 수 없습니다."));
+
+        return OrganizationNameLookupDto.builder()
+                .organizationPublicId(organization.getPublicId())
+                .organizationName(organization.getOrganizationName())
+                .contactFirstName(organization.getContactFirstName())
+                .contactMiddleName(organization.getContactMiddleName())
+                .contactLastName(organization.getContactLastName())
+                .contactPhone(organization.getContactPhone())
+                .build();
+
+    }
+
+
 }

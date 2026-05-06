@@ -352,6 +352,52 @@ public class UserService {
         return UserDetailDto.fromEntity(user);
     }
 
+    // userPublicId로 사용자 이름만 조회
+    @Transactional(readOnly = true)
+    public UserNameLookupDto userNameByPublicId(String userPublicId) {
+        User user = userRepository.findByPublicId(userPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (user.getStatus() != Status.ACTIVE) {
+            throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
+        }
+
+        return UserNameLookupDto.builder()
+                .userPublicId(user.getPublicId())
+                .userName(joinUserName(
+                        user.getFirstName(),
+                        user.getMiddleName(),
+                        user.getLastName()
+                ))
+                .build();
+    }
+
+    // 사용자 이름을 한국식 순서로 합칩니다.
+    private String joinUserName(
+            String firstName,
+            String middleName,
+            String lastName
+    ) {
+        List<String> names = new ArrayList<>();
+
+        // 성을 먼저 넣습니다.
+        if (lastName != null && !lastName.isBlank()) {
+            names.add(lastName);
+        }
+
+        // 이름을 그다음에 넣습니다.
+        if (firstName != null && !firstName.isBlank()) {
+            names.add(firstName);
+        }
+
+        // 중간 이름이 있으면 마지막에 붙입니다.
+        if (middleName != null && !middleName.isBlank()) {
+            names.add(middleName);
+        }
+
+        return String.join("", names);
+    }
+
     @Transactional(readOnly = true)
     public List<UserRecipientDto> getNotificationRecipients(String organizationPublicId, String departmentCode) {
         if (!hasText(organizationPublicId)) {

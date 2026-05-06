@@ -378,6 +378,16 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/users/public/{userPublicId}/name")
+    @SecurityRequirements
+    public ResponseEntity<UserNameLookupDto> userNameByPublicId(
+            @PathVariable String userPublicId
+    ) {
+        UserNameLookupDto response = userService.userNameByPublicId(userPublicId);
+        return ResponseEntity.ok(response);
+    }
+
+
     @GetMapping("/internal/users/recipients")
     @SecurityRequirements
     @Operation(
