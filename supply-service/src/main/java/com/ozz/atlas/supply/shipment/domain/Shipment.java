@@ -122,6 +122,15 @@ public class Shipment extends BaseTimeEntity {
         }
         this.status = ShipmentStatus.DELAYED;
     }
+
+    public void cancel() {
+        if (this.status != ShipmentStatus.READY) {
+            throw new IllegalStateException("READY 상태의 출하만 취소할 수 있습니다.");
+        }
+
+        this.status = ShipmentStatus.CANCELLED;
+    }
+
     public void updateShipmentInfo(
             String carrierName,
             String vehicleNo,

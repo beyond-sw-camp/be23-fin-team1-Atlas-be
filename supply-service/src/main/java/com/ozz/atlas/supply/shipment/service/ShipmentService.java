@@ -245,6 +245,22 @@ public class ShipmentService {
         );
     }
 
+    public ShipmentResponseDto cancelShipment(
+            String publicId,
+            String actorUserPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole
+    ) {
+        return shipmentStatusService.cancelShipment(
+                publicId,
+                actorUserPublicId,
+                organizationPublicId,
+                organizationType,
+                userRole
+        );
+    }
+
     private void validateShipmentUpdateAuthority(
             Shipment shipment,
             String organizationPublicId,
