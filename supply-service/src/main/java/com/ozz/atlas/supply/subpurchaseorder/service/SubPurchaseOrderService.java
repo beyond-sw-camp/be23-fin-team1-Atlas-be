@@ -20,10 +20,7 @@ import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrder;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrderItem;
-import com.ozz.atlas.supply.subpurchaseorder.dtos.ConfirmSubPurchaseOrderItemRequest;
-import com.ozz.atlas.supply.subpurchaseorder.dtos.CreateSubPurchaseOrderItemRequest;
-import com.ozz.atlas.supply.subpurchaseorder.dtos.CreateSubPurchaseOrderRequest;
-import com.ozz.atlas.supply.subpurchaseorder.dtos.SubPurchaseOrderResponse;
+import com.ozz.atlas.supply.subpurchaseorder.dtos.*;
 import com.ozz.atlas.supply.subpurchaseorder.exception.SubPurchaseOrderErrorCode;
 import com.ozz.atlas.supply.subpurchaseorder.exception.SubPurchaseOrderException;
 import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderItemRepository;
@@ -43,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -160,7 +158,7 @@ public class SubPurchaseOrderService {
                             SubPoStatus.DELETED,
                             pageable
                     )
-                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, true));
         }
 
         if (BUYER_ORGANIZATION_TYPE.equals(organizationType)) {
@@ -173,7 +171,7 @@ public class SubPurchaseOrderService {
                             SubPoStatus.DELETED,
                             pageable
                     )
-                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, true));
         }
 
         validateSupplierActor(organizationPublicId, organizationType);
@@ -185,7 +183,7 @@ public class SubPurchaseOrderService {
                         SubPoStatus.DELETED,
                         pageable
                 )
-                .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+                .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, true));
     }
 
 
@@ -199,7 +197,7 @@ public class SubPurchaseOrderService {
         if (isAdmin(userRole)) {
             return subPurchaseOrderRepository
                     .findAllBySubPoStatusNot(SubPoStatus.DELETED, pageable)
-                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, true));
         }
 
         validateSupplierActor(organizationPublicId, organizationType);
@@ -210,7 +208,8 @@ public class SubPurchaseOrderService {
                         SubPoStatus.DELETED,
                         pageable
                 )
-                .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+                .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, true));
+
     }
 
     @Transactional(readOnly = true)
@@ -228,37 +227,17 @@ public class SubPurchaseOrderService {
             return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
         }
 
-        if (BUYER_ORGANIZATION_TYPE.equals(organizationType)) {
-            validateOrganizationHeader(organizationPublicId);
-
-            SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository
-                    .findByPublicIdAndParentPurchaseOrder_BuyerOrganizationPublicIdAndSubPoStatusNot(
-                            subPoPublicId,
-                            organizationPublicId,
-                            SubPoStatus.DELETED
-                    )
-                    .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ACCESS_DENIED));
-
-            return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
-        }
-
-        validateSupplierActor(organizationPublicId, organizationType);
+        validateOrganizationHeader(organizationPublicId);
 
         SupplySubPurchaseOrder subPurchaseOrder = subPurchaseOrderRepository
-                .findByPublicIdAndParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
+                .findReadableByPublicIdAndOrganizationPublicId(
                         subPoPublicId,
                         organizationPublicId,
                         SubPoStatus.DELETED
                 )
-                .orElse(
-                        subPurchaseOrderRepository
-                                .findByPublicIdAndSupplier_OrganizationPublicIdAndSubPoStatusNot(
-                                        subPoPublicId,
-                                        organizationPublicId,
-                                        SubPoStatus.DELETED
-                                )
-                                .orElseThrow(() -> new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ACCESS_DENIED))
-                );
+                .orElseThrow(() -> new SubPurchaseOrderException(
+                        SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_ACCESS_DENIED
+                ));
 
         return SubPurchaseOrderResponse.fromEntity(subPurchaseOrder, true);
     }
@@ -382,6 +361,20 @@ public class SubPurchaseOrderService {
             throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_STATUS_NOT_ALLOWED);
         }
 
+        long parentBaseQty = parentItem.getConfirmedQty() != null
+                ? parentItem.getConfirmedQty()
+                : parentItem.getOrderedQty();
+
+        long allocatedParentQty = subPurchaseOrderItemRepository
+                .sumOrderedQtyByParentPurchaseOrderItemIdAndLineStatusIn(
+                        parentItem.getPoItemId(),
+                        ACTIVE_LINE_STATUSES
+                );
+
+        if (allocatedParentQty + request.getOrderedQty() > parentBaseQty) {
+            throw new SubPurchaseOrderException(SubPurchaseOrderErrorCode.SUB_PURCHASE_ORDER_QTY_EXCEEDED);
+        }
+
         SupplyItem subItem = getActiveItem(request.getItemPublicId());
         validateItemBelongsToSupplier(subItem, targetSupplier);
 
@@ -401,6 +394,7 @@ public class SubPurchaseOrderService {
                 LocalDate.now().plusDays(capability.getLeadTimeDays())
         );
     }
+
 
 
 
@@ -538,7 +532,7 @@ public class SubPurchaseOrderService {
         if (isAdmin(userRole)) {
             return subPurchaseOrderRepository
                     .findAllBySubPoStatusNot(SubPoStatus.DELETED, pageable)
-                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+                    .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, true));
         }
 
         validateSupplierActor(organizationPublicId, organizationType);
@@ -549,7 +543,46 @@ public class SubPurchaseOrderService {
                         SubPoStatus.DELETED,
                         pageable
                 )
-                .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, false));
+                .map(subPo -> SubPurchaseOrderResponse.fromEntity(subPo, true));
     }
+
+    public List<SubPurchaseOrderResponse> createSubPurchaseOrdersBatch(
+            String issuerOrganizationPublicId,
+            String organizationType,
+            String createdByUserPublicId,
+            CreateSubPurchaseOrderBatchRequest request
+    ) {
+        validateSupplierActor(issuerOrganizationPublicId, organizationType);
+
+        Map<String, List<CreateSubPurchaseOrderItemRequest>> groupedBySupplier = request.getLines().stream()
+                .collect(Collectors.groupingBy(
+                        CreateSubPurchaseOrderBatchLineRequest::getSupplierPublicId,
+                        LinkedHashMap::new,
+                        Collectors.mapping(
+                                line -> CreateSubPurchaseOrderItemRequest.builder()
+                                        .parentPoItemPublicId(line.getParentPoItemPublicId())
+                                        .itemPublicId(line.getItemPublicId())
+                                        .orderedQty(line.getOrderedQty())
+                                        .build(),
+                                Collectors.toList()
+                        )
+                ));
+
+        return groupedBySupplier.entrySet().stream()
+                .map(entry -> createSubPurchaseOrder(
+                        issuerOrganizationPublicId,
+                        organizationType,
+                        createdByUserPublicId,
+                        CreateSubPurchaseOrderRequest.builder()
+                                .parentPoPublicId(request.getParentPoPublicId())
+                                .supplierPublicId(entry.getKey())
+                                .items(entry.getValue())
+                                .build()
+                ))
+                .toList();
+    }
+
+
+
 
 }

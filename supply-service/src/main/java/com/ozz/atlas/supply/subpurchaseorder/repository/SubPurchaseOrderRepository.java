@@ -24,14 +24,30 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
             SubPoStatus subPoStatus
     );
 
-    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    @EntityGraph(attributePaths = {
+            "parentPurchaseOrder",
+            "parentPurchaseOrder.supplier",
+            "supplier",
+            "subPurchaseOrderItems",
+            "subPurchaseOrderItems.item",
+            "subPurchaseOrderItems.parentPurchaseOrderItem"
+    })
+
     Page<SupplySubPurchaseOrder> findAllByParentPurchaseOrder_PublicIdAndSubPoStatusNot(
             String parentPoPublicId,
             SubPoStatus subPoStatus,
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    @EntityGraph(attributePaths = {
+            "parentPurchaseOrder",
+            "parentPurchaseOrder.supplier",
+            "supplier",
+            "subPurchaseOrderItems",
+            "subPurchaseOrderItems.item",
+            "subPurchaseOrderItems.parentPurchaseOrderItem"
+    })
+
     Page<SupplySubPurchaseOrder> findAllByParentPurchaseOrder_PublicIdAndParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
             String parentPoPublicId,
             String issuerOrganizationPublicId,
@@ -39,14 +55,29 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    @EntityGraph(attributePaths = {
+            "parentPurchaseOrder",
+            "parentPurchaseOrder.supplier",
+            "supplier",
+            "subPurchaseOrderItems",
+            "subPurchaseOrderItems.item",
+            "subPurchaseOrderItems.parentPurchaseOrderItem"
+    })
     Page<SupplySubPurchaseOrder> findAllBySupplier_OrganizationPublicIdAndSubPoStatusNot(
             String receiverOrganizationPublicId,
             SubPoStatus subPoStatus,
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    @EntityGraph(attributePaths = {
+            "parentPurchaseOrder",
+            "parentPurchaseOrder.supplier",
+            "supplier",
+            "subPurchaseOrderItems",
+            "subPurchaseOrderItems.item",
+            "subPurchaseOrderItems.parentPurchaseOrderItem"
+    })
+
     Page<SupplySubPurchaseOrder> findAllBySubPoStatusNot(
             SubPoStatus subPoStatus,
             Pageable pageable
@@ -133,7 +164,15 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
             @Param("deletedStatus") SubPoStatus deletedStatus
     );
 
-    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    @EntityGraph(attributePaths = {
+            "parentPurchaseOrder",
+            "parentPurchaseOrder.supplier",
+            "supplier",
+            "subPurchaseOrderItems",
+            "subPurchaseOrderItems.item",
+            "subPurchaseOrderItems.parentPurchaseOrderItem"
+    })
+
     Page<SupplySubPurchaseOrder> findAllByParentPurchaseOrder_Supplier_OrganizationPublicIdAndSubPoStatusNot(
             String issuerOrganizationPublicId,
             SubPoStatus subPoStatus,
@@ -186,7 +225,15 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
             @Param("deletedStatus") SubPoStatus deletedStatus
     );
 
-    @EntityGraph(attributePaths = {"parentPurchaseOrder", "parentPurchaseOrder.supplier", "supplier"})
+    @EntityGraph(attributePaths = {
+            "parentPurchaseOrder",
+            "parentPurchaseOrder.supplier",
+            "supplier",
+            "subPurchaseOrderItems",
+            "subPurchaseOrderItems.item",
+            "subPurchaseOrderItems.parentPurchaseOrderItem"
+    })
+
     Page<SupplySubPurchaseOrder> findAllByParentPurchaseOrder_PublicIdAndParentPurchaseOrder_BuyerOrganizationPublicIdAndSubPoStatusNot(
             String parentPoPublicId,
             String buyerOrganizationPublicId,
@@ -210,6 +257,32 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
             Long issuerSupplierId,
             SubPoStatus subPoStatus
     );
+
+    @EntityGraph(attributePaths = {
+            "parentPurchaseOrder",
+            "parentPurchaseOrder.supplier",
+            "supplier",
+            "subPurchaseOrderItems",
+            "subPurchaseOrderItems.item",
+            "subPurchaseOrderItems.parentPurchaseOrderItem"
+    })
+    @Query("""
+    select subPo
+    from SupplySubPurchaseOrder subPo
+    where subPo.publicId = :subPoPublicId
+      and subPo.subPoStatus <> :deletedStatus
+      and (
+          subPo.parentPurchaseOrder.buyerOrganizationPublicId = :organizationPublicId
+          or subPo.parentPurchaseOrder.supplier.organizationPublicId = :organizationPublicId
+          or subPo.supplier.organizationPublicId = :organizationPublicId
+      )
+""")
+    Optional<SupplySubPurchaseOrder> findReadableByPublicIdAndOrganizationPublicId(
+            @Param("subPoPublicId") String subPoPublicId,
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("deletedStatus") SubPoStatus deletedStatus
+    );
+
 
 
 }
