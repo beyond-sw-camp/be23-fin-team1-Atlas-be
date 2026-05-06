@@ -265,7 +265,7 @@ public class ReturnService {
         // 증빙 파일 업데이트 (폐기 등)
         if (request.getAttachmentPublicIds() != null && !request.getAttachmentPublicIds().isEmpty()) {
             String newAttachments = String.join(",", request.getAttachmentPublicIds());
-            returnRequest.update(null, null, null, newAttachments);
+            returnRequest.updateAttachments(newAttachments);
             
             // 만약 폐기 상태로 가는데 증빙이 있다면 첫번째 파일을 증빙ID로 설정 (간이 구현)
             if (request.getReturnStatus() == ReturnStatus.DISPOSED || request.getReturnStatus() == ReturnStatus.COMPLETED) {

@@ -131,6 +131,10 @@ public class ReturnRequest extends BaseTimeEntity {
         if (attachmentPublicIds != null) this.attachmentPublicIds = attachmentPublicIds;
     }
 
+    public void updateAttachments(String attachmentPublicIds) {
+        this.attachmentPublicIds = attachmentPublicIds;
+    }
+
     public void changeStatus(ReturnStatus newStatus) {
         // Prevent reverting from final states
         if (this.returnStatus == ReturnStatus.REJECTED || this.returnStatus == ReturnStatus.COMPLETED) {
