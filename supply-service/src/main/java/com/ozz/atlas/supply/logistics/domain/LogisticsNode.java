@@ -39,6 +39,12 @@ public class LogisticsNode extends BaseTimeEntity {
     private LogisticsNodeType nodeType;
 
     @Column(length = 255)
+    private String baseAddress;
+
+    @Column(length = 255)
+    private String detailAddress;
+
+    @Column(length = 512)
     private String address;
 
     @Column(precision = 10, scale = 7)
@@ -66,6 +72,8 @@ public class LogisticsNode extends BaseTimeEntity {
     public void update(
             String nodeName,
             LogisticsNodeType nodeType,
+            String baseAddress,
+            String detailAddress,
             String address,
             BigDecimal latitude,
             BigDecimal longitude,
@@ -73,6 +81,8 @@ public class LogisticsNode extends BaseTimeEntity {
     ){
         this.nodeName = nodeName;
         this.nodeType = nodeType;
+        this.baseAddress = baseAddress;
+        this.detailAddress = detailAddress;
         this.address = address;
         this.latitude = latitude;
         this.longitude = longitude;

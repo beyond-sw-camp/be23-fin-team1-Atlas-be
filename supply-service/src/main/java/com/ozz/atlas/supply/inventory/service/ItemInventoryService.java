@@ -498,6 +498,26 @@ public class ItemInventoryService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ItemInventoryResponse> getRecentNodeInventories(
+            String organizationPublicId,
+            String organizationType,
+            String nodePublicId
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
+        getOwnedWarehouse(organizationPublicId, nodePublicId);
+
+        return inventoryRepository
+                .findTop5BySupplier_OrganizationPublicIdAndLogisticsNode_PublicIdAndStatusNotOrderByCreatedAtDescInventoryIdDesc(
+                        organizationPublicId,
+                        nodePublicId,
+                        InventoryStatus.DELETED
+                )
+                .stream()
+                .map(ItemInventoryResponse::from)
+                .toList();
+    }
+
     private LogisticsNode getOwnedWarehouse(String organizationPublicId, String nodePublicId) {
         return logisticsNodeRepository
                 .findByPublicIdAndOrganizationPublicIdAndNodeType(

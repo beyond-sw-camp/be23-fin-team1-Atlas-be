@@ -68,7 +68,7 @@ public class LogisticsNodeService {
 
         String organizationAlias = organizationAliasClient.getOrganizationAlias(organizationPublicId);
         String generatedNodeCode = generateNodeCode(organizationPublicId, organizationAlias);
-        GeocodingPointDto point = geocodeRequiredAddress(dto.getAddress());
+        GeocodingPointDto point = geocodeRequiredAddress(dto.getBaseAddress());
 
         LogisticsNode savedNode = logisticsNodeRepository.save(
                 dto.toEntity(
@@ -155,12 +155,15 @@ public class LogisticsNodeService {
 
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
         LogisticsNodeCapacityStatus beforeCapacityStatus = node.getCapacityStatus();
-        GeocodingPointDto point = geocodeRequiredAddress(dto.getAddress());
+        GeocodingPointDto point = geocodeRequiredAddress(dto.getBaseAddress());
+        String displayAddress = buildDisplayAddress(dto.getBaseAddress(), dto.getDetailAddress());
 
         node.update(
                 dto.getNodeName(),
                 LogisticsNodeType.WAREHOUSE,
-                dto.getAddress(),
+                dto.getBaseAddress(),
+                dto.getDetailAddress(),
+                displayAddress,
                 point.getLatitude(),
                 point.getLongitude(),
                 dto.getCapacityStatus()
@@ -272,6 +275,18 @@ public class LogisticsNodeService {
         }
 
         return addressGeocodingClient.geocode(address);
+    }
+
+    private String buildDisplayAddress(String baseAddress, String detailAddress) {
+        if (baseAddress == null || baseAddress.isBlank()) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        if (detailAddress == null || detailAddress.isBlank()) {
+            return baseAddress;
+        }
+
+        return baseAddress + " " + detailAddress.trim();
     }
 
     private void appendCapacityStatusChangedEvent(
