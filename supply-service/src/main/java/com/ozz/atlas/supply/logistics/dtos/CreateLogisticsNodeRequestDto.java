@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.logistics.dtos;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeType;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeCapacityStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,14 +14,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @Builder
+@Schema(description = "창고 생성 요청")
 public class CreateLogisticsNodeRequestDto {
 
+    @Schema(description = "창고명", example = "서울 물류창고")
     @NotBlank
     private String nodeName;
 
+    @Schema(description = "거점 유형. 현재는 WAREHOUSE만 사용합니다.", example = "WAREHOUSE")
     private LogisticsNodeType nodeType;
 
+    @Schema(description = "창고 주소. 저장 시 주소 기반 좌표가 자동 계산됩니다.", example = "서울특별시 강남구 테헤란로 152")
     private String address;
+
+    @Schema(description = "창고 상태", example = "AVAILABLE")
     private LogisticsNodeCapacityStatus capacityStatus;
 
     // nodeCode와 좌표는 서비스에서 계산한 값을 받아 엔티티에 넣는다.
