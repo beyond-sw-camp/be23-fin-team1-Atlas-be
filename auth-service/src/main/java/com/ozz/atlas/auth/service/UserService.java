@@ -4,6 +4,7 @@ import com.ozz.atlas.auth.common.config.AuthPrincipal;
 import com.ozz.atlas.auth.common.token.JwtTokenProvider;
 import com.ozz.atlas.auth.domain.Department;
 import com.ozz.atlas.auth.domain.Organization;
+import com.ozz.atlas.auth.domain.OrganizationType;
 import com.ozz.atlas.auth.domain.User;
 import com.ozz.atlas.auth.domain.UserRole;
 import com.ozz.atlas.auth.dtos.user.*;
@@ -374,6 +375,18 @@ public class UserService {
         return userRepository.findAllByOrganization_PublicIdAndUserRoleAndStatus(
                         organizationPublicId,
                         UserRole.ORG_ADMIN,
+                        Status.ACTIVE
+                )
+                .stream()
+                .map(UserRecipientDto::fromEntity)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserRecipientDto> getPlatformAdminNotificationRecipients() {
+        return userRepository.findAllByOrganization_OrganizationTypeAndUserRoleAndStatus(
+                        OrganizationType.ADMIN,
+                        UserRole.ADMIN,
                         Status.ACTIVE
                 )
                 .stream()

@@ -1,6 +1,7 @@
 package com.ozz.atlas.auth.repository;
 
 import com.ozz.atlas.auth.domain.User;
+import com.ozz.atlas.auth.domain.OrganizationType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -41,6 +42,13 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @EntityGraph(attributePaths = {"organization", "department"})
     List<User> findAllByOrganization_PublicIdAndUserRoleAndStatus(
             String organizationPublicId,
+            UserRole userRole,
+            Status status
+    );
+
+    @EntityGraph(attributePaths = {"organization", "department"})
+    List<User> findAllByOrganization_OrganizationTypeAndUserRoleAndStatus(
+            OrganizationType organizationType,
             UserRole userRole,
             Status status
     );

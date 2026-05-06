@@ -168,6 +168,9 @@ public class NotificationCommandFactory {
             case EventTypes.DELIVERY_EXCEPTION_DAMAGED -> "파손 예외";
             case EventTypes.LOGISTICS_NODE_CAPACITY_STATUS_CHANGED -> "물류 거점 용량 상태 변경";
             case EventTypes.PURCHASE_ORDER_ACCEPTED -> "발주 수락";
+            case EventTypes.SUPPLIER_CERTIFICATE_CREATED -> "인증서 심사 요청";
+            case EventTypes.SUPPLIER_CERTIFICATE_APPROVED -> "협력사 인증서 승인";
+            case EventTypes.SUPPLIER_CERTIFICATE_REJECTED -> "협력사 인증서 반려";
             case EventTypes.SUPPLIER_CERTIFICATE_EXPIRING -> "협력사 인증서 만료 임박";
             case EventTypes.SUPPLIER_CERTIFICATE_EXPIRED -> "협력사 인증서 만료";
             default -> "공급망 이벤트";
@@ -186,6 +189,9 @@ public class NotificationCommandFactory {
             case EventTypes.DELIVERY_EXCEPTION_DAMAGED -> "파손 예외 발생 시";
             case EventTypes.LOGISTICS_NODE_CAPACITY_STATUS_CHANGED -> "물류 거점 용량 상태 변경 시";
             case EventTypes.PURCHASE_ORDER_ACCEPTED -> "발주 수락 시";
+            case EventTypes.SUPPLIER_CERTIFICATE_CREATED -> "새 인증서가 등록되어 관리자 심사가 필요합니다.";
+            case EventTypes.SUPPLIER_CERTIFICATE_APPROVED -> "협력사 인증서 승인 시";
+            case EventTypes.SUPPLIER_CERTIFICATE_REJECTED -> "협력사 인증서 반려 시";
             case EventTypes.SUPPLIER_CERTIFICATE_EXPIRING -> "협력사 인증서 만료 임박 시";
             case EventTypes.SUPPLIER_CERTIFICATE_EXPIRED -> "협력사 인증서 만료 시";
             default -> "공급망 이벤트 발생 시";
@@ -256,6 +262,9 @@ public class NotificationCommandFactory {
         }
         if (eventType.startsWith("return-request.")) {
             return "/returns/" + referencePublicId;
+        }
+        if (EventTypes.SUPPLIER_CERTIFICATE_CREATED.equals(eventType)) {
+            return "/certificate-review";
         }
         if (eventType.startsWith("supplier-certificate.") || eventType.startsWith("supplier.")) {
             return "/suppliers";

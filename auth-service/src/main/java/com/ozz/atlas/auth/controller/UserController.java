@@ -391,6 +391,16 @@ public class UserController {
         return ResponseEntity.ok(userService.getNotificationRecipients(organizationPublicId, departmentCode));
     }
 
+    @GetMapping("/internal/users/platform-admin-recipients")
+    @SecurityRequirements
+    @Operation(
+            summary = "내부 플랫폼 관리자 알림 수신자 조회",
+            description = "control-service가 플랫폼 관리자 계정 전체를 알림 수신자로 조회한다."
+    )
+    public ResponseEntity<List<UserRecipientDto>> getPlatformAdminNotificationRecipients() {
+        return ResponseEntity.ok(userService.getPlatformAdminNotificationRecipients());
+    }
+
     // 현재 로그인한 사용자의 보안 이력을 조회
     @GetMapping("/security-histories/me")
     @Operation(
