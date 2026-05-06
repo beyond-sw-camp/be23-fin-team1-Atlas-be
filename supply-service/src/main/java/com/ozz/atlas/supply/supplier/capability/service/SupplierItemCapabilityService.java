@@ -4,7 +4,12 @@ import com.ozz.atlas.common.kafka.AggregateType;
 import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
 import com.ozz.atlas.common.jpa.Status;
+import com.ozz.atlas.supply.inventory.domain.InventoryTransaction;
+import com.ozz.atlas.supply.inventory.domain.SupplyItemInventory;
+import com.ozz.atlas.supply.inventory.repository.InventoryTransactionRepository;
+import com.ozz.atlas.supply.inventory.repository.SupplyItemInventoryRepository;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
+import com.ozz.atlas.supply.item.domain.SupplyType;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
@@ -38,6 +43,8 @@ public class SupplierItemCapabilityService {
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyChainContextResolver supplyChainContextResolver;
+    private final SupplyItemInventoryRepository inventoryRepository;
+    private final InventoryTransactionRepository transactionRepository;
 
     public SupplierItemCapabilityResponse createCapability(
             String supplierPublicId,
@@ -67,6 +74,9 @@ public class SupplierItemCapabilityService {
 
 
         SupplySupplierItemCapability savedCapability = capabilityRepository.save(capability);
+
+        createInitialInventoryIfStockBased(savedCapability);
+
         appendInventoryShortageEventIfNeeded(savedCapability, actorUserPublicId);
 
         return SupplierItemCapabilityResponse.fromEntity(savedCapability);
@@ -205,4 +215,46 @@ public class SupplierItemCapabilityService {
                 && capability.getMoq() != null
                 && capability.getAvailableQty() <= capability.getMoq();
     }
+
+    private void createInitialInventoryIfStockBased(SupplySupplierItemCapability capability) {
+        SupplyItem item = capability.getItem();
+
+        if (item.getSupplyType() != SupplyType.STOCK_BASED) {
+            return;
+        }
+
+        if (capability.getAvailableQty() == null || capability.getAvailableQty() <= 0) {
+            return;
+        }
+
+        if (item.getOriginLogisticsNode() == null) {
+            return;
+        }
+
+        java.time.LocalDate manufacturedDate = java.time.LocalDate.now();
+        java.time.LocalDate expirationDate = manufacturedDate.plusDays(item.getShelfLifeDays());
+
+        SupplyItemInventory inventory = SupplyItemInventory.create(
+                capability.getSupplier(),
+                item,
+                item.getOriginLogisticsNode(),
+                manufacturedDate,
+                expirationDate,
+                capability.getAvailableQty(),
+                "Initial stock from item capability"
+        );
+
+        SupplyItemInventory savedInventory = inventoryRepository.save(inventory);
+
+        InventoryTransaction transaction = InventoryTransaction.builder()
+                .inventoryId(savedInventory.getInventoryId())
+                .itemPublicId(item.getPublicId())
+                .reason(InventoryTransaction.TransactionReason.INITIAL_STOCK)
+                .quantityChange(capability.getAvailableQty())
+                .referenceId(null)
+                .build();
+
+        transactionRepository.save(transaction);
+    }
+
 }
