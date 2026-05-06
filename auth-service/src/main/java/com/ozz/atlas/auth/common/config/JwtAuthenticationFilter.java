@@ -10,6 +10,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,6 +44,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String requestPath = request.getRequestURI();
+        String method = request.getMethod();
+
+        if (isPublicAuthEndpoint(method, requestPath)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (authorization != null && authorization.startsWith("Bearer ")) {
             String accessToken = authorization.substring(7);
@@ -91,20 +99,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
 
-// 다른 곳에서 더 나중에 로그인했으면 기존 토큰 차단
-                if (user.getLastLoginAt() != null) {
-                    Instant lastLoginAt = user.getLastLoginAt()
-                            .atZone(ZoneId.systemDefault())
-                            .toInstant()
-                            .truncatedTo(ChronoUnit.SECONDS);
-
-                    if (tokenIssuedAt.isBefore(lastLoginAt)) {
-                        SecurityContextHolder.clearContext();
-                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        return;
-                    }
-                }
-
                 String userPublicId = user.getPublicId();
                 String organizationPublicId = user.getOrganization().getPublicId();
                 UserRole role = user.getUserRole();
@@ -128,5 +122,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isPublicAuthEndpoint(String method, String requestPath) {
+        return HttpMethod.POST.matches(method)
+                && ("/api/auth/login".equals(requestPath)
+                || "/api/auth/login/verify-ip".equals(requestPath)
+                || "/api/auth/refresh".equals(requestPath));
     }
 }
