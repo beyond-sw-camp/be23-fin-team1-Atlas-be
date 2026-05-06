@@ -3,14 +3,18 @@ package com.ozz.atlas.supply.inventory.dtos;
 import com.ozz.atlas.supply.inventory.domain.InventoryStatus;
 import com.ozz.atlas.supply.inventory.domain.SupplyItemInventory;
 import com.ozz.atlas.supply.item.domain.ItemUnit;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ItemInventoryResponse {
 
     private String inventoryPublicId;
@@ -23,6 +27,7 @@ public class ItemInventoryResponse {
     private Long initialQty;
     private Long remainingQty;
     private Long reservedQty;
+    private Long defectiveQty;
     private Long availableQty;
     private InventoryStatus status;
     private String memo;
@@ -44,6 +49,7 @@ public class ItemInventoryResponse {
                 .initialQty(inventory.getInitialQty())
                 .remainingQty(inventory.getRemainingQty())
                 .reservedQty(inventory.getReservedQty())
+                .defectiveQty(inventory.getDefectiveQty())
                 .availableQty(inventory.getAvailableQty())
                 .status(inventory.getStatus())
                 .memo(inventory.getMemo())

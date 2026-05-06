@@ -28,6 +28,14 @@ public class ReturnItemResponseDto {
     private String detailReason;
     @Schema(description = "품목 상태", example = "PENDING")
     private String itemStatus;
+    @Schema(description = "QC 검수 상태", example = "PASS")
+    private String qcStatus;
+    @Schema(description = "QC 검수 등급", example = "A")
+    private String qcGrade;
+    @Schema(description = "폐기 사유", example = "EXPIRED")
+    private String disposalReason;
+    @Schema(description = "폐기 증빙 첨부 파일 식별자", example = "att_01HZY2ATT02")
+    private String disposalProofAttachmentPublicId;
     @Schema(description = "품목 첨부 파일 공개 식별자 목록", example = "[\"att_01HZY2ATT01\"]")
     private List<String> attachmentPublicIds;
 
@@ -44,6 +52,10 @@ public class ReturnItemResponseDto {
                 .unit(entity.getUnit())
                 .detailReason(entity.getDetailReason())
                 .itemStatus(entity.getItemStatus())
+                .qcStatus(entity.getQcStatus())
+                .qcGrade(entity.getQcGrade())
+                .disposalReason(entity.getDisposalReason())
+                .disposalProofAttachmentPublicId(entity.getDisposalProofAttachmentPublicId())
                 .attachmentPublicIds(attachments)
                 .build();
     }

@@ -21,6 +21,9 @@ import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilit
 import com.ozz.atlas.supply.supplier.domain.SupplierStatus;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
+import com.ozz.atlas.supply.inventory.domain.InventoryTransaction;
+import com.ozz.atlas.supply.inventory.repository.InventoryTransactionRepository;
+import com.ozz.atlas.supply.inventory.domain.InventoryTransaction.TransactionReason;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,7 @@ public class ItemInventoryService {
     private final SupplyItemRepository itemRepository;
     private final SupplierItemCapabilityRepository capabilityRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
+    private final InventoryTransactionRepository transactionRepository;
 
     public ItemInventoryResponse createInventory(
             String organizationPublicId,
@@ -68,11 +72,159 @@ public class ItemInventoryService {
         );
 
         SupplyItemInventory saved = inventoryRepository.save(inventory);
+        
+        recordTransaction(saved, TransactionReason.INITIAL_STOCK, request.getQty(), null);
         syncCapabilityAvailableQty(supplier, item);
 
         return ItemInventoryResponse.from(saved);
     }
 
+    private void recordTransaction(SupplyItemInventory inventory, TransactionReason reason, Long quantityChange, String referenceId) {
+        InventoryTransaction transaction = InventoryTransaction.builder()
+                .inventoryId(inventory.getInventoryId())
+                .itemPublicId(inventory.getItem().getPublicId())
+                .reason(reason)
+                .quantityChange(quantityChange)
+                .referenceId(referenceId)
+                .build();
+        transactionRepository.save(transaction);
+    }
+
+    public void reserveForExchange(SupplySupplier supplier, SupplyItem item, Long qty, String returnPublicId) {
+        reserveConfirmedQtyInternal(supplier, item, qty, TransactionReason.EXCHANGE_RESERVE, returnPublicId);
+    }
+
+    private void reserveConfirmedQtyInternal(SupplySupplier supplier, SupplyItem item, Long confirmQty, TransactionReason reason, String referenceId) {
+        validateAvailableQty(supplier, item, confirmQty);
+
+        long remaining = confirmQty;
+
+        List<SupplyItemInventory> inventories = inventoryRepository.findReservableForUpdate(
+                supplier.getId(),
+                item.getId(),
+                List.of(InventoryStatus.ACTIVE, InventoryStatus.RESERVED),
+                LocalDate.now()
+        );
+
+        for (SupplyItemInventory inventory : inventories) {
+            if (remaining <= 0) {
+                break;
+            }
+
+            long reserveQty = Math.min(inventory.getAvailableQty(), remaining);
+            inventory.reserve(reserveQty);
+            recordTransaction(inventory, reason, reserveQty, referenceId);
+            remaining -= reserveQty;
+        }
+
+        if (remaining > 0) {
+            throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_INSUFFICIENT);
+        }
+
+        syncCapabilityAvailableQty(supplier, item);
+    }
+
+    public void processReturnInventory(SupplySupplier supplier, SupplyItem item, Long qty, String qcGrade, String returnPublicId) {
+        // 반품 입고 시에는 특정 물류 거점의 재고에 가산해야 함.
+        // 여기서는 편의상 해당 상품의 가장 최근 ACTIVE 재고 또는 새로 생성함.
+        // 실제로는 반품된 물류 거점에 입고되어야 함.
+        
+        List<SupplyItemInventory> inventories = inventoryRepository.findAllBySupplier_IdAndItem_IdAndStatusNotOrderByExpirationDateDesc(
+                supplier.getId(),
+                item.getId(),
+                InventoryStatus.DELETED
+        );
+
+        if (inventories.isEmpty()) {
+            // 재고가 아예 없으면 새로 생성할 수도 있으나, 여기서는 에러 처리하거나 기획에 따라 다름
+            // 일단 기존 재고 중 하나를 선택하거나, 없으면 신규 생성 로직이 필요함.
+            throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_NOT_FOUND);
+        }
+
+        SupplyItemInventory inventory = inventories.get(0); // 가장 최근 것 선택
+
+        if ("A".equals(qcGrade)) {
+            inventory.addStock(qty);
+            recordTransaction(inventory, TransactionReason.RETURN_RESTOCK, qty, returnPublicId);
+        } else {
+            inventory.addDefectiveStock(qty);
+            recordTransaction(inventory, TransactionReason.RETURN_DEFECTIVE, qty, returnPublicId);
+        }
+
+        syncCapabilityAvailableQty(supplier, item);
+    }
+
+    public void deductForDisposal(SupplySupplier supplier, SupplyItem item, Long qty, String returnPublicId) {
+        // 불량 재고에서 차감
+        long remaining = qty;
+        List<SupplyItemInventory> inventories = inventoryRepository.findAllBySupplier_IdAndItem_IdAndStatusNotOrderByExpirationDateAsc(
+                supplier.getId(),
+                item.getId(),
+                InventoryStatus.DELETED
+        );
+
+        for (SupplyItemInventory inventory : inventories) {
+            if (remaining <= 0) break;
+            if (inventory.getDefectiveQty() > 0) {
+                long deductQty = Math.min(inventory.getDefectiveQty(), remaining);
+                inventory.deductDefectiveStock(deductQty);
+                recordTransaction(inventory, TransactionReason.ADJUSTMENT_OUT_DISPOSAL, -deductQty, returnPublicId);
+                remaining -= deductQty;
+            }
+        }
+        
+        if (remaining > 0) {
+            // 불량 재고가 부족하면 정상 재고에서 차감할지 여부는 정책에 따라 다름
+            // 여기서는 남은 만큼 정상 재고에서 차감 시도
+            deductStockBasedShipmentQtyInternal(supplier, item, remaining, TransactionReason.ADJUSTMENT_OUT_DISPOSAL, returnPublicId);
+        }
+
+        syncCapabilityAvailableQty(supplier, item);
+    }
+
+    private void deductStockBasedShipmentQtyInternal(SupplySupplier supplier, SupplyItem item, Long shipmentQty, TransactionReason reason, String referenceId) {
+        long remaining = shipmentQty;
+
+        List<SupplyItemInventory> inventories = inventoryRepository.findReservedForUpdate(
+                supplier.getId(),
+                item.getId(),
+                LocalDate.now()
+        );
+        
+        // 만약 예약된 재고가 없다면 가용 재고에서도 차감해야 할 수도 있음 (직접 폐기 등)
+        if (inventories.isEmpty()) {
+             inventories = inventoryRepository.findReservableForUpdate(
+                supplier.getId(),
+                item.getId(),
+                List.of(InventoryStatus.ACTIVE, InventoryStatus.RESERVED),
+                LocalDate.now()
+            );
+        }
+
+        for (SupplyItemInventory inventory : inventories) {
+            if (remaining <= 0) {
+                break;
+            }
+
+            if (inventory.getReservedQty() > 0) {
+                long deductQty = Math.min(inventory.getReservedQty(), remaining);
+                inventory.deductReserved(deductQty);
+                recordTransaction(inventory, reason, -deductQty, referenceId);
+                remaining -= deductQty;
+            } else if (inventory.getAvailableQty() > 0) {
+                long deductQty = Math.min(inventory.getAvailableQty(), remaining);
+                inventory.deductRemainingOnly(deductQty);
+                recordTransaction(inventory, reason, -deductQty, referenceId);
+                remaining -= deductQty;
+            }
+        }
+
+        if (remaining > 0) {
+            throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_INSUFFICIENT);
+        }
+
+        syncCapabilityAvailableQty(supplier, item);
+    }
 
     @Transactional(readOnly = true)
     public List<ItemInventoryResponse> getInventories(String organizationPublicId, String organizationType) {
@@ -148,32 +300,7 @@ public class ItemInventoryService {
     }
 
     public void reserveConfirmedQty(SupplySupplier supplier, SupplyItem item, Long confirmQty) {
-        validateAvailableQty(supplier, item, confirmQty);
-
-        long remaining = confirmQty;
-
-        List<SupplyItemInventory> inventories = inventoryRepository.findReservableForUpdate(
-                supplier.getId(),
-                item.getId(),
-                List.of(InventoryStatus.ACTIVE, InventoryStatus.RESERVED),
-                LocalDate.now()
-        );
-
-        for (SupplyItemInventory inventory : inventories) {
-            if (remaining <= 0) {
-                break;
-            }
-
-            long reserveQty = Math.min(inventory.getAvailableQty(), remaining);
-            inventory.reserve(reserveQty);
-            remaining -= reserveQty;
-        }
-
-        if (remaining > 0) {
-            throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_INSUFFICIENT);
-        }
-
-        syncCapabilityAvailableQty(supplier, item);
+        reserveConfirmedQtyInternal(supplier, item, confirmQty, TransactionReason.ORDER_DEDUCT, null); // 기존 로직 유지용
     }
 
     public void validateAvailableQty(SupplySupplier supplier, SupplyItem item, Long confirmQty) {

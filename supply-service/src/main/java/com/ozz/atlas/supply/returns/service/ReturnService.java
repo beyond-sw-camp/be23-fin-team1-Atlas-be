@@ -17,12 +17,7 @@ import com.ozz.atlas.supply.returns.domain.ReturnItem;
 import com.ozz.atlas.supply.returns.domain.ReturnRequest;
 import com.ozz.atlas.supply.returns.domain.ReturnStatus;
 import com.ozz.atlas.supply.returns.domain.ReturnStatusHistory;
-import com.ozz.atlas.supply.returns.dtos.CreateReturnItemDto;
-import com.ozz.atlas.supply.returns.dtos.CreateReturnRequestDto;
-import com.ozz.atlas.supply.returns.dtos.ReturnRequestResponseDto;
-import com.ozz.atlas.supply.returns.dtos.ReturnStatusHistoryResponseDto;
-import com.ozz.atlas.supply.returns.dtos.UpdateReturnRequestDto;
-import com.ozz.atlas.supply.returns.dtos.UpdateReturnStatusDto;
+import com.ozz.atlas.supply.returns.dtos.*;
 import com.ozz.atlas.supply.returns.exception.ReturnErrorCode;
 import com.ozz.atlas.supply.returns.exception.ReturnException;
 import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
@@ -34,6 +29,7 @@ import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
+import com.ozz.atlas.supply.inventory.service.ItemInventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,6 +65,7 @@ public class ReturnService {
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyChainContextResolver supplyChainContextResolver;
+    private final ItemInventoryService itemInventoryService;
 
     @Transactional
     public ReturnRequestResponseDto createReturn(
@@ -269,19 +266,37 @@ public class ReturnService {
         if (request.getAttachmentPublicIds() != null && !request.getAttachmentPublicIds().isEmpty()) {
             String newAttachments = String.join(",", request.getAttachmentPublicIds());
             returnRequest.update(null, null, null, newAttachments);
-        }
-
-        if (beforeStatus != ReturnStatus.APPROVED && request.getReturnStatus() == ReturnStatus.APPROVED) {
-            if (returnRequest.getResolutionType() != com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
-                createReturnShipment(returnRequest);
+            
+            // 만약 폐기 상태로 가는데 증빙이 있다면 첫번째 파일을 증빙ID로 설정 (간이 구현)
+            if (request.getReturnStatus() == ReturnStatus.DISPOSED || request.getReturnStatus() == ReturnStatus.COMPLETED) {
+                if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
+                     returnRequest.getItems().forEach(item -> {
+                         item.setDisposalInfo(request.getReason(), request.getAttachmentPublicIds().get(0));
+                     });
+                }
             }
         }
 
-        if (beforeStatus == ReturnStatus.RECEIVED && request.getReturnStatus() == ReturnStatus.RESHIPPED) {
-            createExchangeShipment(returnRequest);
+        if (beforeStatus != ReturnStatus.APPROVED && request.getReturnStatus() == ReturnStatus.APPROVED) {
+            // 반품 승인은 '대상 조직(공급사)'이 수행함.
+            // 교환 시 재고 선점
+            if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.EXCHANGE) {
+                reserveExchangeStock(returnRequest);
+                createReturnShipment(returnRequest, actorPublicId);
+            } else if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.RETURN) {
+                createReturnShipment(returnRequest, actorPublicId);
+            }
+        }
+
+        if (beforeStatus != ReturnStatus.RESHIPPED && request.getReturnStatus() == ReturnStatus.RESHIPPED) {
+            if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.EXCHANGE) {
+                createExchangeShipment(returnRequest, actorPublicId);
+            }
         }
 
         if (request.getReturnStatus() == ReturnStatus.COMPLETED) {
+            // 재고 반영 (반품 입고 / 불량 처리 등)
+            processInventoryOnCompletion(returnRequest);
             settlementService.createReturnSettlementIfAbsent(returnRequest.getPublicId());
         }
 
@@ -300,6 +315,66 @@ public class ReturnService {
         );
 
         return toResponseDto(returnRequest);
+    }
+
+    @Transactional
+    public ReturnRequestResponseDto inspectItem(
+            String publicId,
+            Long itemId,
+            InspectReturnItemRequestDto request,
+            String actorPublicId,
+            String organizationPublicId
+    ) {
+        ReturnRequest returnRequest = returnRequestRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new ReturnException(ReturnErrorCode.RETURN_NOT_FOUND));
+
+        if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
+             throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+        }
+
+        if (returnRequest.getReturnStatus() != ReturnStatus.INSPECTING && returnRequest.getReturnStatus() != ReturnStatus.RECEIVED) {
+            throw new IllegalStateException("검수 가능한 상태가 아닙니다.");
+        }
+
+        ReturnItem item = returnRequest.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("품목을 찾을 수 없습니다."));
+
+        item.inspect(request.getQcStatus(), request.getQcGrade(), request.getDescription());
+        
+        returnSearchService.saveReturnDocument(returnRequest);
+        return toResponseDto(returnRequest);
+    }
+
+    private void reserveExchangeStock(ReturnRequest returnRequest) {
+        SupplySupplier supplier = supplierRepository.findByOrganizationPublicId(returnRequest.getTargetOrganizationPublicId())
+                .orElseThrow(() -> new IllegalStateException("공급사를 찾을 수 없습니다."));
+
+        for (ReturnItem item : returnRequest.getItems()) {
+            SupplyItem supplyItem = supplyItemRepository.findByPublicId(item.getItemPublicId())
+                    .orElseThrow(() -> new IllegalStateException("품목을 찾을 수 없습니다."));
+            
+            itemInventoryService.reserveForExchange(supplier, supplyItem, item.getReturnQty().longValue(), returnRequest.getPublicId());
+        }
+    }
+
+    private void processInventoryOnCompletion(ReturnRequest returnRequest) {
+        SupplySupplier supplier = supplierRepository.findByOrganizationPublicId(returnRequest.getTargetOrganizationPublicId())
+                .orElseThrow(() -> new IllegalStateException("공급사를 찾을 수 없습니다."));
+
+        for (ReturnItem item : returnRequest.getItems()) {
+            SupplyItem supplyItem = supplyItemRepository.findByPublicId(item.getItemPublicId())
+                    .orElseThrow(() -> new IllegalStateException("품목을 찾을 수 없습니다."));
+
+            if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
+                // 폐기 처리
+                itemInventoryService.deductForDisposal(supplier, supplyItem, item.getReturnQty().longValue(), returnRequest.getPublicId());
+            } else {
+                // 반납/교환 후 입고 처리 (검수 결과 반영)
+                itemInventoryService.processReturnInventory(supplier, supplyItem, item.getReturnQty().longValue(), item.getQcGrade(), returnRequest.getPublicId());
+            }
+        }
     }
 
     public List<ReturnStatusHistoryResponseDto> getReturnHistories(
@@ -511,6 +586,16 @@ public class ReturnService {
             if (resolutionType == com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
                 throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
             }
+            if (nextStatus != ReturnStatus.INSPECTING) {
+                throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
+            }
+            if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
+                throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+            }
+            return;
+        }
+
+        if (currentStatus == ReturnStatus.INSPECTING) {
             if (resolutionType == com.ozz.atlas.supply.returns.domain.ResolutionType.EXCHANGE) {
                 if (nextStatus != ReturnStatus.RESHIPPED) {
                     throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
@@ -537,7 +622,8 @@ public class ReturnService {
             if (nextStatus != ReturnStatus.COMPLETED) {
                 throw new ReturnException(ReturnErrorCode.INVALID_RETURN_STATUS_TRANSITION);
             }
-            if (!organizationPublicId.equals(returnRequest.getRequestOrganizationPublicId())) {
+            if (!organizationPublicId.equals(returnRequest.getRequestOrganizationPublicId()) &&
+                !organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
                 throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
             }
             return;
@@ -552,6 +638,13 @@ public class ReturnService {
             }
             if (!organizationPublicId.equals(returnRequest.getTargetOrganizationPublicId())) {
                 throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
+            }
+
+            // 폐기 증빙 필수 체크
+            for (ReturnItem item : returnRequest.getItems()) {
+                if (item.getDisposalProofAttachmentPublicId() == null || item.getDisposalProofAttachmentPublicId().isBlank()) {
+                    throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST); // 증빙 누락 에러
+                }
             }
             return;
         }
@@ -588,7 +681,7 @@ public class ReturnService {
 
         return candidate;
     }
-    private void createReturnShipment(ReturnRequest returnRequest) {
+    private void createReturnShipment(ReturnRequest returnRequest, String actorPublicId) {
         if (returnRequest.getReturnShipmentPublicId() != null
                 && !returnRequest.getReturnShipmentPublicId().isBlank()) {
             throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST);
@@ -626,7 +719,7 @@ public class ReturnService {
         returnRequest.assignReturnShipment(savedReturnShipment.getId(), savedReturnShipment.getPublicId());
     }
 
-    private void createExchangeShipment(ReturnRequest returnRequest) {
+    private void createExchangeShipment(ReturnRequest returnRequest, String actorPublicId) {
         Shipment sourceShipment = resolveRequiredSourceShipment(returnRequest);
 
         String exchangeShipmentNumber = generateNextShipmentNumber(SequenceCodeType.EXCHANGE_SHIPMENT);

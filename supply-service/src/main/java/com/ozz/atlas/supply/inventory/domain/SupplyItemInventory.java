@@ -49,6 +49,10 @@ public class SupplyItemInventory extends BaseTimeEntity {
     @Column(nullable = false)
     private Long reservedQty;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Long defectiveQty = 0L;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private InventoryStatus status;
@@ -78,6 +82,7 @@ public class SupplyItemInventory extends BaseTimeEntity {
                 .initialQty(qty)
                 .remainingQty(qty)
                 .reservedQty(0L)
+                .defectiveQty(0L)
                 .status(InventoryStatus.ACTIVE)
                 .memo(memo)
                 .build();
@@ -93,6 +98,26 @@ public class SupplyItemInventory extends BaseTimeEntity {
         }
 
         this.reservedQty += qty;
+        refreshStatus();
+    }
+
+    public void addStock(Long qty) {
+        if (qty == null || qty <= 0) return;
+        this.remainingQty += qty;
+        refreshStatus();
+    }
+
+    public void addDefectiveStock(Long qty) {
+        if (qty == null || qty <= 0) return;
+        this.defectiveQty += qty;
+        refreshStatus();
+    }
+
+    public void deductDefectiveStock(Long qty) {
+        if (qty == null || qty <= 0 || this.defectiveQty < qty) {
+            throw new IllegalArgumentException("차감 가능한 불량 재고 수량이 부족합니다.");
+        }
+        this.defectiveQty -= qty;
         refreshStatus();
     }
 

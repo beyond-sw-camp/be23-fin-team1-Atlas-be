@@ -272,7 +272,7 @@ public class ReturnSearchService {
                                 ? List.of()
                                 : document.getItems().stream()
                                 // ReturnItemResponseDto는 별도 DTO 클래스
-                                .map(item -> {
+                                .<ReturnItemResponseDto>map(item -> {
                                     String itemName = null;
                                     if (item.getItemPublicId() != null) {
                                         SupplyItem supplyItem = supplyItemRepository.findByPublicId(item.getItemPublicId()).orElse(null);
@@ -288,6 +288,10 @@ public class ReturnSearchService {
                                         .unit(item.getUnit())
                                         .detailReason(item.getDetailReason())
                                         .itemStatus(item.getItemStatus())
+                                        .qcStatus(item.getQcStatus())
+                                        .qcGrade(item.getQcGrade())
+                                        .disposalReason(item.getDisposalReason())
+                                        .disposalProofAttachmentPublicId(item.getDisposalProofAttachmentPublicId())
                                         .attachmentPublicIds(
                                                 item.getAttachmentPublicIds() == null ? List.of() : item.getAttachmentPublicIds()
                                         )

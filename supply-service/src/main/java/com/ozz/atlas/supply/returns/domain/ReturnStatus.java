@@ -6,6 +6,7 @@ public enum ReturnStatus {
     REJECTED,
     IN_TRANSIT,
     RECEIVED,
+    INSPECTING,
     RESHIPPED,
     DISPOSED,
     COMPLETED
