@@ -640,12 +640,6 @@ public class ReturnService {
                 throw new ReturnException(ReturnErrorCode.FORBIDDEN_RETURN_CREATE);
             }
 
-            // 폐기 증빙 필수 체크
-            for (ReturnItem item : returnRequest.getItems()) {
-                if (item.getDisposalProofAttachmentPublicId() == null || item.getDisposalProofAttachmentPublicId().isBlank()) {
-                    throw new ReturnException(ReturnErrorCode.INVALID_RETURN_REQUEST); // 증빙 누락 에러
-                }
-            }
             return;
         }
 
