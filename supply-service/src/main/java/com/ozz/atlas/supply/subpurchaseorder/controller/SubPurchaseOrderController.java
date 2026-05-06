@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.subpurchaseorder.controller;
 
 import com.ozz.atlas.supply.subpurchaseorder.dtos.ConfirmSubPurchaseOrderItemRequest;
+import com.ozz.atlas.supply.subpurchaseorder.dtos.CreateSubPurchaseOrderBatchRequest;
 import com.ozz.atlas.supply.subpurchaseorder.dtos.CreateSubPurchaseOrderRequest;
 import com.ozz.atlas.supply.subpurchaseorder.service.SubPurchaseOrderService;
 import jakarta.validation.Valid;
@@ -153,5 +154,23 @@ public class SubPurchaseOrderController {
                 )
         );
     }
+
+    @Operation(summary = "서브발주 일괄 생성")
+    @PostMapping("/batch")
+    public ResponseEntity<?> createSubPurchaseOrdersBatch(
+            @RequestHeader("X-Organization-Public-Id") String issuerOrganizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader("X-User-Public-Id") String createdByUserPublicId,
+            @Valid @RequestBody CreateSubPurchaseOrderBatchRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(subPurchaseOrderService.createSubPurchaseOrdersBatch(
+                        issuerOrganizationPublicId,
+                        organizationType,
+                        createdByUserPublicId,
+                        request
+                ));
+    }
+
 
 }
