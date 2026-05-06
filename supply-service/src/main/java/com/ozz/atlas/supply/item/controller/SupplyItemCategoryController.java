@@ -12,10 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/supply/item-category")
+@Tag(name = "SupplyItemCategory", description = "공급 품목 카테고리 생성, 조회, 수정, 삭제 API")
 public class SupplyItemCategoryController {
 
     private final SupplyItemCategoryService supplyItemCategoryService;

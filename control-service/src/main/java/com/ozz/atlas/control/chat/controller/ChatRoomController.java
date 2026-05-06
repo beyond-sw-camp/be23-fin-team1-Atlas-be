@@ -239,6 +239,10 @@ public class ChatRoomController {
 
     //     1:1 방이 있으면 그 방 반환, 없으면 새로 생성
     @PostMapping("/direct")
+    @Operation(
+            summary = "1:1 채팅방 조회 또는 생성",
+            description = "요청한 두 사용자 간 1:1 채팅방이 있으면 반환하고, 없으면 새로 생성한다."
+    )
     public ResponseEntity<ChatRoomDto> findOrCreateDirectRoom(@RequestBody Map<String, String> request) {
         String roomName = request.get("roomName");
         String creatorPublicId = request.get("creatorPublicId");

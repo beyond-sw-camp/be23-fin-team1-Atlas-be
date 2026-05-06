@@ -380,6 +380,10 @@ public class UserController {
 
     @GetMapping("/users/public/{userPublicId}/name")
     @SecurityRequirements
+    @Operation(
+            summary = "사용자 이름 조회",
+            description = "외부 서비스 연동을 위해 사용자 공개 ID로 사용자 이름 정보를 조회한다."
+    )
     public ResponseEntity<UserNameLookupDto> userNameByPublicId(
             @PathVariable String userPublicId
     ) {
