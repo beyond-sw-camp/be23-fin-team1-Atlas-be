@@ -22,6 +22,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import com.ozz.atlas.supply.settlement.dtos.SettlementStatisticsResponseDto;
 import com.ozz.atlas.supply.settlement.dtos.SettlementBudgetRequestDto;
 import com.ozz.atlas.supply.settlement.dtos.SettlementBudgetResponseDto;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+
 
 
 
@@ -88,6 +95,45 @@ public class SettlementController {
                 settlementService.getSettlementStatistics(year, organizationPublicId, userRole)
         );
     }
+
+    @Operation(summary = "정산 엑셀 내보내기")
+    @GetMapping("/export/excel")
+    public ResponseEntity<byte[]> exportSettlementExcel(
+            @RequestHeader(value = "X-User-Public-Id", required = false) String userPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestParam(value = "language", defaultValue = "ko") String language,
+            @RequestParam(value = "startDate", required = false) LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) LocalDate endDate
+    ) {
+        // 화면 언어와 선택 기간에 맞춰 엑셀을 생성합니다.
+        byte[] excelBytes = settlementService.exportSettlementExcel(
+                organizationPublicId,
+                userPublicId,
+                userRole,
+                language,
+                startDate,
+                endDate
+        );
+
+
+        String fileName = "settlements-" + LocalDate.now() + ".xlsx";
+        String encodedFileName = URLEncoder
+                .encode(fileName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename*=UTF-8''" + encodedFileName
+                )
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ))
+                .body(excelBytes);
+    }
+
+
 
     //    정산 상세 조회
     @Operation(summary = "정산 상세 조회")

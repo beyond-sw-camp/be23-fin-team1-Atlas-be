@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +41,38 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
             @Param("organizationPublicId") String organizationPublicId,
             Pageable pageable
     );
+
+    // 로그인한 조직이 발주사 또는 협력사로 연결된 정산을 전체 조회
+    // 엑셀 내보내기는 페이지 단위가 아니라 파일 하나로 내려가야 해서 List로 조회
+    @Query("""
+    select s
+    from Settlement s
+    where s.buyerOrganizationPublicId = :organizationPublicId
+       or s.supplierOrganizationPublicId = :organizationPublicId
+    order by s.id desc
+""")
+    List<Settlement> findAllReadableByOrganizationPublicId(
+            @Param("organizationPublicId") String organizationPublicId
+    );
+
+    @Query("""
+    select s
+    from Settlement s
+    where (
+        s.buyerOrganizationPublicId = :organizationPublicId
+        or s.supplierOrganizationPublicId = :organizationPublicId
+    )
+      and (:startDate is null or s.settlementPeriodStart >= :startDate)
+      and (:endDate is null or s.settlementPeriodStart <= :endDate)
+    order by s.id desc
+""")
+    List<Settlement> findAllReadableByOrganizationPublicIdAndPeriod(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+
 
     @Query("""
         select s

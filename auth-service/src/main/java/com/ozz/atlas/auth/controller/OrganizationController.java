@@ -214,4 +214,20 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
+    // supply-service에서 정산 엑셀에 조직명을 표시하기 위해 organizationPublicId로 조직명을 조회
+    @GetMapping("/organizations/public/{organizationPublicId}/name")
+    @Operation(
+            summary = "조직명 조회",
+            description = "내부 서비스 연동용으로 조직 공개 ID 기준 조직명을 조회합니다."
+    )
+    public ResponseEntity<OrganizationNameLookupDto> organizationNameByPublicId(
+            @PathVariable String organizationPublicId
+    ) {
+        OrganizationNameLookupDto response =
+                organizationService.organizationNameByPublicId(organizationPublicId);
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }

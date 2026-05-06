@@ -34,19 +34,22 @@ import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrderItem;
 import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
 import com.ozz.atlas.supply.settlement.domain.BudgetUsageStatus;
 import com.ozz.atlas.supply.settlement.dtos.SettlementBudgetUsageDto;
-
+import com.ozz.atlas.common.excel.ExcelExportUtils;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.HashMap;
+
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +67,8 @@ public class SettlementService {
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final SettlementSearchService settlementSearchService;
     private final SettlementBudgetRepository settlementBudgetRepository;
+    private final SettlementOrganizationClient settlementOrganizationClient;
+
 
 
     @Transactional(readOnly = true)
@@ -197,6 +202,370 @@ public class SettlementService {
         return settlementRepository.findReadableByOrganizationPublicId(actorOrganizationPublicId, pageable)
                 .map(this::toResponseDtoWithoutDetails);
     }
+
+    @Transactional(readOnly = true)
+    public byte[] exportSettlementExcel(
+            String actorOrganizationPublicId,
+            String actorUserPublicId,
+            String userRole,
+            String language,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        validateSettlementActorHeader(actorOrganizationPublicId, userRole);
+
+        List<Settlement> settlements = filterSettlementsByExcelPeriod(
+                settlementRepository.findAllReadableByOrganizationPublicId(actorOrganizationPublicId),
+                startDate, endDate
+        );
+
+        BigDecimal totalAmount = settlements.stream()
+                .map(Settlement::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Set<String> organizationPublicIds = new HashSet<>();
+        for (Settlement settlement : settlements) {
+            if (settlement.getBuyerOrganizationPublicId() != null)
+                organizationPublicIds.add(settlement.getBuyerOrganizationPublicId());
+            if (settlement.getSupplierOrganizationPublicId() != null)
+                organizationPublicIds.add(settlement.getSupplierOrganizationPublicId());
+        }
+        Map<String, OrganizationNameLookupResponseDto> organizationMap =
+                loadOrganizationMap(organizationPublicIds);
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet(isKorean(language) ? "정산 내역" : "Settlement Ledger");
+
+
+            OrganizationNameLookupResponseDto actorOrganization =
+                    settlementOrganizationClient.getOrganization(actorOrganizationPublicId);
+
+            String actorOrganizationName = actorOrganization.getOrganizationName() == null
+                    || actorOrganization.getOrganizationName().isBlank()
+                    ? actorOrganizationPublicId : actorOrganization.getOrganizationName();
+
+            String representativeName = joinOrganizationContactName(
+                    actorOrganization.getContactFirstName(),
+                    actorOrganization.getContactMiddleName(),
+                    actorOrganization.getContactLastName());
+            if (representativeName.isBlank()) representativeName = "-";
+
+            String organizationPhone = actorOrganization.getContactPhone() == null
+                    || actorOrganization.getContactPhone().isBlank()
+                    ? "-" : actorOrganization.getContactPhone();
+
+            String issuedDate = LocalDate.now().toString();
+
+            UserNameLookupResponseDto exporter = settlementOrganizationClient.getUserName(actorUserPublicId);
+            String exporterName = exporter.getUserName() == null || exporter.getUserName().isBlank()
+                    ? "-" : exporter.getUserName();
+
+
+            CellStyle titleStyle        = ExcelExportUtils.createDocumentTitleStyle(workbook);
+            CellStyle issuedDateStyle   = ExcelExportUtils.createIssuedDateStyle(workbook);
+            CellStyle sectionTitleStyle = ExcelExportUtils.createSectionTitleStyle(workbook);
+            CellStyle infoLabelStyle    = ExcelExportUtils.createInfoLabelStyle(workbook);
+            CellStyle infoValueStyle    = ExcelExportUtils.createInfoValueStyle(workbook);
+            CellStyle summaryLabelStyle = ExcelExportUtils.createSummaryLabelStyle(workbook);
+            CellStyle summaryAmountStyle= ExcelExportUtils.createSummaryAmountStyle(workbook);
+            CellStyle tableHeaderStyle  = ExcelExportUtils.createSettlementTableHeaderStyle(workbook);
+            CellStyle tableBodyStyle    = ExcelExportUtils.createSettlementTableBodyStyle(workbook);
+            CellStyle tableAmountStyle  = ExcelExportUtils.createSettlementTableAmountStyle(workbook);
+            CellStyle totalLabelStyle   = ExcelExportUtils.createSettlementTotalLabelStyle(workbook);
+            CellStyle totalAmountStyle  = ExcelExportUtils.createSettlementTotalAmountStyle(workbook);
+
+
+            sheet.createRow(0).setHeightInPoints(8);
+            sheet.createRow(1).setHeightInPoints(40);
+            sheet.createRow(2).setHeightInPoints(18);
+            sheet.createRow(3).setHeightInPoints(6);
+            sheet.createRow(4).setHeightInPoints(22);
+            sheet.createRow(5).setHeightInPoints(4);
+            sheet.createRow(6).setHeightInPoints(20);
+            sheet.createRow(7).setHeightInPoints(20);
+            sheet.createRow(8).setHeightInPoints(20);
+            sheet.createRow(9).setHeightInPoints(20);
+            sheet.createRow(10).setHeightInPoints(6);
+            sheet.createRow(11).setHeightInPoints(24);
+            sheet.createRow(12).setHeightInPoints(6);
+            sheet.createRow(13).setHeightInPoints(20);
+            sheet.createRow(14).setHeightInPoints(8);
+            sheet.createRow(15).setHeightInPoints(26);
+
+
+            sheet.setColumnWidth(0, (int)(4   * 256));
+            sheet.setColumnWidth(1, (int)(14  * 256));
+            sheet.setColumnWidth(2, (int)(20  * 256));
+            sheet.setColumnWidth(3, (int)(20  * 256));
+            sheet.setColumnWidth(4, (int)(12  * 256));
+            sheet.setColumnWidth(5, (int)(12  * 256));
+            sheet.setColumnWidth(6, (int)(8   * 256));
+            sheet.setColumnWidth(7, (int)(8   * 256));
+            sheet.setColumnWidth(8, (int)(8   * 256));
+            sheet.setColumnWidth(9, (int)(8   * 256));
+            sheet.setColumnWidth(10,(int)(4   * 256));
+
+
+            ExcelExportUtils.writeMergedCell(sheet, 1, 1, 9,
+                    isKorean(language) ? "정  산  내  역  서" : "Settlement Statement",
+                    titleStyle);
+
+
+            ExcelExportUtils.writeMergedCell(sheet, 2, 5, 9,
+                    (isKorean(language) ? "발행일 : " : "Issued Date : ") + issuedDate,
+                    issuedDateStyle);
+
+
+            ExcelExportUtils.writeMergedCell(sheet, 4, 1, 4,
+                    isKorean(language) ? "수  급  인" : "Recipient",
+                    sectionTitleStyle);
+
+            String[][] infoRows = {
+                    {isKorean(language) ? "회  사  명" : "Company",        actorOrganizationName},
+                    {isKorean(language) ? "대  표  자" : "Representative", representativeName},
+                    {isKorean(language) ? "연  락  처" : "Phone",          organizationPhone},
+                    {isKorean(language) ? "담  당  자" : "Exporter",       exporterName},
+            };
+            for (int i = 0; i < infoRows.length; i++) {
+                int r = 6 + i;
+                ExcelExportUtils.writeCell(sheet.getRow(r), 1, infoRows[i][0], infoLabelStyle);
+                ExcelExportUtils.writeMergedCell(sheet, r, 2, 9, infoRows[i][1], infoValueStyle);
+            }
+
+
+            ExcelExportUtils.writeMergedCell(sheet, 11, 1, 3,
+                    isKorean(language) ? "총  정  산  금  액" : "Total Settlement Amount",
+                    summaryLabelStyle);
+            ExcelExportUtils.writeMergedCell(sheet, 11, 4, 9, totalAmount, summaryAmountStyle);
+
+
+            ExcelExportUtils.writeMergedCell(sheet, 13, 1, 3,
+                    isKorean(language) ? "정  산  기  간" : "Settlement Period",
+                    infoLabelStyle);
+            ExcelExportUtils.writeMergedCell(sheet, 13, 4, 9,
+                    settlementPeriodText(startDate, endDate), infoValueStyle);
+
+
+            Row headerRow = sheet.getRow(15);
+            ExcelExportUtils.writeCell(headerRow, 1, isKorean(language) ? "날짜" : "Date", tableHeaderStyle);
+            ExcelExportUtils.writeCell(headerRow, 2, isKorean(language) ? "발주 조직명" : "Buyer Organization", tableHeaderStyle);
+            ExcelExportUtils.writeCell(headerRow, 3, isKorean(language) ? "협력사 조직명" : "Supplier Organization", tableHeaderStyle);
+            ExcelExportUtils.writeCell(headerRow, 4, isKorean(language) ? "대상 유형" : "Target Type", tableHeaderStyle);
+            ExcelExportUtils.writeCell(headerRow, 5, isKorean(language) ? "정산 상태" : "Status", tableHeaderStyle);
+            ExcelExportUtils.writeMergedCell(sheet, 15, 6, 8,
+                    isKorean(language) ? "정산 금액" : "Settlement Amount", tableHeaderStyle);
+            ExcelExportUtils.writeCell(headerRow, 9, isKorean(language) ? "통화" : "Currency", tableHeaderStyle);
+
+            sheet.createFreezePane(0, 16);
+
+
+            int rowIndex = 16;
+            for (Settlement settlement : settlements) {
+                Row row = sheet.createRow(rowIndex);
+                row.setHeightInPoints(19);
+
+                ExcelExportUtils.writeCell(row, 1, settlementExcelDate(settlement), tableBodyStyle);
+                ExcelExportUtils.writeCell(row, 2, organizationDisplayName(settlement.getBuyerOrganizationPublicId(), organizationMap), tableBodyStyle);
+                ExcelExportUtils.writeCell(row, 3, organizationDisplayName(settlement.getSupplierOrganizationPublicId(), organizationMap), tableBodyStyle);
+                ExcelExportUtils.writeCell(row, 4, targetTypeText(settlement.getTargetType(), language), tableBodyStyle);
+                ExcelExportUtils.writeCell(row, 5, statusText(settlement.getSettlementStatus(), language), tableBodyStyle);
+                ExcelExportUtils.writeMergedCell(sheet, rowIndex, 6, 8, settlement.getAmount(), tableAmountStyle);
+                ExcelExportUtils.writeCell(row, 9,
+                        settlement.getCurrencyCode() != null ? settlement.getCurrencyCode().name() : "",
+                        tableBodyStyle);
+                rowIndex++;
+            }
+
+
+            Row totalTableRow = sheet.createRow(rowIndex);
+            totalTableRow.setHeightInPoints(24);
+            ExcelExportUtils.writeMergedCell(sheet, rowIndex, 1, 5,
+                    isKorean(language) ? "합  계" : "Total", totalLabelStyle);
+            ExcelExportUtils.writeMergedCell(sheet, rowIndex, 6, 8, totalAmount, totalAmountStyle);
+            ExcelExportUtils.writeCell(totalTableRow, 9,
+                    settlements.isEmpty() || settlements.get(0).getCurrencyCode() == null
+                            ? "" : settlements.get(0).getCurrencyCode().name(),
+                    totalLabelStyle);
+
+            return ExcelExportUtils.toByteArray(workbook);
+        } catch (Exception e) {
+            throw new IllegalStateException("정산 엑셀 파일 생성에 실패했습니다.", e);
+        }
+    }
+
+    private boolean isKorean(String language) {
+        return language == null || language.isBlank() || "ko".equalsIgnoreCase(language);
+    }
+
+    private String joinOrganizationContactName(
+            String firstName,
+            String middleName,
+            String lastName
+    ) {
+        List<String> names = new ArrayList<>();
+
+        if (lastName != null && !lastName.isBlank()) {
+            names.add(lastName);
+        }
+
+        if (firstName != null && !firstName.isBlank()) {
+            names.add(firstName);
+        }
+
+        if (middleName != null && !middleName.isBlank()) {
+            names.add(middleName);
+        }
+
+        return String.join("", names);
+    }
+
+
+    private String settlementExcelDate(Settlement settlement) {
+        LocalDate settlementDate = settlementExcelLocalDate(settlement);
+
+        return settlementDate == null ? "" : settlementDate.toString();
+    }
+
+
+    private LocalDate settlementExcelLocalDate(Settlement settlement) {
+        if (settlement.getSettlementPeriodStart() != null) {
+            return settlement.getSettlementPeriodStart();
+        }
+
+        if (settlement.getCreatedAt() != null) {
+            return settlement.getCreatedAt().toLocalDate();
+        }
+
+        return null;
+    }
+
+
+    private List<Settlement> filterSettlementsByExcelPeriod(
+            List<Settlement> settlements,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        return settlements.stream()
+                .filter(settlement -> isInExcelPeriod(settlement, startDate, endDate))
+                .toList();
+    }
+
+
+    private boolean isInExcelPeriod(
+            Settlement settlement,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        LocalDate settlementDate = settlementExcelLocalDate(settlement);
+
+        if (settlementDate == null) {
+            return startDate == null && endDate == null;
+        }
+
+        if (startDate != null && settlementDate.isBefore(startDate)) {
+            return false;
+        }
+
+        if (endDate != null && settlementDate.isAfter(endDate)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private String settlementPeriodText(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null && endDate == null) {
+            return "ALL";
+        }
+
+        String startText = startDate == null ? "" : startDate.toString();
+        String endText = endDate == null ? "" : endDate.toString();
+
+        return startText + " ~ " + endText;
+    }
+
+
+    private Map<String, OrganizationNameLookupResponseDto> loadOrganizationMap(Set<String> organizationPublicIds) {
+        Map<String, OrganizationNameLookupResponseDto> result = new HashMap<>();
+
+        for (String organizationPublicId : organizationPublicIds) {
+            if (organizationPublicId == null || organizationPublicId.isBlank()) {
+                continue;
+            }
+
+            OrganizationNameLookupResponseDto organization =
+                    settlementOrganizationClient.getOrganization(organizationPublicId);
+
+            result.put(organizationPublicId, organization);
+        }
+
+        return result;
+    }
+
+
+    private String organizationDisplayName(
+            String organizationPublicId,
+            Map<String, OrganizationNameLookupResponseDto> organizationMap
+    ) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()) {
+            return "";
+        }
+
+        OrganizationNameLookupResponseDto organization = organizationMap.get(organizationPublicId);
+
+        if (organization == null ||
+                organization.getOrganizationName() == null ||
+                organization.getOrganizationName().isBlank()) {
+            return organizationPublicId;
+        }
+
+        return organization.getOrganizationName();
+    }
+
+
+    private String targetTypeText(SettlementTargetType targetType, String language) {
+        if (targetType == null) {
+            return "";
+        }
+
+        if (!isKorean(language)) {
+            return switch (targetType) {
+                case ORDER -> "Order";
+                case SHIPMENT -> "Shipment";
+                case RETURN -> "Return";
+                case DELIVERY_EXCEPTION -> "Delivery Exception";
+            };
+        }
+
+        return switch (targetType) {
+            case ORDER -> "발주";
+            case SHIPMENT -> "출하";
+            case RETURN -> "반품";
+            case DELIVERY_EXCEPTION -> "배송 예외";
+        };
+    }
+
+    private String statusText(SettlementStatus status, String language) {
+        if (status == null) {
+            return "";
+        }
+
+        if (!isKorean(language)) {
+            return switch (status) {
+                case PENDING -> "Pending";
+                case APPROVED -> "Approved";
+                case CANCELLED -> "Cancelled";
+            };
+        }
+
+        return switch (status) {
+            case PENDING -> "대기";
+            case APPROVED -> "승인";
+            case CANCELLED -> "취소";
+        };
+    }
+
 
     @Transactional(readOnly = true)
     public Page<SettlementResponseDto> searchSettlements(
@@ -1436,7 +1805,4 @@ public class SettlementService {
                 .count(count)
                 .build();
     }
-
-
-
 }
