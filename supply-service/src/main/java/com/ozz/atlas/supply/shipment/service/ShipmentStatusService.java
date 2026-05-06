@@ -104,7 +104,7 @@ public class ShipmentStatusService {
 
         shipmentSearchService.saveShipmentDocument(savedShipment);
 
-        return shipmentMapper.toShipmentResponseDto(savedShipment);
+        return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
     }
 
     public ShipmentResponseDto arriveShipment(
@@ -144,7 +144,7 @@ public class ShipmentStatusService {
         shipmentSearchService.saveShipmentDocument(savedShipment);
         settlementService.createShipmentSettlementIfAbsent(savedShipment.getPublicId());
 
-        return shipmentMapper.toShipmentResponseDto(savedShipment);
+        return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
     }
 
     public ShipmentResponseDto cancelShipment(
@@ -182,7 +182,7 @@ public class ShipmentStatusService {
 
         shipmentSearchService.saveShipmentDocument(savedShipment);
 
-        return shipmentMapper.toShipmentResponseDto(savedShipment);
+        return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
     }
 
     private Shipment getReadableShipment(String publicId, String organizationPublicId) {

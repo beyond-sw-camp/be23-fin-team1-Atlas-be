@@ -132,7 +132,7 @@ public class ShipmentService {
                 pageable
         );
 
-        return shipmentPage.map(shipmentMapper::toShipmentListResponseDto);
+        return shipmentPage.map(shipment -> shipmentMapper.toShipmentListResponseDto(shipment, organizationPublicId));
     }
 
     @Transactional(readOnly = true)
@@ -173,7 +173,7 @@ public class ShipmentService {
 
         Shipment shipment = getReadableShipment(publicId, organizationPublicId);
 
-        return shipmentMapper.toShipmentResponseDto(shipment);
+        return shipmentMapper.toShipmentResponseDto(shipment, organizationPublicId);
     }
 
     public ShipmentResponseDto updateShipment(
@@ -210,7 +210,7 @@ public class ShipmentService {
         Shipment savedShipment = shipmentRepository.save(shipment);
         shipmentSearchService.saveShipmentDocument(savedShipment);
 
-        return shipmentMapper.toShipmentResponseDto(savedShipment);
+        return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
     }
 
     public ShipmentResponseDto startShipment(
@@ -353,7 +353,7 @@ public class ShipmentService {
             appendShipmentTrackingEvent(savedShipment, dto, actorUserPublicId, organizationPublicId);
         }
 
-        return shipmentMapper.toShipmentResponseDto(savedShipment);
+        return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
     }
 
     // ETA 조회

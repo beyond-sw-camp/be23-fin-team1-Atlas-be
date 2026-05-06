@@ -33,19 +33,22 @@ public class ShipmentMapService {
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ShipmentAuthorizationService shipmentAuthorizationService;
     private final ShipmentEtaCalculator shipmentEtaCalculator;
+    private final ShipmentMapper shipmentMapper;
 
     public ShipmentMapService(
             ShipmentRepository shipmentRepository,
             ShipmentCheckpointRepository shipmentCheckpointRepository,
             LogisticsNodeRepository logisticsNodeRepository,
             ShipmentAuthorizationService shipmentAuthorizationService,
-            ShipmentEtaCalculator shipmentEtaCalculator
+            ShipmentEtaCalculator shipmentEtaCalculator,
+            ShipmentMapper shipmentMapper
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.shipmentAuthorizationService = shipmentAuthorizationService;
         this.shipmentEtaCalculator = shipmentEtaCalculator;
+        this.shipmentMapper = shipmentMapper;
     }
 
     public List<ShipmentMapResponseDto> getShipmentMapData(
@@ -97,6 +100,7 @@ public class ShipmentMapService {
         return distinctShipments.stream()
                 .map(shipment -> toShipmentMapResponseDto(
                         shipment,
+                        organizationPublicId,
                         nodeMap,
                         checkpointMap.getOrDefault(shipment.getId(), List.of())
                 ))
@@ -156,6 +160,7 @@ public class ShipmentMapService {
 
     private ShipmentMapResponseDto toShipmentMapResponseDto(
             Shipment shipment,
+            String organizationPublicId,
             Map<Long, LogisticsNode> nodeMap,
             List<ShipmentCheckpoint> transitCheckpoints
     ) {
@@ -164,6 +169,12 @@ public class ShipmentMapService {
         LogisticsNode currentNode = resolveCurrentNode(shipment, nodeMap, originNode);
 
         ShipmentEtaCalculator.Result etaResult = shipmentEtaCalculator.calculate(shipment, transitCheckpoints);
+        ShipmentMapper.ShipmentActionPermissions permissions = shipmentMapper.resolveActionPermissions(
+                shipment,
+                originNode,
+                destinationNode,
+                organizationPublicId
+        );
 
         List<ShipmentMapCheckpointDto> checkpointDtos = transitCheckpoints.stream()
                 .filter(checkpoint -> checkpoint.getCheckpointType() == CheckpointType.TRANSIT)
@@ -218,6 +229,12 @@ public class ShipmentMapService {
                                 ? etaResult.getLatestPassedCheckpoint().getActualAt()
                                 : null
                 )
+                .canUpdate(permissions.canUpdate())
+                .canStart(permissions.canStart())
+                .canArrive(permissions.canArrive())
+                .canCancel(permissions.canCancel())
+                .canTrack(permissions.canTrack())
+                .canRegisterException(permissions.canRegisterException())
                 .checkpoints(checkpointDtos)
                 .build();
     }
