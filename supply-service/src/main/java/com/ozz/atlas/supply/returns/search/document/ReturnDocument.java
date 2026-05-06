@@ -206,6 +206,18 @@ public class ReturnDocument {
         @Field(type = FieldType.Keyword)
         private String itemStatus;
 
+        @Field(type = FieldType.Keyword)
+        private String qcStatus;
+
+        @Field(type = FieldType.Keyword)
+        private String qcGrade;
+
+        @Field(type = FieldType.Keyword)
+        private String disposalReason;
+
+        @Field(type = FieldType.Keyword)
+        private String disposalProofAttachmentPublicId;
+
         // 첨부파일 publicId 목록
         @Field(type = FieldType.Keyword)
         private List<String> attachmentPublicIds;
@@ -218,6 +230,10 @@ public class ReturnDocument {
                     .unit(item.getUnit())
                     .detailReason(item.getDetailReason())
                     .itemStatus(item.getItemStatus())
+                    .qcStatus(item.getQcStatus())
+                    .qcGrade(item.getQcGrade())
+                    .disposalReason(item.getDisposalReason())
+                    .disposalProofAttachmentPublicId(item.getDisposalProofAttachmentPublicId())
                     .attachmentPublicIds(splitAttachmentIds(item.getAttachmentPublicIds()))
                     .build();
         }

@@ -39,6 +39,18 @@ public class ReturnItem extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private String itemStatus;
 
+    @Column(length = 20)
+    private String qcStatus; // PENDING, PASS, FAIL
+
+    @Column(length = 20)
+    private String qcGrade; // A, B, DEFECTIVE
+
+    @Column(length = 50)
+    private String disposalReason; // EXPIRED, DAMAGED, CONTAMINATED
+
+    @Column(length = 26)
+    private String disposalProofAttachmentPublicId;
+
     @Column(columnDefinition = "TEXT")
     private String attachmentPublicIds;
 
@@ -50,6 +62,7 @@ public class ReturnItem extends BaseTimeEntity {
         this.detailReason = detailReason;
         this.attachmentPublicIds = attachmentPublicIds;
         this.itemStatus = "REQUESTED";
+        this.qcStatus = "PENDING";
     }
 
     public void setReturnRequest(ReturnRequest returnRequest) {
@@ -63,5 +76,21 @@ public class ReturnItem extends BaseTimeEntity {
         if (returnQty != null) this.returnQty = returnQty;
         if (detailReason != null) this.detailReason = detailReason;
         if (attachmentPublicIds != null) this.attachmentPublicIds = attachmentPublicIds;
+    }
+
+    public void inspect(String qcStatus, String qcGrade, String description) {
+        this.qcStatus = qcStatus;
+        this.qcGrade = qcGrade;
+        this.detailReason = description;
+        if ("PASS".equals(qcStatus)) {
+            this.itemStatus = "INSPECTED_PASS";
+        } else {
+            this.itemStatus = "INSPECTED_FAIL";
+        }
+    }
+
+    public void setDisposalInfo(String reason, String proofAttachmentPublicId) {
+        this.disposalReason = reason;
+        this.disposalProofAttachmentPublicId = proofAttachmentPublicId;
     }
 }

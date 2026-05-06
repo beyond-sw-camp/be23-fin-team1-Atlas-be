@@ -249,6 +249,20 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
             InventoryStatus status
     );
 
+    @EntityGraph(attributePaths = {"supplier", "item", "logisticsNode"})
+    List<SupplyItemInventory> findAllBySupplier_IdAndItem_IdAndStatusNotOrderByExpirationDateDesc(
+            Long supplierId,
+            Long itemId,
+            InventoryStatus status
+    );
+
+    @EntityGraph(attributePaths = {"supplier", "item", "logisticsNode"})
+    List<SupplyItemInventory> findAllBySupplier_IdAndItem_IdAndStatusNotOrderByExpirationDateAsc(
+            Long supplierId,
+            Long itemId,
+            InventoryStatus status
+    );
+
     @Query("""
     select count(inv) > 0
     from SupplyItemInventory inv
