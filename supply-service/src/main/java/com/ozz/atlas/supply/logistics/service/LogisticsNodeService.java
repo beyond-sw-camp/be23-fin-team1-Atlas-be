@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 public class LogisticsNodeService {
 
     private static final String ADMIN_ORGANIZATION_TYPE = "ADMIN";
-    private static final String ADMIN_ROLE = "ADMIN";
 
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final OrganizationAliasClient organizationAliasClient;
@@ -258,7 +257,7 @@ public class LogisticsNodeService {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.INVALID_INPUT_VALUE);
         }
 
-        if (ADMIN_ORGANIZATION_TYPE.equals(organizationType) || ADMIN_ROLE.equals(userRole)) {
+        if (ADMIN_ORGANIZATION_TYPE.equals(organizationType)) {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.ACCESS_DENIED);
         }
     }
