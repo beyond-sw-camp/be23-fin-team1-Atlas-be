@@ -171,7 +171,7 @@ public class ShipmentCreateService {
         saveCreatedHistory(savedShipment, originNode, actorUserPublicId);
         publishCreatedEvent(savedShipment, originNode, destinationNode, actorUserPublicId, organizationPublicId);
 
-        return shipmentMapper.toShipmentResponseDto(savedShipment);
+        return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
     }
 
     private ShipmentResponseDto createOrderShipmentWithLines(
@@ -260,7 +260,7 @@ public class ShipmentCreateService {
         saveCreatedHistory(savedShipment, originNode, actorUserPublicId);
         publishCreatedEvent(savedShipment, originNode, destinationNode, actorUserPublicId, organizationPublicId);
 
-        return shipmentMapper.toShipmentResponseDto(savedShipment);
+        return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
     }
 
     private void saveCreatedHistory(

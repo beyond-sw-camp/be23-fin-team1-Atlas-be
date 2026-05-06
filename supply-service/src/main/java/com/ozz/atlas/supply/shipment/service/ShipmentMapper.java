@@ -4,6 +4,7 @@ import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
+import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentLineResponseDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
 import com.ozz.atlas.supply.shipment.repository.ShipmentLineRepository;
@@ -33,11 +34,21 @@ public class ShipmentMapper {
     }
 
     public ShipmentResponseDto toShipmentResponseDto(Shipment shipment) {
+        return toShipmentResponseDto(shipment, null);
+    }
+
+    public ShipmentResponseDto toShipmentResponseDto(Shipment shipment, String organizationPublicId) {
         Map<Long, LogisticsNode> nodeMap = getShipmentNodeMap(java.util.List.of(shipment));
 
         LogisticsNode originNode = nodeMap.get(shipment.getOriginNodeId());
         LogisticsNode destinationNode = nodeMap.get(shipment.getDestinationNodeId());
         LogisticsNode currentNode = nodeMap.get(shipment.getCurrentNodeId());
+        ShipmentActionPermissions permissions = resolveActionPermissions(
+                shipment,
+                originNode,
+                destinationNode,
+                organizationPublicId
+        );
 
         return ShipmentResponseDto.builder()
                 .publicId(shipment.getPublicId())
@@ -74,16 +85,32 @@ public class ShipmentMapper {
                 .temperatureRequired(shipment.isTemperatureRequired())
                 .sealedPackagingRequired(shipment.isSealedPackagingRequired())
                 .fragile(shipment.isFragile())
+                .canUpdate(permissions.canUpdate())
+                .canStart(permissions.canStart())
+                .canArrive(permissions.canArrive())
+                .canCancel(permissions.canCancel())
+                .canTrack(permissions.canTrack())
+                .canRegisterException(permissions.canRegisterException())
                 .shipmentLines(getShipmentLineResponses(shipment))
                 .build();
 
     }
     public ShipmentListResponseDto toShipmentListResponseDto(Shipment shipment) {
+        return toShipmentListResponseDto(shipment, null);
+    }
+
+    public ShipmentListResponseDto toShipmentListResponseDto(Shipment shipment, String organizationPublicId) {
         Map<Long, LogisticsNode> nodeMap = getShipmentNodeMap(java.util.List.of(shipment));
 
         LogisticsNode originNode = nodeMap.get(shipment.getOriginNodeId());
         LogisticsNode destinationNode = nodeMap.get(shipment.getDestinationNodeId());
         LogisticsNode currentNode = nodeMap.get(shipment.getCurrentNodeId());
+        ShipmentActionPermissions permissions = resolveActionPermissions(
+                shipment,
+                originNode,
+                destinationNode,
+                organizationPublicId
+        );
 
         return ShipmentListResponseDto.builder()
                 .publicId(shipment.getPublicId())
@@ -108,6 +135,12 @@ public class ShipmentMapper {
                 .temperatureRequired(shipment.isTemperatureRequired())
                 .sealedPackagingRequired(shipment.isSealedPackagingRequired())
                 .fragile(shipment.isFragile())
+                .canUpdate(permissions.canUpdate())
+                .canStart(permissions.canStart())
+                .canArrive(permissions.canArrive())
+                .canCancel(permissions.canCancel())
+                .canTrack(permissions.canTrack())
+                .canRegisterException(permissions.canRegisterException())
                 .build();
     }
 
@@ -147,5 +180,46 @@ public class ShipmentMapper {
         return shipmentLineRepository.findByShipmentIdOrderByIdAsc(shipment.getId()).stream()
                 .map(ShipmentLineResponseDto::from)
                 .toList();
+    }
+
+    public ShipmentActionPermissions resolveActionPermissions(
+            Shipment shipment,
+            LogisticsNode originNode,
+            LogisticsNode destinationNode,
+            String organizationPublicId
+    ) {
+        if (shipment == null || organizationPublicId == null || organizationPublicId.isBlank()) {
+            return ShipmentActionPermissions.none();
+        }
+
+        boolean isSender = originNode != null
+                && organizationPublicId.equals(originNode.getOrganizationPublicId());
+        boolean isReceiver = destinationNode != null
+                && organizationPublicId.equals(destinationNode.getOrganizationPublicId());
+        boolean isReady = shipment.getStatus() == ShipmentStatus.READY;
+        boolean isInDelivery = shipment.getStatus() == ShipmentStatus.IN_TRANSIT
+                || shipment.getStatus() == ShipmentStatus.DELAYED;
+
+        return new ShipmentActionPermissions(
+                isReady && isSender,
+                isReady && isSender,
+                isInDelivery && isReceiver,
+                isReady && isSender,
+                isInDelivery && isSender,
+                isInDelivery && isSender
+        );
+    }
+
+    public record ShipmentActionPermissions(
+            boolean canUpdate,
+            boolean canStart,
+            boolean canArrive,
+            boolean canCancel,
+            boolean canTrack,
+            boolean canRegisterException
+    ) {
+        static ShipmentActionPermissions none() {
+            return new ShipmentActionPermissions(false, false, false, false, false, false);
+        }
     }
 }

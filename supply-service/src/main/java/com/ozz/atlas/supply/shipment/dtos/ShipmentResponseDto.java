@@ -86,6 +86,18 @@ public class ShipmentResponseDto {
     private boolean sealedPackagingRequired;
     @Schema(description = "파손 위험 여부", example = "true")
     private boolean fragile;
+    @Schema(description = "현재 조직의 출하 정보 수정 가능 여부", example = "true")
+    private boolean canUpdate;
+    @Schema(description = "현재 조직의 배송중 처리 가능 여부", example = "true")
+    private boolean canStart;
+    @Schema(description = "현재 조직의 도착완료 처리 가능 여부", example = "false")
+    private boolean canArrive;
+    @Schema(description = "현재 조직의 출하 취소 가능 여부", example = "true")
+    private boolean canCancel;
+    @Schema(description = "현재 조직의 위치 등록 가능 여부", example = "false")
+    private boolean canTrack;
+    @Schema(description = "현재 조직의 배송 예외 등록 가능 여부", example = "true")
+    private boolean canRegisterException;
     @Builder.Default
     @Schema(description = "출하 품목 라인 목록")
     private List<ShipmentLineResponseDto> shipmentLines = List.of();
