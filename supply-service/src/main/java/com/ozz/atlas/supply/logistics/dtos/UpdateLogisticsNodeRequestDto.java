@@ -25,7 +25,11 @@ public class UpdateLogisticsNodeRequestDto {
     private LogisticsNodeType nodeType;
 
     @Schema(description = "창고 주소. 주소 변경 시 좌표가 다시 계산됩니다.", example = "서울특별시 강남구 테헤란로 152")
-    private String address;
+    @NotBlank(message = "창고 기본 주소는 비어있으면 안 됩니다.")
+    private String baseAddress;
+
+    @Schema(description = "동/층/호수 등 상세 주소", example = "12층 A호")
+    private String detailAddress;
 
     @Schema(description = "창고 상태", example = "FULL")
     @NotNull(message = "창고 상태는 비어있으면 안 됩니다.")

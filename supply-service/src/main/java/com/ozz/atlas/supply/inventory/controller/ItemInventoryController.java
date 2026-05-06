@@ -64,6 +64,21 @@ public class ItemInventoryController {
         );
     }
 
+    @GetMapping("/nodes/{nodePublicId}/recent")
+    public ResponseEntity<?> getRecentNodeInventories(
+            @PathVariable String nodePublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                itemInventoryService.getRecentNodeInventories(
+                        organizationPublicId,
+                        organizationType,
+                        nodePublicId
+                )
+        );
+    }
+
     @PutMapping("/{inventoryPublicId}")
     public ResponseEntity<?> updateInventory(
             @PathVariable String inventoryPublicId,

@@ -25,7 +25,11 @@ public class CreateLogisticsNodeRequestDto {
     private LogisticsNodeType nodeType;
 
     @Schema(description = "창고 주소. 저장 시 주소 기반 좌표가 자동 계산됩니다.", example = "서울특별시 강남구 테헤란로 152")
-    private String address;
+    @NotBlank(message = "창고 기본 주소는 비어있으면 안 됩니다.")
+    private String baseAddress;
+
+    @Schema(description = "동/층/호수 등 상세 주소", example = "12층 A호")
+    private String detailAddress;
 
     @Schema(description = "창고 상태", example = "AVAILABLE")
     private LogisticsNodeCapacityStatus capacityStatus;
@@ -37,16 +41,27 @@ public class CreateLogisticsNodeRequestDto {
             java.math.BigDecimal latitude,
             java.math.BigDecimal longitude
     ){
+        String displayAddress = buildDisplayAddress(this.baseAddress, this.detailAddress);
+
         return LogisticsNode.builder()
                 .organizationPublicId(organizationPublicId)
                 .nodeCode(nodeCode)
                 .nodeName(this.nodeName)
                 .nodeType(LogisticsNodeType.WAREHOUSE)
-                .address(this.address)
+                .baseAddress(this.baseAddress)
+                .detailAddress(this.detailAddress)
+                .address(displayAddress)
                 .latitude(latitude)
                 .longitude(longitude)
                 .capacityStatus(this.capacityStatus == null ? LogisticsNodeCapacityStatus.EMPTY : this.capacityStatus)
                 .active(true)
                 .build();
+    }
+
+    private String buildDisplayAddress(String baseAddress, String detailAddress) {
+        if (detailAddress == null || detailAddress.isBlank()) {
+            return baseAddress;
+        }
+        return baseAddress + " " + detailAddress.trim();
     }
 }

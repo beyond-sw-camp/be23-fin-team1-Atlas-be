@@ -29,6 +29,10 @@ public class LogisticsNodeResponseDto {
     private String nodeName;
     @Schema(description = "거점 유형", example = "WAREHOUSE")
     private LogisticsNodeType nodeType;
+    @Schema(description = "좌표 변환에 사용한 기본 주소", example = "서울특별시 강남구 테헤란로 152")
+    private String baseAddress;
+    @Schema(description = "상세 주소", example = "12층 A호")
+    private String detailAddress;
     @Schema(description = "창고 주소", example = "서울특별시 강남구 테헤란로 152")
     private String address;
     @Schema(description = "위도", example = "37.5000242")
@@ -51,6 +55,8 @@ public class LogisticsNodeResponseDto {
                 .nodeCode(node.getNodeCode())
                 .nodeName(node.getNodeName())
                 .nodeType(node.getNodeType())
+                .baseAddress(node.getBaseAddress())
+                .detailAddress(node.getDetailAddress())
                 .address(node.getAddress())
                 .latitude(node.getLatitude())
                 .longitude(node.getLongitude())
