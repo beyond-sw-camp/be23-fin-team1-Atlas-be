@@ -78,7 +78,8 @@ DDL.md
 **/GEMINI.md
 **/DDL.md
 implementation_plan.md
-
+aws-setup-guide.md
+k8sdeployguide.md
 ### Test Packages ###
 **/src/test/**
 
