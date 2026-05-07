@@ -45,6 +45,7 @@ public class LogisticsNodeService {
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyItemInventoryRepository inventoryRepository;
     private final LogisticsNodeHistoryRepository logisticsNodeHistoryRepository;
+    private final LogisticsUserLookupClient logisticsUserLookupClient;
 
     public LogisticsNodeService(
             LogisticsNodeRepository logisticsNodeRepository,
@@ -53,7 +54,8 @@ public class LogisticsNodeService {
             OutboxEventAppender outboxEventAppender,
             SupplyDomainEventFactory supplyDomainEventFactory,
             SupplyItemInventoryRepository inventoryRepository,
-            LogisticsNodeHistoryRepository logisticsNodeHistoryRepository
+            LogisticsNodeHistoryRepository logisticsNodeHistoryRepository,
+            LogisticsUserLookupClient logisticsUserLookupClient
     ) {
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.organizationAliasClient = organizationAliasClient;
@@ -62,6 +64,7 @@ public class LogisticsNodeService {
         this.supplyDomainEventFactory = supplyDomainEventFactory;
         this.inventoryRepository = inventoryRepository;
         this.logisticsNodeHistoryRepository = logisticsNodeHistoryRepository;
+        this.logisticsUserLookupClient = logisticsUserLookupClient;
     }
 
     // 물류거점 생성
@@ -292,8 +295,22 @@ public class LogisticsNodeService {
 
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
 
-        return logisticsNodeHistoryRepository.findByLogisticsNodeIdOrderByRecordedAtDesc(node.getId()).stream()
-                .map(LogisticsNodeHistoryResponseDto::from)
+        List<LogisticsNodeHistory> histories =
+                logisticsNodeHistoryRepository.findByLogisticsNodeIdOrderByRecordedAtDesc(node.getId());
+        Map<String, String> userNameByPublicId = histories.stream()
+                .map(LogisticsNodeHistory::getRecordedBy)
+                .filter(recordedBy -> recordedBy != null && !recordedBy.isBlank())
+                .distinct()
+                .collect(Collectors.toMap(
+                        recordedBy -> recordedBy,
+                        logisticsUserLookupClient::getUserName
+                ));
+
+        return histories.stream()
+                .map(history -> LogisticsNodeHistoryResponseDto.from(
+                        history,
+                        userNameByPublicId.get(history.getRecordedBy())
+                ))
                 .toList();
     }
 

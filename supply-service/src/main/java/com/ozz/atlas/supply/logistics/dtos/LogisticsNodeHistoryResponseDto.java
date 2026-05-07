@@ -25,8 +25,13 @@ public class LogisticsNodeHistoryResponseDto {
     private String memo;
     private LocalDateTime recordedAt;
     private String processedByUserPublicId;
+    private String processedByUserName;
 
     public static LogisticsNodeHistoryResponseDto from(LogisticsNodeHistory history) {
+        return from(history, null);
+    }
+
+    public static LogisticsNodeHistoryResponseDto from(LogisticsNodeHistory history, String processedByUserName) {
         return LogisticsNodeHistoryResponseDto.builder()
                 .id(history.getId())
                 .logisticsNodePublicId(history.getLogisticsNodePublicId())
@@ -41,6 +46,7 @@ public class LogisticsNodeHistoryResponseDto {
                 .memo(history.getMemo())
                 .recordedAt(history.getRecordedAt())
                 .processedByUserPublicId(history.getRecordedBy())
+                .processedByUserName(processedByUserName)
                 .build();
     }
 }
