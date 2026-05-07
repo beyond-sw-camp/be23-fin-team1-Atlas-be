@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.logistics.controller;
 import com.ozz.atlas.supply.inventory.dtos.ItemInventoryResponse;
 import com.ozz.atlas.supply.inventory.service.ItemInventoryService;
 import com.ozz.atlas.supply.logistics.dtos.CreateLogisticsNodeRequestDto;
+import com.ozz.atlas.supply.logistics.dtos.LogisticsNodeHistoryResponseDto;
 import com.ozz.atlas.supply.logistics.dtos.LogisticsNodeResponseDto;
 import com.ozz.atlas.supply.logistics.dtos.UpdateLogisticsNodeRequestDto;
 import com.ozz.atlas.supply.logistics.service.LogisticsNodeService;
@@ -50,12 +51,15 @@ public class LogisticsNodeController {
             @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
             @Parameter(description = "요청 사용자 역할", example = "ORG_ADMIN")
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @Parameter(description = "요청 사용자 공개 식별자", example = "01HQUSER789ABCDEF01HQUSER")
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody CreateLogisticsNodeRequestDto dto
     ) {
         LogisticsNodeResponseDto createNode = logisticsNodeService.createLogisticsNode(
                 organizationPublicId,
                 organizationType,
                 userRole,
+                actorUserPublicId,
                 dto
         );
 
@@ -165,6 +169,8 @@ public class LogisticsNodeController {
             @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
             @Parameter(description = "요청 사용자 역할", example = "ORG_ADMIN")
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @Parameter(description = "요청 사용자 공개 식별자", example = "01HQUSER789ABCDEF01HQUSER")
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Parameter(description = "창고 공개 식별자", example = "01HZY1NODE12345678901234")
             @PathVariable String publicId
     ) {
@@ -173,6 +179,7 @@ public class LogisticsNodeController {
                         organizationPublicId,
                         organizationType,
                         userRole,
+                        actorUserPublicId,
                         publicId
                 )
         );
@@ -194,11 +201,42 @@ public class LogisticsNodeController {
             @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
             @Parameter(description = "요청 사용자 역할", example = "ORG_ADMIN")
             @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @Parameter(description = "요청 사용자 공개 식별자", example = "01HQUSER789ABCDEF01HQUSER")
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Parameter(description = "창고 공개 식별자", example = "01HZY1NODE12345678901234")
             @PathVariable String publicId
     ) {
         return ResponseEntity.ok(
                 logisticsNodeService.deactivateLogisticsNode(
+                        organizationPublicId,
+                        organizationType,
+                        userRole,
+                        actorUserPublicId,
+                        publicId
+                )
+        );
+    }
+
+    // 물류거점 히스토리 조회
+    @Operation(summary = "창고 히스토리 조회", description = "창고 생성, 정보 수정, 활성/비활성 변경 이력을 최신순으로 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "창고 히스토리 조회 성공"),
+            @ApiResponse(responseCode = "403", description = "창고 히스토리 조회 권한 없음"),
+            @ApiResponse(responseCode = "404", description = "창고를 찾을 수 없음")
+    })
+    @GetMapping("/{publicId}/histories")
+    public ResponseEntity<List<LogisticsNodeHistoryResponseDto>> getLogisticsNodeHistories(
+            @Parameter(description = "요청 조직 공개 식별자", example = "01HQ456789ABCDEF01HQ456789")
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,
+            @Parameter(description = "요청 조직 유형", example = "SUPPLIER")
+            @RequestHeader(value = "X-Organization-Type", required = false) String organizationType,
+            @Parameter(description = "요청 사용자 역할", example = "ORG_ADMIN")
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @Parameter(description = "창고 공개 식별자", example = "01HZY1NODE12345678901234")
+            @PathVariable String publicId
+    ) {
+        return ResponseEntity.ok(
+                logisticsNodeService.getLogisticsNodeHistories(
                         organizationPublicId,
                         organizationType,
                         userRole,

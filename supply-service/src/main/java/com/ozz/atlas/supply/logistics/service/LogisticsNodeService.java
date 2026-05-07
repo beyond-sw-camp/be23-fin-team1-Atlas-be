@@ -9,13 +9,17 @@ import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeCapacityStatus;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNodeHistory;
+import com.ozz.atlas.supply.logistics.domain.LogisticsNodeHistoryChangeType;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNodeType;
 import com.ozz.atlas.supply.logistics.dtos.CreateLogisticsNodeRequestDto;
 import com.ozz.atlas.supply.logistics.dtos.GeocodingPointDto;
+import com.ozz.atlas.supply.logistics.dtos.LogisticsNodeHistoryResponseDto;
 import com.ozz.atlas.supply.logistics.dtos.LogisticsNodeResponseDto;
 import com.ozz.atlas.supply.logistics.dtos.UpdateLogisticsNodeRequestDto;
 import com.ozz.atlas.supply.logistics.exception.LogisticsNodeErrorCode;
 import com.ozz.atlas.supply.logistics.exception.LogisticsNodeException;
+import com.ozz.atlas.supply.logistics.repository.LogisticsNodeHistoryRepository;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -39,13 +44,18 @@ public class LogisticsNodeService {
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyItemInventoryRepository inventoryRepository;
+    private final LogisticsNodeHistoryRepository logisticsNodeHistoryRepository;
+    private final LogisticsUserLookupClient logisticsUserLookupClient;
 
     public LogisticsNodeService(
             LogisticsNodeRepository logisticsNodeRepository,
             OrganizationAliasClient organizationAliasClient,
             AddressGeocodingClient addressGeocodingClient,
             OutboxEventAppender outboxEventAppender,
-            SupplyDomainEventFactory supplyDomainEventFactory, SupplyItemInventoryRepository inventoryRepository
+            SupplyDomainEventFactory supplyDomainEventFactory,
+            SupplyItemInventoryRepository inventoryRepository,
+            LogisticsNodeHistoryRepository logisticsNodeHistoryRepository,
+            LogisticsUserLookupClient logisticsUserLookupClient
     ) {
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.organizationAliasClient = organizationAliasClient;
@@ -53,6 +63,8 @@ public class LogisticsNodeService {
         this.outboxEventAppender = outboxEventAppender;
         this.supplyDomainEventFactory = supplyDomainEventFactory;
         this.inventoryRepository = inventoryRepository;
+        this.logisticsNodeHistoryRepository = logisticsNodeHistoryRepository;
+        this.logisticsUserLookupClient = logisticsUserLookupClient;
     }
 
     // 물류거점 생성
@@ -60,6 +72,7 @@ public class LogisticsNodeService {
             String organizationPublicId,
             String organizationType,
             String userRole,
+            String actorUserPublicId,
             CreateLogisticsNodeRequestDto dto
     ) {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
@@ -76,6 +89,16 @@ public class LogisticsNodeService {
                         point.getLatitude(),
                         point.getLongitude()
                 )
+        );
+        appendHistory(
+                savedNode,
+                LogisticsNodeHistoryChangeType.CREATED,
+                null,
+                savedNode.getCapacityStatus(),
+                null,
+                savedNode.isActive(),
+                actorUserPublicId,
+                "물류거점 생성"
         );
 
         return LogisticsNodeResponseDto.from(savedNode);
@@ -154,6 +177,8 @@ public class LogisticsNodeService {
 
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
         LogisticsNodeCapacityStatus beforeCapacityStatus = node.getCapacityStatus();
+        String beforeNodeName = node.getNodeName();
+        String beforeAddress = node.getAddress();
         GeocodingPointDto point = geocodeRequiredAddress(dto.getBaseAddress());
         String displayAddress = buildDisplayAddress(dto.getBaseAddress(), dto.getDetailAddress());
 
@@ -170,6 +195,27 @@ public class LogisticsNodeService {
 
         if (dto.getCapacityStatus() != null && dto.getCapacityStatus() != beforeCapacityStatus) {
             appendCapacityStatusChangedEvent(node, actorUserPublicId, organizationPublicId);
+            appendHistory(
+                    node,
+                    LogisticsNodeHistoryChangeType.CAPACITY_STATUS_CHANGED,
+                    beforeCapacityStatus,
+                    node.getCapacityStatus(),
+                    node.isActive(),
+                    node.isActive(),
+                    actorUserPublicId,
+                    "가용 상태가 " + displayCapacityStatus(node.getCapacityStatus()) + "(으)로 설정됨"
+            );
+        } else if (!isSameValue(beforeNodeName, node.getNodeName()) || !isSameValue(beforeAddress, node.getAddress())) {
+            appendHistory(
+                    node,
+                    LogisticsNodeHistoryChangeType.UPDATED,
+                    beforeCapacityStatus,
+                    node.getCapacityStatus(),
+                    node.isActive(),
+                    node.isActive(),
+                    actorUserPublicId,
+                    "물류거점 정보 수정"
+            );
         }
 
         return LogisticsNodeResponseDto.from(node);
@@ -180,13 +226,27 @@ public class LogisticsNodeService {
             String organizationPublicId,
             String organizationType,
             String userRole,
+            String actorUserPublicId,
             String publicId
     ) {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
 
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
+        boolean beforeActive = node.isActive();
 
         node.activate();
+        if (!beforeActive) {
+            appendHistory(
+                    node,
+                    LogisticsNodeHistoryChangeType.ACTIVATED,
+                    node.getCapacityStatus(),
+                    node.getCapacityStatus(),
+                    beforeActive,
+                    node.isActive(),
+                    actorUserPublicId,
+                    "물류거점 활성화"
+            );
+        }
 
         return LogisticsNodeResponseDto.from(node);
     }
@@ -196,6 +256,7 @@ public class LogisticsNodeService {
             String organizationPublicId,
             String organizationType,
             String userRole,
+            String actorUserPublicId,
             String publicId
     ) {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
@@ -205,9 +266,52 @@ public class LogisticsNodeService {
         if (inventoryRepository.existsLiveInventoryInNode(organizationPublicId, publicId)) {
             throw new LogisticsNodeException(LogisticsNodeErrorCode.NODE_HAS_REMAINING_INVENTORY);
         }
+        boolean beforeActive = node.isActive();
         node.deactivate();
+        if (beforeActive) {
+            appendHistory(
+                    node,
+                    LogisticsNodeHistoryChangeType.DEACTIVATED,
+                    node.getCapacityStatus(),
+                    node.getCapacityStatus(),
+                    beforeActive,
+                    node.isActive(),
+                    actorUserPublicId,
+                    "물류거점 비활성화"
+            );
+        }
 
         return LogisticsNodeResponseDto.from(node);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LogisticsNodeHistoryResponseDto> getLogisticsNodeHistories(
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            String publicId
+    ) {
+        validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
+
+        LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
+
+        List<LogisticsNodeHistory> histories =
+                logisticsNodeHistoryRepository.findByLogisticsNodeIdOrderByRecordedAtDesc(node.getId());
+        Map<String, String> userNameByPublicId = histories.stream()
+                .map(LogisticsNodeHistory::getRecordedBy)
+                .filter(recordedBy -> recordedBy != null && !recordedBy.isBlank())
+                .distinct()
+                .collect(Collectors.toMap(
+                        recordedBy -> recordedBy,
+                        logisticsUserLookupClient::getUserName
+                ));
+
+        return histories.stream()
+                .map(history -> LogisticsNodeHistoryResponseDto.from(
+                        history,
+                        userNameByPublicId.get(history.getRecordedBy())
+                ))
+                .toList();
     }
 
     // 물류거점 코드는 WH-{organizationAlias}-{일련번호} 규칙으로 자동 생성한다.
@@ -312,5 +416,48 @@ public class LogisticsNodeService {
                         )
                 )
         );
+    }
+
+    private void appendHistory(
+            LogisticsNode node,
+            LogisticsNodeHistoryChangeType changeType,
+            LogisticsNodeCapacityStatus beforeCapacityStatus,
+            LogisticsNodeCapacityStatus afterCapacityStatus,
+            Boolean beforeActive,
+            Boolean afterActive,
+            String actorUserPublicId,
+            String memo
+    ) {
+        logisticsNodeHistoryRepository.save(LogisticsNodeHistory.builder()
+                .logisticsNodeId(node.getId())
+                .logisticsNodePublicId(node.getPublicId())
+                .organizationPublicId(node.getOrganizationPublicId())
+                .changeType(changeType)
+                .beforeCapacityStatus(beforeCapacityStatus)
+                .afterCapacityStatus(afterCapacityStatus)
+                .beforeActive(beforeActive)
+                .afterActive(afterActive)
+                .nodeName(node.getNodeName())
+                .address(node.getAddress())
+                .memo(memo)
+                .recordedBy(actorUserPublicId)
+                .build());
+    }
+
+    private boolean isSameValue(String first, String second) {
+        if (first == null) {
+            return second == null;
+        }
+        return first.equals(second);
+    }
+
+    private String displayCapacityStatus(LogisticsNodeCapacityStatus status) {
+        if (status == LogisticsNodeCapacityStatus.FULL) {
+            return "가득 참";
+        }
+        if (status == LogisticsNodeCapacityStatus.AVAILABLE) {
+            return "사용 가능";
+        }
+        return "비어 있음";
     }
 }
