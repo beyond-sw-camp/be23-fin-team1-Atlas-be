@@ -22,7 +22,7 @@ public class LogisticsUserLookupClient {
 
     public String getUserName(String userPublicId) {
         if (userPublicId == null || userPublicId.isBlank()) {
-            return "-";
+            return null;
         }
 
         try {
@@ -35,12 +35,12 @@ public class LogisticsUserLookupClient {
                     restTemplate.getForObject(url, UserNameLookupResponseDto.class);
 
             if (response == null || response.getUserName() == null || response.getUserName().isBlank()) {
-                return userPublicId;
+                return null;
             }
 
             return response.getUserName();
         } catch (RestClientException e) {
-            return userPublicId;
+            return null;
         }
     }
 }
