@@ -28,10 +28,19 @@ spec:
                   name: atlas-secrets
                   key: JWT_ACCESS_TOKEN_SECRET
           readinessProbe:
-            httpGet:
-              path: /actuator/health/readiness
+            tcpSocket:
               port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            failureThreshold: 12
           livenessProbe:
-            httpGet:
-              path: /actuator/health/liveness
+            tcpSocket:
               port: 8080
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            failureThreshold: 12
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 30

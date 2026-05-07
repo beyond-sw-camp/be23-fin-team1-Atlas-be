@@ -36,6 +36,12 @@ spec:
                 secretKeyRef:
                   name: atlas-secrets
                   key: POSTGRES_PASSWORD
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            - name: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+              value: "2"
+            - name: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+              value: "0"
             - name: SPRING_DATA_REDIS_HOST
               valueFrom:
                 secretKeyRef:
@@ -66,11 +72,27 @@ spec:
               value: http://elasticsearch-service:9200
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
               value: kafka-service:9092
+            - name: AUTH_SERVICE_URL
+              value: http://auth-service:8080
+            - name: JWT_ACCESS_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: JWT_ACCESS_TOKEN_SECRET
           readinessProbe:
-            httpGet:
-              path: /actuator/health/readiness
+            tcpSocket:
               port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            failureThreshold: 12
           livenessProbe:
-            httpGet:
-              path: /actuator/health/liveness
+            tcpSocket:
               port: 8080
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            failureThreshold: 12
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 30

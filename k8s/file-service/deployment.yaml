@@ -28,7 +28,7 @@ spec:
                   name: atlas-secrets
                   key: MARIADB_HOST
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mariadb://$(DB_HOST):3306/file_db
+              value: jdbc:mariadb://$(DB_HOST):3306/file_db?sslMode=trust
             - name: SPRING_DATASOURCE_USERNAME
               value: atlas
             - name: SPRING_DATASOURCE_PASSWORD
@@ -36,6 +36,12 @@ spec:
                 secretKeyRef:
                   name: atlas-secrets
                   key: MARIADB_PASSWORD
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            - name: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+              value: "2"
+            - name: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+              value: "0"
             - name: AWS_REGION
               value: ap-northeast-2
             - name: S3_MEDIA_BUCKET
@@ -53,10 +59,19 @@ spec:
                   name: atlas-secrets
                   key: AWS_SECRET_ACCESS_KEY
           readinessProbe:
-            httpGet:
-              path: /actuator/health/readiness
+            tcpSocket:
               port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            failureThreshold: 12
           livenessProbe:
-            httpGet:
-              path: /actuator/health/liveness
+            tcpSocket:
               port: 8080
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            failureThreshold: 12
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 30

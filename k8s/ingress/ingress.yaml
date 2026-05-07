@@ -6,9 +6,9 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/certificate-arn: <YOUR_ACM_CERT_ARN> # TODO: AWS ACM에서 발급받은 인증서 ARN 입력 필수!
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: '443' # HTTP 접속 시 HTTPS로 자동 리다이렉트
+    alb.ingress.kubernetes.io/certificate-arn: $(ACM_CERT_ARN)
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
 spec:
   ingressClassName: alb
   rules:
