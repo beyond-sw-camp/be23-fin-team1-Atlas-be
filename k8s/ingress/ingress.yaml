@@ -3,9 +3,16 @@ kind: Ingress
 metadata:
   name: atlas-ingress
   namespace: atlas
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/certificate-arn: <YOUR_ACM_CERT_ARN> # TODO: AWS ACM에서 발급받은 인증서 ARN 입력 필수!
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443' # HTTP 접속 시 HTTPS로 자동 리다이렉트
 spec:
+  ingressClassName: alb
   rules:
-    - host: atlas.local
+    - host: api.atlas-scm.cloud
       http:
         paths:
           - path: /
@@ -14,4 +21,4 @@ spec:
               service:
                 name: api-gateway
                 port:
-                  number: 80
+                  number: 8080

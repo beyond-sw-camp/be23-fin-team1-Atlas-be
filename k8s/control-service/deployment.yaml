@@ -4,7 +4,7 @@ metadata:
   name: control-service
   namespace: atlas
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: control-service
@@ -15,24 +15,47 @@ spec:
     spec:
       containers:
         - name: control-service
-          image: control-service:local
-          imagePullPolicy: Never
+          image: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/atlas-control:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: POSTGRES_HOST
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://postgres:5432/control_db
+              value: jdbc:postgresql://$(DB_HOST):5432/control_db
             - name: SPRING_DATASOURCE_USERNAME
               value: atlas
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: atlas-app-secret
-                  key: CONTROL_DB_PASSWORD
+                  name: atlas-secrets
+                  key: POSTGRES_PASSWORD
             - name: SPRING_DATA_REDIS_HOST
-              value: redis
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: REDIS_HOST
+            - name: SPRING_DATA_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: REDIS_PASSWORD
+            - name: SPRING_ELASTICSEARCH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: ELASTICSEARCH_USERNAME
+            - name: SPRING_ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: ELASTICSEARCH_PASSWORD
             - name: SPRING_DATA_REDIS_PORT
               value: "6379"
             - name: ATLAS_REDIS_NOTIFICATION_DATABASE
@@ -40,9 +63,9 @@ spec:
             - name: ATLAS_REDIS_CHAT_DATABASE
               value: "3"
             - name: SPRING_ELASTICSEARCH_URIS
-              value: http://elasticsearch:9200
+              value: http://elasticsearch-service:9200
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              value: kafka:9092
+              value: kafka-service:9092
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

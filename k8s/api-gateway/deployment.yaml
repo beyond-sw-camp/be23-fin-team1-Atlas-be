@@ -4,7 +4,7 @@ metadata:
   name: api-gateway
   namespace: atlas
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: api-gateway
@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: api-gateway:local
-          imagePullPolicy: Never
+          image: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/atlas-gateway:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
@@ -25,7 +25,7 @@ spec:
             - name: JWT_ACCESS_TOKEN_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: atlas-jwt-secret
+                  name: atlas-secrets
                   key: JWT_ACCESS_TOKEN_SECRET
           readinessProbe:
             httpGet:

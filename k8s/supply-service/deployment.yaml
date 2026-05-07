@@ -4,7 +4,7 @@ metadata:
   name: supply-service
   namespace: atlas
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: supply-service
@@ -15,24 +15,48 @@ spec:
     spec:
       containers:
         - name: supply-service
-          image: supply-service:local
-          imagePullPolicy: Never
+          image: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/atlas-supply:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: MARIADB_HOST
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mariadb://mariadb:3306/supply_db
+              value: jdbc:mariadb://$(DB_HOST):3306/supply_db
             - name: SPRING_DATASOURCE_USERNAME
               value: atlas
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: atlas-app-secret
-                  key: SUPPLY_DB_PASSWORD
+                  name: atlas-secrets
+                  key: MARIADB_PASSWORD
+            - name: SPRING_ELASTICSEARCH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: ELASTICSEARCH_USERNAME
+            - name: SPRING_ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: ELASTICSEARCH_PASSWORD
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              value: kafka:9092
+              value: kafka-service:9092
+            - name: KAKAO_REST_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: KAKAO_REST_API_KEY
+            - name: ATLAS_AUTH_SERVICE_BASE_URL
+              value: http://auth-service:8080/
+            - name: ATLAS_FILE_SERVICE_BASE_URL
+              value: http://file-service:8080/
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

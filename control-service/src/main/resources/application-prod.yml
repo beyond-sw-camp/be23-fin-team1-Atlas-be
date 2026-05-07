@@ -10,8 +10,11 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST}
       port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD}
   elasticsearch:
-    uris: ${SPRING_ELASTICSEARCH_URIS}
+    uris: ${SPRING_ELASTICSEARCH_URIS:http://elasticsearch-service:9200}
+    username: ${SPRING_ELASTICSEARCH_USERNAME}
+    password: ${SPRING_ELASTICSEARCH_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: none
@@ -27,10 +30,6 @@ spring:
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    properties:
-      security.protocol: ${SPRING_KAFKA_SECURITY_PROTOCOL:SASL_PLAINTEXT}
-      sasl.mechanism: ${SPRING_KAFKA_SASL_MECHANISM:PLAIN}
-      sasl.jaas.config: ${SPRING_KAFKA_SASL_JAAS_CONFIG}
 atlas:
   redis:
     notification:

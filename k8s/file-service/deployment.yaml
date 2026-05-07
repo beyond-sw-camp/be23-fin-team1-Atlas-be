@@ -15,38 +15,43 @@ spec:
     spec:
       containers:
         - name: file-service
-          image: file-service:local
-          imagePullPolicy: Never
+          image: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/atlas-file:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: atlas-secrets
+                  key: MARIADB_HOST
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mariadb://mariadb:3306/file_db
+              value: jdbc:mariadb://$(DB_HOST):3306/file_db
             - name: SPRING_DATASOURCE_USERNAME
               value: atlas
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: atlas-app-secret
-                  key: FILE_DB_PASSWORD
+                  name: atlas-secrets
+                  key: MARIADB_PASSWORD
             - name: AWS_REGION
               value: ap-northeast-2
             - name: S3_MEDIA_BUCKET
-              value: common-media-bucket
+              value: atlas-files
             - name: S3_DOCUMENT_BUCKET
-              value: common-document-bucket
+              value: atlas-files
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: atlas-app-secret
-                  key: AWS_ACCESS_KEY_ID
+                  name: atlas-secrets
+                  key: AWS_ACCESS_KEY
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: atlas-app-secret
-                  key: AWS_SECRET_ACCESS_KEY
+                  name: atlas-secrets
+                  key: AWS_SECRET_KEY
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

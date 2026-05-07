@@ -1,0 +1,105 @@
+name: Deploy to EKS
+
+on:
+  push:
+    branches:
+      - prod
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push API Gateway image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: atlas-gateway
+        IMAGE_TAG: latest
+      run: |
+        cd api-gateway
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Build, tag, and push Auth Service image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: atlas-auth
+        IMAGE_TAG: latest
+      run: |
+        cd auth-service
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Build, tag, and push Control Service image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: atlas-control
+        IMAGE_TAG: latest
+      run: |
+        cd control-service
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Build, tag, and push Supply Service image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: atlas-supply
+        IMAGE_TAG: latest
+      run: |
+        cd supply-service
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Build, tag, and push File Service image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: atlas-file
+        IMAGE_TAG: latest
+      run: |
+        cd file-service
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Update EKS Kubeconfig
+      run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+
+    - name: Replace ACM Certificate ARN in Ingress (Dynamic Injection)
+      run: |
+        sed -i "s|<YOUR_ACM_CERT_ARN>|${{ secrets.ACM_CERT_ARN }}|g" k8s/ingress/ingress.yaml
+
+    - name: Deploy Kubernetes Manifests
+      run: |
+        kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/kafka.yaml -n atlas
+        kubectl apply -f k8s/api-gateway/ -n atlas
+        kubectl apply -f k8s/auth-service/ -n atlas
+        kubectl apply -f k8s/control-service/ -n atlas
+        kubectl apply -f k8s/supply-service/ -n atlas
+        kubectl apply -f k8s/file-service/ -n atlas
+        kubectl apply -f k8s/ingress/ingress.yaml -n atlas
+
+    - name: Trigger Rolling Restart (Zero-Downtime Deployment)
+      run: |
+        kubectl rollout restart deployment api-gateway -n atlas
+        kubectl rollout restart deployment auth-service -n atlas
+        kubectl rollout restart deployment control-service -n atlas
+        kubectl rollout restart deployment supply-service -n atlas
+        kubectl rollout restart deployment file-service -n atlas
