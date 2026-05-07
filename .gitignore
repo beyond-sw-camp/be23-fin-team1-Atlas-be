@@ -80,6 +80,8 @@ DDL.md
 implementation_plan.md
 aws-setup-guide.md
 k8sdeployguide.md
+k8s-rendered/
+k8s/ingress/ingress_copy.yaml
 ### Test Packages ###
 **/src/test/**
 

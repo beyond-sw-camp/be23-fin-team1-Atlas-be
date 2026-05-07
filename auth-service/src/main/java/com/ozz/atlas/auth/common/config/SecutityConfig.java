@@ -57,6 +57,7 @@ public class SecutityConfig {
                                 "/api/auth/swagger-ui/**",
                                 "/api/auth/v3/api-docs/**"
                         ).permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
