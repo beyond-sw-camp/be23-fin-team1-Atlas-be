@@ -5,6 +5,11 @@ metadata:
   namespace: atlas
 spec:
   replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: supply-service
@@ -44,6 +49,8 @@ spec:
               value: "0"
             - name: SPRING_BATCH_JOB_ENABLED
               value: "false"
+            - name: MANAGEMENT_HEALTH_ELASTICSEARCH_ENABLED
+              value: "false"
             - name: SPRING_ELASTICSEARCH_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -66,19 +73,22 @@ spec:
             - name: ATLAS_FILE_SERVICE_BASE_URL
               value: http://file-service:8080/
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health/readiness
               port: 8080
             initialDelaySeconds: 90
             periodSeconds: 10
             failureThreshold: 12
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health/liveness
               port: 8080
             initialDelaySeconds: 120
             periodSeconds: 10
             failureThreshold: 12
           startupProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health
               port: 8080
             periodSeconds: 10
             failureThreshold: 30

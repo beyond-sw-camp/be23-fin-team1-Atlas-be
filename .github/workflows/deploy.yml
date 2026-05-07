@@ -93,26 +93,24 @@ jobs:
     - name: Update EKS Kubeconfig
       run: aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
 
-    - name: Render Kubernetes manifests
+    - name: Inject deployment placeholders
       run: |
-        rm -rf k8s-rendered
-        cp -r k8s k8s-rendered
-        find k8s-rendered -name "*.yaml" -type f -exec sed -i \
+        find k8s -name "*.yaml" -type f -exec sed -i \
           -e "s|<AWS_ACCOUNT_ID>|${{ secrets.AWS_ACCOUNT_ID }}|g" \
           -e 's|$(ACM_CERT_ARN)|${{ secrets.ACM_CERT_ARN }}|g' {} +
 
     - name: Deploy Kubernetes Manifests
       run: |
-        kubectl apply -f k8s-rendered/namespace.yaml
-        kubectl apply -f k8s-rendered/redis.yaml -n atlas
-        kubectl apply -f k8s-rendered/kafka.yaml -n atlas
-        kubectl apply -f k8s-rendered/elasticsearch.yaml -n atlas
-        kubectl apply -f k8s-rendered/api-gateway/ -n atlas
-        kubectl apply -f k8s-rendered/auth-service/ -n atlas
-        kubectl apply -f k8s-rendered/control-service/ -n atlas
-        kubectl apply -f k8s-rendered/supply-service/ -n atlas
-        kubectl apply -f k8s-rendered/file-service/ -n atlas
-        kubectl apply -f k8s-rendered/ingress/ingress.yaml -n atlas
+        kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/redis.yaml -n atlas
+        kubectl apply -f k8s/kafka.yaml -n atlas
+        kubectl apply -f k8s/elasticsearch.yaml -n atlas
+        kubectl apply -f k8s/api-gateway/ -n atlas
+        kubectl apply -f k8s/auth-service/ -n atlas
+        kubectl apply -f k8s/control-service/ -n atlas
+        kubectl apply -f k8s/supply-service/ -n atlas
+        kubectl apply -f k8s/file-service/ -n atlas
+        kubectl apply -f k8s/ingress/ingress.yaml -n atlas
 
     - name: Trigger Rolling Restart (Zero-Downtime Deployment)
       run: |
