@@ -46,12 +46,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: atlas-secrets
-                  key: AWS_ACCESS_KEY
+                  key: AWS_ACCESS_KEY_ID
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: atlas-secrets
-                  key: AWS_SECRET_KEY
+                  key: AWS_SECRET_ACCESS_KEY
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
