@@ -250,6 +250,8 @@
         발주, 출하, 반품, 정산 상태 변경 시 알림 발송 → 발주사와 공급사 간 채팅으로 업무 협의 → 처리 이력 확인
       </li>
     </ol>
+     <h3> SCM 비즈니스 흐름도 </h3>
+    <img width="" height="" src="images\SCM 비즈니스 흐름도.png" />
   </details>
 </div>
 
@@ -435,9 +437,7 @@
   <h2>5. 시스템 아키텍처</h2>
   <h3> 시스템 배포 아키텍처 </h3>
     <img width="" height="" src="images\ATLAS 시스템 배포 아키텍처.png" />
-  
-  <h3> SCM 비즈니스 흐름도 </h3>
-  <img width="" height="" src="images\SCM Business Process Flow.png" />
+
 
   
 </section>
@@ -703,6 +703,122 @@
   </details>
 </section>
 
+
+<section id="ui-ux-test">
+<h2>8) 기능 시연 영상</h2>
+  <p>ATLAS의 주요 기능 시연 영상을 정리합니다.</p>
+
+
+  <details>
+    <summary><b>① 인증 및 로그인</b></summary>
+    
+<p><b>관리자 로그인</b></p>
+<p align="center"><img width="1920" height="1080" alt="관리자" src="https://github.com/user-attachments/assets/d42c6d98-2e86-4a0e-b960-807279d62408" /></p>
+<p><b>조직 대표자 비밀번호 변경 후 로그인</b></p>
+<p align="center"><img width="1920" height="1080" alt="조직 대표자 비밀번호" src="https://github.com/user-attachments/assets/b4f4a15e-51bb-4c72-9ceb-427e19c33127" /></p>
+<p><b>조직 대표자 로그인</b></p>
+<p align="center"><img width="1920" height="1080" alt="조직 대표자 로그인" src="https://github.com/user-attachments/assets/781561bd-d306-469c-9a40-5da97ff2f57b" /></p>
+<p><b>개인 프로필 관리</b></p>
+<p align="center"><img width="1920" height="1080" alt="개인프로필" src="https://github.com/user-attachments/assets/50203621-7b83-4441-ae63-b9f4cc70a107" /></p>
+  </details>
+
+<details>
+  <summary><b>② 관리자 대시보드</b></summary>
+    
+<p><b>조직 생성</b></p>
+<p align="center">
+<img width="1920" height="1080" alt="조직생성" src="https://github.com/user-attachments/assets/76073195-c2fe-454e-a370-a6e01dece6f0" /></p>
+<p><b>조직 대표자 생성</b></p>
+<p align="center"><img width="1920" height="1080" alt="조직대표자생성" src="https://github.com/user-attachments/assets/ac17d753-866b-4542-bce4-d65134df39a3" /></p>
+<p><b>최상위 카테고리 생성</b></p>
+<p align="center"><img width="1920" height="1080" alt="최상위카테고리생성" src="https://github.com/user-attachments/assets/83fe5cff-c9d7-419f-8689-3629928c8393" /></p>
+<p><b>하위 카테고리 생성</b></p>
+<p align="center"><img width="1920" height="1080" alt="하위카테고리" src="https://github.com/user-attachments/assets/211f2723-2c6c-42ed-b594-8e96e6fb9b84" /></p>
+<p><b>인증 분류 생성</b></p>
+<p align="center"><img width="1920" height="1080" alt="인증분류생성" src="https://github.com/user-attachments/assets/bf13072c-544c-4bba-9b8d-c829d01845c2" /></p>
+<p><b>리스크 규칙 생성</b></p>
+<p align="center"><img width="1920" height="1080" alt="리스크 규칙 생성" src="https://github.com/user-attachments/assets/738ff0a0-6ffa-4ce4-89c2-27e9d96c22ca" /></p>
+
+  </details>
+
+<details>
+<summary><b>③ 창고 관리</b></summary>
+    
+<p><b>창고 등록</b></p>
+<p align="center"><img width="1920" height="1080" alt="창고" src="https://github.com/user-attachments/assets/3812c041-fa78-4286-a052-9a04be25b7ab" />
+</p>
+</details>
+
+
+<details>
+ <summary><b>④ 품목 관리</b></summary>
+    
+<p><b>품목 등록</b></p>
+<p align="center"><img width="1920" height="1020" alt="품목" src="https://github.com/user-attachments/assets/b728631d-c06c-4f45-b95a-dda7e8e8f40b" />
+  
+  <p><b>재고 등록</b></p>
+<p align="center"><img width="1920" height="1080" alt="재고" src="https://github.com/user-attachments/assets/846e951e-337f-418f-91b3-47a5c583945d" />
+  
+  </details>
+
+
+<details>
+ <summary><b>⑤ 발주 관리</b></summary>
+    
+<p><b>발주 등록</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/7491c743-9b60-4f1b-8a93-8dd46c533a3a" alt="전체 뉴스" width="#"></p>
+    
+<p><b>발주 수락</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/45a66ae7-9ebd-469b-8fe6-401e6225010a" alt="전체 공시" width="#"></p>
+<p><b>발주 반려</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/45a66ae7-9ebd-469b-8fe6-401e6225010a" alt="전체 공시" width="#"></p>
+
+<summary><b>⑥ 출하 관리</b></summary>
+    
+<p><b>출하 등록</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/493e59d6-1ac6-45f2-9d51-b8033e8f079a" alt="입금" width="#"></p>
+    
+<p><b>출하 상태 변경 (배송중)</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/260b011d-976c-4199-8934-eb4dd24fb217" alt="거래내역 카테고리별 필터" width="#"></p>
+
+<p><b>출하 상태 변경 (도착완료)</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/260b011d-976c-4199-8934-eb4dd24fb217" alt="거래내역 카테고리별 필터" width="#"></p>
+
+  </details>
+
+<details>
+<summary><b>⑦ 반품 관리</b></summary>
+    
+<p><b>반품 요청 (교체)</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/c5ce43b2-2577-4878-85fd-3b2a6bb34c3a" alt="직상장 신청" width="#"></p>
+<p><b>반품 요청 (반납)</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/c5ce43b2-2577-4878-85fd-3b2a6bb34c3a" alt="직상장 신청" width="#"></p>
+<p><b>반품 요청 (폐기)</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/c5ce43b2-2577-4878-85fd-3b2a6bb34c3a" alt="직상장 신청" width="#"></p>
+<p><b>반품 요청 승인</b></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/c5ce43b2-2577-4878-85fd-3b2a6bb34c3a" alt="직상장 신청" width="#"></p>
+  </details>
+
+<details>
+<summary><b>⑧ 정산 관리</b></summary>
+    <p><b>정산 대시보드</b></p>
+    <p align="center"><img src="https://github.com/user-attachments/assets/2828caf8-4c30-4cb3-a5b9-b16ffd8f5ed1" alt="실시간 고객 활동 모달" width="#"></p>
+  </details>
+
+  <details>
+<summary><b>⑧ 알림 관리</b></summary>
+    <p><b>알림 페이지</b></p>
+    <p align="center"><img src="https://github.com/user-attachments/assets/2828caf8-4c30-4cb3-a5b9-b16ffd8f5ed1" alt="실시간 고객 활동 모달" width="#"></p>
+  </details>
+
+  <details>
+<summary><b>⑧ 인증서 관리</b></summary>
+    <p><b>인증서 페이지</b></p>
+    <p align="center"><img src="https://github.com/user-attachments/assets/2828caf8-4c30-4cb3-a5b9-b16ffd8f5ed1" alt="실시간 고객 활동 모달" width="#"></p>
+    <p><b>인증서 등록</b></p>
+    <p align="center"><img src="https://github.com/user-attachments/assets/2828caf8-4c30-4cb3-a5b9-b16ffd8f5ed1" alt="실시간 고객 활동 모달" width="#"></p>
+  </details>
+</section>
 
 
 
