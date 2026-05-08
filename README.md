@@ -367,10 +367,15 @@
       <img src="https://img.shields.io/badge/Java%2017-007396?style=for-the-badge&logo=openjdk&logoColor=white">
       <img src="https://img.shields.io/badge/Spring%20Boot%203.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white">
       <img src="https://img.shields.io/badge/Spring%20Cloud-6DB33F?style=for-the-badge&logo=spring&logoColor=white">
+      <img src="https://img.shields.io/badge/Spring%20Cloud%20Gateway-6DB33F?style=for-the-badge&logo=spring&logoColor=white">
       <img src="https://img.shields.io/badge/Spring%20Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white">
       <img src="https://img.shields.io/badge/Spring%20Data%20JPA-6DB33F?style=for-the-badge&logo=spring&logoColor=white">
+      <img src="https://img.shields.io/badge/Spring%20Data%20Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white">
+      <img src="https://img.shields.io/badge/Spring%20Data%20Elasticsearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white">
       <img src="https://img.shields.io/badge/Spring%20Batch-6DB33F?style=for-the-badge&logo=spring&logoColor=white">
       <img src="https://img.shields.io/badge/Spring%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white">
+      <img src="https://img.shields.io/badge/Spring%20WebSocket-6DB33F?style=for-the-badge&logo=spring&logoColor=white">
+      <img src="https://img.shields.io/badge/Spring%20Mail-6DB33F?style=for-the-badge&logo=spring&logoColor=white">
       <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white">
       <img src="https://img.shields.io/badge/JPA%20Auditing-59666C?style=for-the-badge">
       <img src="https://img.shields.io/badge/Lombok-BC4521?style=for-the-badge">
@@ -386,21 +391,25 @@
       <img src="https://img.shields.io/badge/Axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white">
       <img src="https://img.shields.io/badge/ApexCharts-FF4560?style=for-the-badge">
       <img src="https://img.shields.io/badge/MapLibre-396CB2?style=for-the-badge">
+      <img src="https://img.shields.io/badge/jsVectorMap-396CB2?style=for-the-badge">
+      <img src="https://img.shields.io/badge/Vue%20Datepicker-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white">
+      <img src="https://img.shields.io/badge/PDF.js-FFB000?style=for-the-badge">
       <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white">
   <br>
 
   <div align="center">
       <h3>Infra & Cloud</h3>
       <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white">
-      <img src="https://img.shields.io/badge/Docker%20Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white">
       <img src="https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white">
       <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">
+      <img src="https://img.shields.io/badge/AWS%20ALB-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white">
+      <img src="https://img.shields.io/badge/AWS%20CloudFront-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white">
+      <img src="https://img.shields.io/badge/AWS%20S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white">
       <img src="https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white">
       <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white">
       <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white">
       <img src="https://img.shields.io/badge/Elasticsearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white">
       <img src="https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white">
-      <img src="https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white">
     </div>
 
   <div align="center">
@@ -410,6 +419,8 @@
       <img src="https://img.shields.io/badge/SockJS-000000?style=for-the-badge">
       <img src="https://img.shields.io/badge/SMTP%20Mail-EA4335?style=for-the-badge&logo=gmail&logoColor=white">
       <img src="https://img.shields.io/badge/File%20Upload-607D8B?style=for-the-badge">
+      <img src="https://img.shields.io/badge/AWS%20S3%20SDK-569A31?style=for-the-badge&logo=amazons3&logoColor=white">
+      <img src="https://img.shields.io/badge/Thumbnailator-607D8B?style=for-the-badge">
     </div>
 
   <div align="center">
@@ -1149,13 +1160,13 @@ CT->>MB: "분산 발주 전략 비교 화면 제공"
 
 | 영역 | 기술 |
 | --- | --- |
-| Backend | `Spring Boot`, `Spring Security`, `JWT 심화`, `Spring Data JPA`, `QueryDSL`, `Spring Batch` |
-| Frontend | `Vue` |
-| Realtime | `WebSocket`, `STOMP` |
-| Data | `MariaDB` 또는 `MySQL`, `MongoDB`, `Redis`, `Elasticsearch` |
+| Backend | `Java 17`, `Spring Boot 3.5`, `Spring Cloud Gateway`, `Spring Security`, `JWT`, `Spring Data JPA`, `Spring Batch` |
+| Frontend | `Vue 3`, `TypeScript`, `Vite`, `Pinia`, `Vue Router`, `Axios` |
+| Realtime | `WebSocket`, `STOMP`, `SockJS` |
+| Data | `MariaDB`, `PostgreSQL`, `Redis`, `Elasticsearch` |
 | Event | `Kafka` |
-| AI | `Spring AI`, `sLLM` |
-| Infra | `Docker`, `Kubernetes` |
+| File/Map | `AWS S3 SDK`, `Thumbnailator`, `MapLibre GL`, `jsVectorMap`, `PDF.js` |
+| Infra | `Docker`, `Kubernetes`, `AWS ALB`, `CloudFront`, `S3` |
 | CI/CD | `GitHub Actions` |
 
 ## 기능 영역별 최종 적용 기술
@@ -1163,24 +1174,24 @@ CT->>MB: "분산 발주 전략 비교 화면 제공"
 | 기능 영역 | 최종 적용 기술 | 적용 방향 |
 | --- | --- | --- |
 | 인증/권한 | `JWT 심화` | 메인 발주사 운영자, 1차 협력사 담당자, 관리자 역할을 분리한다. |
-| 주문/공급망 기준 데이터 관리 | `QueryDSL` | PO, 공급업체, 품목, 공급망 링크, 권고안, 사후평가를 복합 조건으로 조회한다. |
+| 주문/공급망 기준 데이터 관리 | `Spring Data JPA` | 품목, 공급업체, 발주, 재고, 출하, 반품, 정산 등 주요 도메인 데이터를 서비스별 DB에서 관리한다. |
 | 이벤트 기반 리스크 오케스트레이션 | `Kafka` | `supplier_issue`, `shipment_delayed`, `quality_issue`, `esg_alert` 같은 이벤트를 기반으로 오케스트레이션을 수행한다. |
 | 실시간 대시보드/알림 | `WebSocket/STOMP` | Control Tower 실시간 상태 반영과 권고안 생성/이슈 알림을 화면에 즉시 전달한다. |
 | 배치/집계 | `Spring Batch` | 유통기한 임박 계산, 협력사 납기 준수율, 권고안 수용률, 회복 성공률을 주기적으로 집계한다. |
-| 메인 DB/보조 저장소 | `MariaDB/MySQL`, `MongoDB` | 메인 트랜잭션 데이터와 AI/비정형 보조 데이터를 함께 관리한다. |
+| 메인 DB/보조 저장소 | `MariaDB`, `PostgreSQL` | Auth, Supply, File 서비스는 MariaDB를 사용하고, Control 서비스는 PostgreSQL을 사용해 서비스별 데이터 소유권을 분리한다. |
 | 캐시 | `Redis` | 대시보드 수치, 최근 권고안, 세션/토큰 보조 데이터를 캐싱한다. |
 | 검색 최적화 | `Elasticsearch` | 공급처, 품목, lot, 인증서, 이력 검색을 최적화한다. |
 | CI/CD | `GitHub Actions` | 자동 테스트, 빌드, 배포 파이프라인을 구성한다. |
 | 배포 인프라 | `Docker`, `Kubernetes` | 컨테이너 기반 배포와 운영 환경을 구성한다. |
-| AI/권고안 고도화 | `Spring AI`, `sLLM` | 규칙 기반 권고안 위에 이슈 해석, 가중치 조정, 설명 생성 보조 계층을 둔다. |
+| 파일/첨부 처리 | `AWS S3 SDK`, `Thumbnailator` | 파일 업로드와 첨부파일 저장, 이미지 썸네일 생성을 처리한다. |
 | 아키텍처 | `이벤트 기반 분리 구조` | 운영형 워크플로우 중심으로 서비스를 느슨하게 분리하고, 추후 MSA로 확장 가능하게 설계한다. |
 
 ### 최종 채택 요약
 
 | 구분 | 기술 |
 | --- | --- |
-| 우선 채택 | `JWT 심화`, `QueryDSL`, `Kafka`, `WebSocket/STOMP`, `Spring Batch`, `Elasticsearch`, `GitHub Actions` |
-| 여유 있으면 채택 | `Prometheus + Grafana`, `Spring AI + sLLM` |
+| 우선 채택 | `JWT`, `Spring Data JPA`, `Kafka`, `WebSocket/STOMP`, `Spring Batch`, `Elasticsearch`, `GitHub Actions` |
+| 여유 있으면 채택 | `Prometheus + Grafana` |
 
 ### 팀 회의 반영 포인트
 
@@ -1188,8 +1199,8 @@ CT->>MB: "분산 발주 전략 비교 화면 제공"
 | --- | --- | --- |
 | 정윤 | 문서/인증 만료 사전 경고 기능을 강화하고, 사전 예방형 리스크 관리 축과 검색 기능 고도화를 함께 고려한다. | `Spring Batch`, `Elasticsearch`, 문서/인증 만료 경고 |
 | 병찬 | 대안 권고와 추적 항목을 더 세분화하고, 여러 벤더와 원활히 소통할 수 있도록 채팅 기능을 검토한다. | 권고안 이행 추적, `WebSocket/STOMP`, 채팅 기능 |
-| 강현&도균 | 이슈 해결에 가장 적합한 업체를 추천하는 로직과, 이슈 현황 및 납기 영향을 보여주는 대시보드 축을 강화한다. | 추천 로직, `Kafka`, `QueryDSL`, Control Tower 대시보드 |
-| 태환 | sLLM 기반 적합 업체 추천 고도화를 검토하고, 채팅 또는 메일 시스템, 발주 시 문서 첨부 및 전자계약/인증 흐름까지 확장 가능성을 본다. | `Spring AI`, `sLLM`, 채팅/메일, 문서 첨부, 전자계약/인증 |
+| 강현&도균 | 이슈 해결에 가장 적합한 업체를 추천하는 로직과, 이슈 현황 및 납기 영향을 보여주는 대시보드 축을 강화한다. | 추천 로직, `Kafka`, `Spring Data JPA`, Control Tower 대시보드 |
+| 태환 | 적합 업체 추천 고도화를 검토하고, 채팅 또는 메일 시스템, 발주 시 문서 첨부 및 전자계약/인증 흐름까지 확장 가능성을 본다. | `WebSocket/STOMP`, `Spring Mail`, `AWS S3 SDK`, 문서 첨부 |
 
 ## 트렌드 및 사례
 
