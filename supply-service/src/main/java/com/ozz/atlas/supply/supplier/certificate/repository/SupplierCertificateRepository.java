@@ -1,6 +1,8 @@
 package com.ozz.atlas.supply.supplier.certificate.repository;
 
 import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,6 +21,31 @@ public interface SupplierCertificateRepository extends JpaRepository<SupplierCer
     List<SupplierCertificate> findByExpiredAtAndCertificateStatus(LocalDate expiredAt, CertificateStatus certificateStatus);
     List<SupplierCertificate> findByExpiredAtLessThanEqualAndCertificateStatus(LocalDate expiredAt, CertificateStatus certificateStatus);
     long countBySupplierPublicId(String supplierPublicId);
+
+    @Query("""
+        select cert
+        from SupplierCertificate cert
+        left join SupplySupplier supplier on supplier.publicId = cert.supplierPublicId
+        where (:status is null or cert.certificateStatus = :status)
+          and (
+            :completedOnly = false
+            or cert.certificateStatus <> com.ozz.atlas.supply.supplier.certificate.domain.CertificateStatus.REVIEW_REQUESTED
+          )
+          and (
+            :keyword is null
+            or lower(cert.certificateNo) like lower(concat('%', :keyword, '%'))
+            or lower(cert.issuerName) like lower(concat('%', :keyword, '%'))
+            or lower(cert.certificateType.certificateName) like lower(concat('%', :keyword, '%'))
+            or lower(cert.certificateType.certificateCode) like lower(concat('%', :keyword, '%'))
+            or lower(supplier.supplierName) like lower(concat('%', :keyword, '%'))
+          )
+    """)
+    Page<SupplierCertificate> searchForReview(
+            @Param("status") CertificateStatus status,
+            @Param("completedOnly") boolean completedOnly,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
 
     @Query("""
         select count(cert)
