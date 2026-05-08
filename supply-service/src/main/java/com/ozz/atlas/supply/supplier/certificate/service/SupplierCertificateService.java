@@ -84,6 +84,20 @@ public class SupplierCertificateService {
         return supplierCertificateRepository.findAll(pageable).map(this::toResponseDto);
     }
 
+    public Page<SupplierCertificateResponseDto> searchCertificatesForReview(
+            Pageable pageable,
+            String reviewStatus,
+            String keyword
+    ) {
+        CertificateStatus status = resolveReviewStatus(reviewStatus);
+        boolean completedOnly = "COMPLETED".equalsIgnoreCase(reviewStatus);
+        String normalizedKeyword = normalizeKeyword(keyword);
+
+        return supplierCertificateRepository
+                .searchForReview(status, completedOnly, normalizedKeyword, pageable)
+                .map(this::toResponseDto);
+    }
+
     public List<SupplierCertificateResponseDto> getCertificatesBySupplier(String supplierPublicId) {
         return supplierCertificateRepository.findBySupplierPublicId(supplierPublicId).stream()
                 .map(this::toResponseDto)
@@ -245,6 +259,23 @@ public class SupplierCertificateService {
             }
         }
         return SupplierCertificateResponseDto.from(cert, supplierName);
+    }
+
+    private CertificateStatus resolveReviewStatus(String reviewStatus) {
+        if (reviewStatus == null || reviewStatus.isBlank() || "ALL".equalsIgnoreCase(reviewStatus) || "COMPLETED".equalsIgnoreCase(reviewStatus)) {
+            return null;
+        }
+        if ("PENDING".equalsIgnoreCase(reviewStatus)) {
+            return CertificateStatus.REVIEW_REQUESTED;
+        }
+        return CertificateStatus.valueOf(reviewStatus.toUpperCase());
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+        return keyword.trim();
     }
 
     private void appendCertificateEvent(

@@ -36,8 +36,10 @@ public class SupplierCertificateController {
     @Operation(summary = "협력사 인증서 전체 목록 조회")
     @GetMapping("/certificates")
     public ResponseEntity<Page<SupplierCertificateResponseDto>> getAllCertificates(
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(supplierCertificateService.getAllCertificates(pageable));
+            @RequestParam(required = false) String reviewStatus,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(supplierCertificateService.searchCertificatesForReview(pageable, reviewStatus, keyword));
     }
 
     @Operation(summary = "협력사별 인증서 목록 조회")
