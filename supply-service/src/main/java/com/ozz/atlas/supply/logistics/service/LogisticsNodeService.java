@@ -3,6 +3,8 @@ package com.ozz.atlas.supply.logistics.service;
 import com.ozz.atlas.common.kafka.AggregateType;
 import com.ozz.atlas.common.kafka.EventTypes;
 import com.ozz.atlas.common.kafka.KafkaTopics;
+import com.ozz.atlas.supply.inventory.domain.InventoryStatus;
+import com.ozz.atlas.supply.inventory.domain.SupplyItemInventory;
 import com.ozz.atlas.supply.inventory.repository.SupplyItemInventoryRepository;
 import com.ozz.atlas.supply.kafka.context.SupplyChainContext;
 import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
@@ -21,15 +23,20 @@ import com.ozz.atlas.supply.logistics.exception.LogisticsNodeErrorCode;
 import com.ozz.atlas.supply.logistics.exception.LogisticsNodeException;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeHistoryRepository;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
+import com.ozz.atlas.supply.supplier.capability.domain.SupplySupplierItemCapability;
+import com.ozz.atlas.supply.supplier.capability.repository.SupplierItemCapabilityRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +51,7 @@ public class LogisticsNodeService {
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyItemInventoryRepository inventoryRepository;
+    private final SupplierItemCapabilityRepository capabilityRepository;
     private final LogisticsNodeHistoryRepository logisticsNodeHistoryRepository;
     private final LogisticsUserLookupClient logisticsUserLookupClient;
 
@@ -54,6 +62,7 @@ public class LogisticsNodeService {
             OutboxEventAppender outboxEventAppender,
             SupplyDomainEventFactory supplyDomainEventFactory,
             SupplyItemInventoryRepository inventoryRepository,
+            SupplierItemCapabilityRepository capabilityRepository,
             LogisticsNodeHistoryRepository logisticsNodeHistoryRepository,
             LogisticsUserLookupClient logisticsUserLookupClient
     ) {
@@ -63,6 +72,7 @@ public class LogisticsNodeService {
         this.outboxEventAppender = outboxEventAppender;
         this.supplyDomainEventFactory = supplyDomainEventFactory;
         this.inventoryRepository = inventoryRepository;
+        this.capabilityRepository = capabilityRepository;
         this.logisticsNodeHistoryRepository = logisticsNodeHistoryRepository;
         this.logisticsUserLookupClient = logisticsUserLookupClient;
     }
@@ -236,6 +246,7 @@ public class LogisticsNodeService {
 
         node.activate();
         if (!beforeActive) {
+            syncAvailableQtyForNode(node);
             appendHistory(
                     node,
                     LogisticsNodeHistoryChangeType.ACTIVATED,
@@ -262,13 +273,14 @@ public class LogisticsNodeService {
         validateLogisticsNodeActor(organizationPublicId, organizationType, userRole);
 
         LogisticsNode node = getOwnedLogisticsNode(publicId, organizationPublicId);
-        // 물류거점 비활성화 불가 검증
-        if (inventoryRepository.existsLiveInventoryInNode(organizationPublicId, publicId)) {
-            throw new LogisticsNodeException(LogisticsNodeErrorCode.NODE_HAS_REMAINING_INVENTORY);
+        // 예약 재고가 있는 창고는 출하/주문 흐름과 연결되어 있으므로 비활성화하지 않는다.
+        if (inventoryRepository.existsReservedInventoryInNode(organizationPublicId, publicId)) {
+            throw new LogisticsNodeException(LogisticsNodeErrorCode.NODE_HAS_RESERVED_INVENTORY);
         }
         boolean beforeActive = node.isActive();
         node.deactivate();
         if (beforeActive) {
+            syncAvailableQtyForNode(node);
             appendHistory(
                     node,
                     LogisticsNodeHistoryChangeType.DEACTIVATED,
@@ -282,6 +294,36 @@ public class LogisticsNodeService {
         }
 
         return LogisticsNodeResponseDto.from(node);
+    }
+
+    private void syncAvailableQtyForNode(LogisticsNode node) {
+        List<SupplyItemInventory> inventories = inventoryRepository
+                .findAllBySupplier_OrganizationPublicIdAndLogisticsNode_PublicIdAndStatusNotOrderByExpirationDateAscManufacturedDateAscInventoryIdAsc(
+                        node.getOrganizationPublicId(),
+                        node.getPublicId(),
+                        InventoryStatus.DELETED
+                );
+        Set<String> syncedKeys = new HashSet<>();
+        LocalDate today = LocalDate.now();
+
+        for (SupplyItemInventory inventory : inventories) {
+            Long supplierId = inventory.getSupplier().getId();
+            Long itemId = inventory.getItem().getId();
+            String key = supplierId + ":" + itemId;
+
+            if (!syncedKeys.add(key)) {
+                continue;
+            }
+
+            Long availableQty = inventoryRepository.sumAvailableQty(supplierId, itemId, today);
+            SupplySupplierItemCapability capability = capabilityRepository
+                    .findBySupplier_IdAndItem_Id(supplierId, itemId)
+                    .orElse(null);
+
+            if (capability != null) {
+                capability.syncAvailableQty(availableQty);
+            }
+        }
     }
 
     @Transactional(readOnly = true)

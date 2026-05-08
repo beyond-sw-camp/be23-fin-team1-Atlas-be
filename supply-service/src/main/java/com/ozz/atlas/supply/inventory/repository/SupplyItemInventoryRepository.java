@@ -275,13 +275,10 @@ public interface SupplyItemInventoryRepository extends JpaRepository<SupplyItemI
     from SupplyItemInventory inv
     where inv.logisticsNode.publicId = :nodePublicId
       and inv.logisticsNode.organizationPublicId = :organizationPublicId
-      and inv.status not in (
-        com.ozz.atlas.supply.inventory.domain.InventoryStatus.DELETED,
-        com.ozz.atlas.supply.inventory.domain.InventoryStatus.EXHAUSTED
-      )
-      and inv.remainingQty > 0
+      and inv.status <> com.ozz.atlas.supply.inventory.domain.InventoryStatus.DELETED
+      and inv.reservedQty > 0
 """)
-    boolean existsLiveInventoryInNode(
+    boolean existsReservedInventoryInNode(
             @Param("organizationPublicId") String organizationPublicId,
             @Param("nodePublicId") String nodePublicId
     );
