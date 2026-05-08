@@ -8,6 +8,7 @@ import com.ozz.atlas.file.dtos.UpdateAttachmentFileOrderRequestDto;
 import com.ozz.atlas.file.dtos.UpdateAttachmentRequestDto;
 import com.ozz.atlas.file.service.FileService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -121,7 +122,8 @@ public class FileController {
     // 예: ITEM 상세 화면에서 해당 아이템의 첨부 파일 묶음을 가져오는 경우
     @Operation(summary = "참조 기준 첨부 묶음 조회")
     @GetMapping("/attachments/by-ref")
-    public ResponseEntity<AttachmentResponseDto> getAttachmentByRef(@RequestParam RefType refType,
+    public ResponseEntity<AttachmentResponseDto> getAttachmentByRef(@Parameter(description = "첨부 연결 대상 유형", example = "ITEM")
+                                                                    @RequestParam RefType refType,
                                                                     @RequestParam String refPublicId) {
         return ResponseEntity.ok(fileService.getAttachmentByRef(refType, refPublicId));
     }

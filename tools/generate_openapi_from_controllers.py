@@ -376,6 +376,25 @@ def infer_parameter_description(param: dict) -> str:
     return guess_property_description(name)
 
 
+def apply_parameter_example(parameter: dict, components: Dict[str, dict]) -> None:
+    schema = parameter.get("schema", {})
+    if schema.get("example") is not None:
+        return
+    if schema.get("enum"):
+        schema["example"] = schema["enum"][0]
+        return
+    ref = schema.get("$ref")
+    if ref:
+        schema_name = ref.rsplit("/", 1)[-1]
+        enum_values = components.get(schema_name, {}).get("enum")
+        if enum_values:
+            schema["example"] = enum_values[0]
+            return
+    example = guess_example(parameter["name"], schema)
+    if example is not None:
+        schema["example"] = example
+
+
 def infer_action(method_name: str, http_method: str, path: str) -> str:
     lowered = method_name.lower()
     if lowered == "login":
@@ -472,6 +491,14 @@ def infer_description(summary: str, operation: dict) -> str:
     if operation.get("requestBody"):
         parts.append("요청 본문 데이터를 기반으로 처리합니다.")
     return " ".join(parts)
+
+
+def infer_success_response(method_body: str) -> Tuple[str, str]:
+    if "ResponseEntity.noContent()" in method_body:
+        return "204", "No Content"
+    if "HttpStatus.CREATED" in method_body or "ResponseEntity.created(" in method_body:
+        return "201", "Created"
+    return "200", "OK"
 
 
 def enrich_property_schema(prop_name: str, prop_schema: dict) -> None:
@@ -799,8 +826,8 @@ def parse_controller_methods(java_file: JavaFile, registry: Dict[str, JavaFile],
                     "operationId": method_name,
                     "tags": [tag_name],
                     "responses": {
-                        "200": {
-                            "description": "OK",
+                        infer_success_response(method_body)[0]: {
+                            "description": infer_success_response(method_body)[1],
                         }
                     },
                 }
@@ -874,10 +901,7 @@ def parse_controller_methods(java_file: JavaFile, registry: Dict[str, JavaFile],
                     for parameter in parameters:
                         if not parameter.get("description"):
                             parameter["description"] = infer_parameter_description(parameter)
-                        if parameter["schema"].get("example") is None:
-                            example = guess_example(parameter["name"], parameter["schema"])
-                            if example is not None:
-                                parameter["schema"]["example"] = example
+                        apply_parameter_example(parameter, components)
                     op["parameters"] = parameters
                 if request_body:
                     if consumes and "MULTIPART_FORM_DATA" in consumes:
@@ -893,7 +917,9 @@ def parse_controller_methods(java_file: JavaFile, registry: Dict[str, JavaFile],
                 ensure_schema(response_type, registry, components)
                 response_schema = default_schema_for_type(response_type, registry)
                 if response_schema != {"type": "object"} or simple_name(response_type) in registry or simple_name(response_type) == "Page":
-                    op["responses"]["200"]["content"] = {"application/json": {"schema": response_schema}}
+                    success_code = next(iter(op["responses"]))
+                    if success_code != "204":
+                        op["responses"][success_code]["content"] = {"application/json": {"schema": response_schema}}
                 if not op.get("summary"):
                     op["summary"] = infer_summary(java_file.name, method_name, http_method, full_path)
                 if not op.get("description"):
@@ -939,8 +965,20 @@ def merge_path_overlays(generated_paths: dict, existing_paths: dict) -> dict:
                         if isinstance(existing_text, str):
                             if existing_text == operation_id or re.fullmatch(r"[a-z][A-Za-z0-9]*", existing_text):
                                 continue
-                    if key == "responses" and merged[path][method].get("responses", {}).get("200", {}).get("content"):
-                        continue
+                    if key == "responses":
+                        generated_responses = merged[path][method].get("responses", {})
+                        overlay_responses = operation.get("responses", {})
+                        if "200" not in generated_responses and "200" in overlay_responses:
+                            overlay_responses = {
+                                code: response
+                                for code, response in overlay_responses.items()
+                                if code != "200"
+                            }
+                        if generated_responses.get("200", {}).get("content"):
+                            continue
+                        if not overlay_responses:
+                            continue
+                        operation = {**operation, "responses": overlay_responses}
                     merged[path][method][key] = deep_merge(merged[path][method].get(key), operation[key])
     return merged
 
@@ -975,6 +1013,21 @@ def prune_unused_schemas(spec: dict) -> None:
     spec.setdefault("components", {})["schemas"] = {
         name: schema for name, schema in schemas.items() if name in used
     }
+
+
+def prune_superseded_success_responses(spec: dict) -> None:
+    for path_item in spec.get("paths", {}).values():
+        if not isinstance(path_item, dict):
+            continue
+        for method, operation in path_item.items():
+            if method not in HTTP_METHODS or not isinstance(operation, dict):
+                continue
+            responses = operation.get("responses", {})
+            if "200" not in responses or not ({"201", "204"} & set(responses)):
+                continue
+            ok_response = responses.get("200", {})
+            if ok_response.get("description") == "OK":
+                responses.pop("200", None)
 
 
 def load_existing_spec() -> dict:
@@ -1050,6 +1103,7 @@ def main():
     spec = deep_merge(spec, {k: v for k, v in existing.items() if k not in {"paths", "components", "tags"}})
     spec["paths"] = merge_path_overlays(spec["paths"], existing.get("paths", {}))
     spec["components"] = deep_merge(spec["components"], existing.get("components", {}))
+    prune_superseded_success_responses(spec)
     prune_unused_schemas(spec)
     for schema_name, schema in spec.get("components", {}).get("schemas", {}).items():
         if not schema.get("description"):

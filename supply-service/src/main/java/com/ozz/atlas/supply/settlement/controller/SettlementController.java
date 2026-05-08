@@ -18,6 +18,7 @@ import com.ozz.atlas.supply.settlement.domain.SettlementTargetType;
 import com.ozz.atlas.supply.settlement.search.dtos.SettlementSearchDto;
 import com.ozz.atlas.supply.settlement.search.service.SettlementSearchService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.ozz.atlas.supply.settlement.dtos.SettlementStatisticsResponseDto;
 import com.ozz.atlas.supply.settlement.dtos.SettlementBudgetRequestDto;
@@ -60,7 +61,9 @@ public class SettlementController {
     public Page<SettlementResponseDto> getSettlements(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
+            @Parameter(description = "정산 대상 유형 필터", example = "ORDER")
             @RequestParam(value = "targetType", required = false) SettlementTargetType targetType,
+            @Parameter(description = "정산 상태 필터", example = "PENDING")
             @RequestParam(value = "settlementStatus", required = false) SettlementStatus settlementStatus,
             @RequestParam(value = "currencyCode", required = false) SettlementCurrency currencyCode,
             @RequestHeader(value = "X-Organization-Public-Id", required = false) String organizationPublicId,

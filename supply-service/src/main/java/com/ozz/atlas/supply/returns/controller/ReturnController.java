@@ -12,6 +12,7 @@ import com.ozz.atlas.supply.returns.search.dtos.ReturnSearchDto;
 import com.ozz.atlas.supply.returns.search.service.ReturnSearchService;
 import com.ozz.atlas.supply.returns.service.ReturnService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -162,7 +163,9 @@ public class ReturnController {
     @Operation(summary = "반품 통합 검색 (ES)")
     public ResponseEntity<org.springframework.data.domain.Page<ReturnRequestResponseDto>> searchReturns(
             @RequestParam(required = false) String keyword,
+            @Parameter(description = "반품 상태 필터", example = "REQUESTED")
             @RequestParam(required = false) ReturnStatus status,
+            @Parameter(description = "반품 유형 필터", example = "DAMAGE")
             @RequestParam(required = false) ReturnType type,
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,

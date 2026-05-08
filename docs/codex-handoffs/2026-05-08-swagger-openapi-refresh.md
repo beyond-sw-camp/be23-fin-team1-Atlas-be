@@ -17,6 +17,10 @@
 - 서비스 DTO/검색 DTO Swagger 보강
   - `api-gateway`, `auth-service`, `supply-service`, `control-service`, `file-service`, `common`의 DTO 계열 파일 중 `@Schema`가 전혀 없던 파일을 보강.
   - DTO/검색 DTO 기준 `@Schema` 미적용 파일 0개 확인.
+- Swagger 상세 품질 보강
+  - enum query parameter 예시 누락 7건을 제거.
+  - 생성 스크립트가 enum `$ref` 파라미터 예시와 `201 Created`, `204 No Content` 성공 응답을 반영하도록 수정.
+  - 기존 overlay의 일반 `200 OK`가 `201/204`와 중복 노출되지 않도록 정리.
 
 ## Verification
 
@@ -24,6 +28,7 @@
 - `jq empty docs/openapi/atlas-backend-openapi.json`
 - `bash gradlew compileJava`
 - DTO/검색 DTO `@Schema` 누락 파일 수 확인: 0개
+- OpenAPI summary/description/parameter example/response description 누락 점검: 0건
 
 ## Notes
 
