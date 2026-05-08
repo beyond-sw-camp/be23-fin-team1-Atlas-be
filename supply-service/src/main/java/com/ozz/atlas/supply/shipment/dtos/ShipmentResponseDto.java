@@ -98,6 +98,8 @@ public class ShipmentResponseDto {
     private boolean canTrack;
     @Schema(description = "현재 조직의 배송 예외 등록 가능 여부", example = "true")
     private boolean canRegisterException;
+    @Schema(description = "반품 이력 존재 여부", example = "false")
+    private boolean hasReturn;
     @Builder.Default
     @Schema(description = "출하 품목 라인 목록")
     private List<ShipmentLineResponseDto> shipmentLines = List.of();
