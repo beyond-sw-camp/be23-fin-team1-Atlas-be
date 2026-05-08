@@ -1,5 +1,41 @@
 # 공급망 리스크 오케스트레이션 및 협력사 거버넌스 시스템
 
+<div class="card">
+    <h2>소개</h2>
+    <p align="center">
+      MKX는 중소·중견 증권사의 높은 인프라 구축 비용과 운영 부담을 해결하기 위해 설계된,
+    </p>
+    <p align="center">
+      <strong>입점형 B2B 디지털 증권 거래소 플랫폼</strong>입니다.
+    </p>
+    <p align="center">
+      증권사는 MKX에 입점해 주문·체결 인프라를 즉시 사용할 수 있으며,  
+    </p>
+    <p align="center">
+      사용자는 원하는 증권사를 선택해 거래에 참여할 수 있습니다.
+    </p>
+  </div>
+
+<h2 id="toc">목차</h2>
+  <div class="toc">
+  <a href="#team">1. 팀원</a><br />
+  <a href="#project-plan">2. 프로젝트 기획서</a><br />
+  <a href="#analysis-design">3. 분석 및 설계</a><br />
+  <a href="#techstack">4. 기술 스택</a><br />
+  <a href="#architecture">5. 시스템 아키텍처</a><br />
+  <a href="#tech-summary">6. 기술 요약</a><br />
+  <a href="#features">7. 주요 기능</a><br />
+  <a href="#ui-ux-test">8. 기능 시연 영상</a><br />
+  </div>
+
+<section id="team">
+<h2>1. 팀원 소개</h2>
+
+|                                                                        **김태환**                                                                         |                                                    **김도균**                                                    |                                                        **이병찬**                                                         |                                                                       **조강**                                                                        |                                                                      **황정윤**                                                                      |
+|:------------------------------------------------------------------------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------:|
+| [<img src="https://github.com/jinnn12.png" height=150 width=150> <br/> @jinnn12 <br/><sub>**Domain & Listing Lead**</sub>](https://github.com/jinnn12) | [<img src="https://github.com/JeaPple.png" height=150 width=150> <br/> @JeaPple <br/><sub>**Trading Engine Lead**</sub>](https://github.com/JeaPple) | [<img src="https://github.com/solidify-d.png" height=150 width=150> <br/> @solidify-d <br/><sub>**Trading Engine Lead**</sub>](https://github.com/solidify-d) |          [<img src="https://github.com/ggj0228.png" height=150 width=150> <br/> @ggj0228 <br/><sub>**Identity & Admin**</sub>](https://github.com/ggj0228)           |      [<img src="https://github.com/AstroJini.png" height=150 width=150> <br/> @AstroJini<br/><sub>**Data & Governance**</sub>](https://github.com/AstroJini)       |
+</section>
+
 공급망 리스크 발생 시 영향도를 계산하고, 대응 권고안을 생성하며, 의사결정·실행·이행·사후평가까지 관리하는 운영형 워크플로우 시스템이다.
 
 플랫폼 구조는 범용 공급망을 지향하지만, MVP 검증 시나리오는 식자재 공급망으로 설정한다. 이를 통해 메인 발주사, 1차 협력사, 2차 협력사, 3차 협력사 구조를 공통으로 다루면서도 실제 데모에서는 품목, 인증, 원산지, 유통기한, 보관 조건 등 구체적인 리스크를 명확하게 보여준다.
