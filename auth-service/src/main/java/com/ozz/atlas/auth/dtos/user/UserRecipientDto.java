@@ -17,7 +17,6 @@ public record UserRecipientDto(
         @Schema(description = "사용자 권한", example = "USER")
         UserRole userRole
 ) {
-
     public static UserRecipientDto fromEntity(User user) {
         return UserRecipientDto.builder()
                 .userPublicId(user.getPublicId())

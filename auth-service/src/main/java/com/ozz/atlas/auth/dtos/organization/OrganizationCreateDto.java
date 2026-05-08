@@ -64,7 +64,6 @@ public class OrganizationCreateDto {
 
     @Schema(description = "우편번호", example = "06234")
     private String zipCode;
-
     public Organization toEntity() {
         return Organization.builder()
                 .organizationType(this.organizationType)

@@ -44,7 +44,6 @@ public class ShipmentLineResponseDto {
 
     @Schema(description = "도착 창고 내부 ID", example = "2")
     private Long destinationNodeId;
-
     public static ShipmentLineResponseDto from(ShipmentLine shipmentLine) {
         return ShipmentLineResponseDto.builder()
                 .publicId(shipmentLine.getPublicId())

@@ -14,12 +14,16 @@
 - `docs/openapi/atlas-backend-openapi.json`
   - 컨트롤러/DTO 기준으로 재생성.
   - REST mapping 218개와 OpenAPI operation 218개 일치 확인.
+- 서비스 DTO/검색 DTO Swagger 보강
+  - `api-gateway`, `auth-service`, `supply-service`, `control-service`, `file-service`, `common`의 DTO 계열 파일 중 `@Schema`가 전혀 없던 파일을 보강.
+  - DTO/검색 DTO 기준 `@Schema` 미적용 파일 0개 확인.
 
 ## Verification
 
 - `python3 tools/generate_openapi_from_controllers.py`
 - `jq empty docs/openapi/atlas-backend-openapi.json`
 - `bash gradlew compileJava`
+- DTO/검색 DTO `@Schema` 누락 파일 수 확인: 0개
 
 ## Notes
 

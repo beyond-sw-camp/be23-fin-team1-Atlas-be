@@ -38,7 +38,6 @@ public class ReturnItemResponseDto {
     private String disposalProofAttachmentPublicId;
     @Schema(description = "품목 첨부 파일 공개 식별자 목록", example = "[\"att_01HZY2ATT01\"]")
     private List<String> attachmentPublicIds;
-
     public static ReturnItemResponseDto from(ReturnItem entity, String itemName) {
         List<String> attachments = (entity.getAttachmentPublicIds() != null && !entity.getAttachmentPublicIds().isBlank())
                 ? Arrays.asList(entity.getAttachmentPublicIds().split(","))

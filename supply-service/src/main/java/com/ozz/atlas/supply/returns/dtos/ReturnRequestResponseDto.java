@@ -61,7 +61,6 @@ public class ReturnRequestResponseDto {
     private String settlementPublicId;
     @Schema(description = "반품 품목 목록")
     private List<ReturnItemResponseDto> items;
-
     public static ReturnRequestResponseDto from(ReturnRequest entity, String requestOrganizationName, String targetOrganizationName, Map<String, String> itemNames, String settlementPublicId) {
         List<String> attachments = (entity.getAttachmentPublicIds() != null && !entity.getAttachmentPublicIds().isBlank())
                 ? Arrays.asList(entity.getAttachmentPublicIds().split(","))

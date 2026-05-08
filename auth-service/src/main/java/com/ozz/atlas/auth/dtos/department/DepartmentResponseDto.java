@@ -26,7 +26,6 @@ public class DepartmentResponseDto {
 
     @Schema(description = "부서 상태", example = "ACTIVE")
     private Status status;
-
     public static DepartmentResponseDto fromEntity(Department department) {
         return DepartmentResponseDto.builder()
                 .departmentPublicId(department.getPublicId())

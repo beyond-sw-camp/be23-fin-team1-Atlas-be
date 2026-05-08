@@ -50,7 +50,6 @@ public class UserListDto {
 
     @Schema(description = "프로필 이미지 썸네일 경로", nullable = true)
     private String profileImageThumbPath;
-
     public static UserListDto fromEntity(User user){
         return UserListDto.builder()
                 .userPublicId(user.getPublicId())
@@ -72,7 +71,6 @@ public class UserListDto {
                 .profileImageThumbPath(user.getProfileImageThumbPath())
                 .build();
     }
-
     public static UserListDto fromDocument(UserDocument user) {
         return UserListDto.builder()
                 .userPublicId(user.getPublicId())

@@ -1,10 +1,12 @@
 package com.ozz.atlas.gateway.search.dtos;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
+@Schema(description = "유형 모델")
 public enum IntegratedSearchSectionType {
 
     // 사용자 검색 결과 섹션
@@ -35,5 +37,6 @@ public enum IntegratedSearchSectionType {
     SETTLEMENT("정산");
 
     // 프론트에 보여줄 섹션 이름
+    @Schema(description = "label 값", example = "sample", nullable = true)
     private final String label;
 }

@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.supplier.dtos;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SupplySubPurchaseOrder;
@@ -15,29 +16,37 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Connected Supplier Order 값 응답")
 public class ConnectedSupplierOrderResponse {
-
     public enum OrderType {
         PURCHASE_ORDER,
         SUB_PURCHASE_ORDER
     }
-
     public enum OrderRole {
         ISSUED,
         RECEIVED
     }
 
+    @Schema(description = "유형", example = "DEFAULT", nullable = true)
     private OrderType orderType;
+    @Schema(description = "공개 식별자", example = "sample_public_id", nullable = true)
     private String poPublicId;
+    @Schema(description = "번호", example = "NO-2026-0001", nullable = true)
     private String poNumber;
+    @Schema(description = "공개 식별자", example = "sample_public_id", nullable = true)
     private String subPoPublicId;
+    @Schema(description = "번호", example = "NO-2026-0001", nullable = true)
     private String subPoNumber;
+    @Schema(description = "번호", example = "NO-2026-0001", nullable = true)
     private String parentPoNumber;
+    @Schema(description = "order Role 값", example = "sample", nullable = true)
     private OrderRole orderRole;
+    @Schema(description = "상태", example = "ACTIVE", nullable = true)
     private String status;
+    @Schema(description = "ordered At 값", example = "2026-05-08T10:00:00", nullable = true)
     private LocalDateTime orderedAt;
+    @Schema(description = "금액", example = "1", nullable = true)
     private BigDecimal totalAmount;
-
     public static ConnectedSupplierOrderResponse fromPurchaseOrder(SupplyPurchaseOrder purchaseOrder) {
         return ConnectedSupplierOrderResponse.builder()
                 .orderType(OrderType.PURCHASE_ORDER)
@@ -49,7 +58,6 @@ public class ConnectedSupplierOrderResponse {
                 .totalAmount(purchaseOrder.getTotalAmount())
                 .build();
     }
-
     public static ConnectedSupplierOrderResponse fromSubPurchaseOrder(
             Long loginSupplierId,
             SupplySubPurchaseOrder subPurchaseOrder

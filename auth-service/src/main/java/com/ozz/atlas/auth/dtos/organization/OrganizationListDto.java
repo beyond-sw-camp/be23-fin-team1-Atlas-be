@@ -51,15 +51,10 @@ public class OrganizationListDto {
 
     @Schema(description = "조직 상태", example = "ACTIVE")
     private Status status;
-
     private String address;
-
     private String addressDetail;
-
     private String zipCode;
-
     private String organizationImageThumbPath;
-
 
     public static OrganizationListDto fromEntity(Organization organization){
         return OrganizationListDto.builder()
