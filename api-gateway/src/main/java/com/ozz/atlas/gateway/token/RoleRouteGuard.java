@@ -58,6 +58,10 @@ public class RoleRouteGuard {
             return;
         }
 
+        if (isCertificateReviewAction(method, path)) {
+            return;
+        }
+
         boolean blocked = SUPPLY_WRITE_GUARD_PATHS.stream().anyMatch(path::startsWith);
         if (blocked) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "플랫폼 관리자는 해당 공급망 메뉴에 접근할 수 없습니다.");
@@ -67,5 +71,13 @@ public class RoleRouteGuard {
     private boolean isControlTowerReadPath(String path) {
         return CONTROL_TOWER_READ_GUARD_PATHS.stream().anyMatch(path::startsWith)
                 || (path.startsWith("/api/supply/suppliers/") && path.endsWith("/connections/detail"));
+    }
+
+    private boolean isCertificateReviewAction(HttpMethod method, String path) {
+        if (!HttpMethod.PATCH.equals(method)) {
+            return false;
+        }
+        return path.startsWith("/api/supply/certificates/")
+                && (path.endsWith("/approve") || path.endsWith("/reject"));
     }
 }
