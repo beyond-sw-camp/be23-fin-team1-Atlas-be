@@ -115,6 +115,12 @@ public class ReturnController {
         return ResponseEntity.ok(returnService.getReturnByPublicId(publicId, organizationPublicId, organizationType, userRole));
     }
 
+    @GetMapping("/{publicId}/exists")
+    @Operation(summary = "반품 존재 여부 확인", description = "시스템 및 제3자 연동용 단순 존재 여부 검사")
+    public ResponseEntity<Boolean> existsReturn(@PathVariable String publicId) {
+        return ResponseEntity.ok(returnService.existsByPublicId(publicId));
+    }
+
     @PatchMapping("/{publicId}")
     @Operation(summary = "반품 수정")
     public ResponseEntity<ReturnRequestResponseDto> updateReturn(

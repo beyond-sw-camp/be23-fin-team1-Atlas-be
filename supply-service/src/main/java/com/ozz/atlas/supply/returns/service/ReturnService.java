@@ -62,6 +62,10 @@ public class ReturnService {
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ShipmentSearchService shipmentSearchService;
     private final SettlementService settlementService;
+
+    public boolean existsByPublicId(String publicId) {
+        return returnRequestRepository.existsByPublicId(publicId);
+    }
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyChainContextResolver supplyChainContextResolver;
