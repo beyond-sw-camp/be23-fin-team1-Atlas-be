@@ -2,6 +2,7 @@
 <main class="container">
   <h1>ATLAS — 공급망 운영 가시화 및 리스크 관리 플랫폼</h1>
   <img width="1920" height="1080" src="images\ATLAS.png" />
+  <img width="1920" height="1080" src="images\발주관리.png" />
 
   <hr/>
 
@@ -45,179 +46,45 @@
 
 <section id="project-plan">
     <h2>2. 프로젝트 기획서</h2>
-    
-  <h3>1) 문제정의 & 가치제안</h3>
-  <details>
-    <summary><b>①.1 문제정의</b></summary>
-    <p>
-    식자재와 같은 공급망 운영은 하나의 발주로 끝나는 단순 주문 업무가 아니라,
-    <strong>품목 등록, 공급사 관리, 발주, 재고, 출하, 반품/교환, 정산</strong>이 연속적으로 이어지는 복합 업무이다.
-    그러나 실제 현장에서는 이 과정이 여러 시스템, 엑셀, 메신저, 전화, 수기 문서로 분산되어 관리되는 경우가 많다.
-    이로 인해 발주 이후 어떤 공급사가 어떤 품목을 얼마나 준비했는지, 재고가 충분한지, 출하가 지연되고 있는지,
-    반품 처리가 어디까지 진행되었는지를 한눈에 파악하기 어렵다.
-  </p>
-    <img width="" height="" src="" />
-    <p>
-  특히 메인 발주사가 여러 공급사에 발주를 넣는 구조에서는
-  <strong>각 공급사의 발주 수락 여부, 공급 가능 수량, 재고 상태, 출하 진행 상황을 한눈에 파악하기 어려운 문제</strong>가 발생한다.
-  특정 품목의 생산 가능 수량, 최소 주문 수량, 리드타임, 유통기한, 인증 정보, 보관 조건 등이 분산되어 있으면
-  발주 시점에는 문제가 없어 보이더라도 실제 출하 단계에서 재고 부족, 납기 지연, 품질 이슈가 뒤늦게 드러날 수 있다.
-</p>
-    <img width="" height="" src="" />
-    <p>
-    기존 주문 관리 방식의 또 다른 한계는
-    <strong>발주 이후의 후속 업무가 주문 데이터와 느슨하게 연결되어 있다는 점</strong>이다.
-    발주가 확정되었음에도 품목 정보가 수정되거나, 재고 상태와 출하 상태가 별도로 관리되거나,
-    반품/교환 처리 결과가 정산 데이터와 바로 연결되지 않으면 데이터 정합성이 깨진다.
-    이는 단순한 관리 불편을 넘어, 실제 업무에서는 오배송, 중복 발주, 재고 오차, 정산 오류로 이어질 수 있다.
-  </p>
-    <img width="" height="" src="" />
-    <p>
-    또한 식자재 공급망은 일반 상품보다 운영 리스크가 크다.
-    품목별로 <strong>원산지, 인증, 유통기한, 보관 조건, 제조일, 창고 위치</strong>와 같은 세부 정보가 중요하며,
-    반품이나 교환이 발생했을 때도 사유, 검수 결과, 증빙 이미지, 처리 상태가 체계적으로 남아야 한다.
-    하지만 이러한 정보가 발주 시스템과 분리되어 있으면 담당자는 필요한 정보를 매번 수동으로 확인해야 하고,
-    문제 발생 시 원인 추적과 책임 소재 파악이 늦어진다.
-  </p>
-    <p>
-    요약하면 공급망 주문 관리에는 다음과 같은 구조적 한계가 존재한다:
-  </p>
-<ul>
-    <li>① 발주, 재고, 출하, 반품, 정산이 분리 관리되어 업무 흐름이 끊김</li>
-    <li>② 메인 발주사가 하위 공급사의 준비 상황과 지연 원인을 즉시 파악하기 어려움</li>
-    <li>③ 품목, 인증, 원산지, 유통기한, 보관 조건 등 핵심 정보가 흩어져 추적성이 낮음</li>
-    <li>④ 확정 발주 이후에도 품목/재고 데이터가 일관되게 통제되지 않으면 데이터 정합성이 깨짐</li>
-    <li><strong>⑤ 실무형 SCM 확장성</strong> - 여러 공급사와 품목을 관리하는 공급망 주문 업무로 확장 가능</li>
-
-  </ul>
-<p>
-    이러한 문제는 단순한 화면 불편이 아니라,
-    <strong>공급망 운영의 가시성, 정확성, 추적성을 떨어뜨리고 지연·부족·반품 리스크 대응을 늦추는 핵심 원인</strong>으로 작동한다.
-  </p>
-
-</details>
-
 <details>
-  <summary><b>①.2 가치제안</b></summary>
-  <p>
-    ATLAS는 이러한 문제를 해결하기 위해 설계된
-    <strong>공급망 관리를 위한 통합 주문 관리 시스템</strong>이다.
-    발주, 품목, 공급사, 재고, 출하, 반품/교환, 정산 데이터를 하나의 업무 흐름으로 연결하여
-    주문 이후의 모든 운영 상태를 추적하고 관리할 수 있도록 지원한다.
-  </p>
-  <img width="" height="" src="" />
-  <p>
-    ATLAS의 핵심 가치는 단순히 발주서를 생성하는 것이 아니라,
-    <strong>발주 이후 실제 공급망에서 발생하는 업무 변화를 데이터로 연결하는 것</strong>이다.
-    사용자는 품목별 공급 가능 수량, 최소 주문 수량, 리드타임, 창고별 재고, 출하 상태, 반품 처리 상태,
-    정산 정보를 같은 흐름 안에서 확인할 수 있다.
-    이를 통해 발주사는 공급사와의 업무 진행 상황을 더 명확하게 파악하고,
-    공급사는 요청받은 발주와 출하, 반품 대응을 체계적으로 관리할 수 있다.
-  </p>
-<p>
-    특히 ATLAS는 식자재 공급망 MVP 시나리오에 맞춰
-    <strong>품목, 인증, 원산지, 유통기한, 보관 조건, 제조일, 재고 Lot, 반품 증빙 이미지</strong> 등
-    실무에서 중요한 세부 데이터를 관리할 수 있도록 구성했다.
-    이 데이터들은 단순 참고 정보가 아니라 발주, 재고, 출하, 반품 판단에 직접 연결되는 운영 데이터로 활용된다.
-  </p>
+  <summary><b>문제정의 & 기획의도</b></summary>
 
-<p>
-    또한 ATLAS는 발주가 확정된 이후 관련 품목이 임의로 수정되지 않도록 제한하고,
-    재고와 출하 상태가 발주 흐름과 연결되도록 설계했다.
-    이를 통해 업무 단계별 데이터 정합성을 확보하고,
-    운영자가 잘못된 기준 정보로 발주나 출하를 처리하는 문제를 줄일 수 있다.
-  </p>
-  <p>
-    ATLAS가 제공하는 주요 가치는 다음과 같다:
-  </p>
-  <img width="" height="" src="" />
-
+  <h4>문제정의</h4>
   <ul>
-    <li><strong>① 통합 가시성</strong> - 발주, 재고, 출하, 반품, 정산 상태를 하나의 흐름으로 확인</li>
-    <li><strong>② 운영 정확성</strong> - 품목, 공급 가능 수량, MOQ, 리드타임, 재고 데이터를 기준으로 주문 처리</li>
-    <li><strong>③ 추적성 확보</strong> - 주문 이후 출하, 반품/교환, 정산까지 단계별 이력 관리</li>
-    <li><strong>④ 데이터 정합성 강화</strong> - 확정 발주 이후 품목 수정 제한 등 업무 규칙 반영</li>
-    <li><strong>⑤ 실무형 SCM 확장성</strong> - 식자재뿐 아니라 다중 공급사 구조를 가진 공급망 업무로 확장 가능</li>
+    <li><strong>업무 분산</strong> - 발주, 재고, 출하, 반품, 정산이 분리 관리됨</li>
+    <li><strong>상태 파악 한계</strong> - 공급사별 재고, 수락 여부, 출하 진행 상황 확인 어려움</li>
+    <li><strong>데이터 단절</strong> - 발주 이후 재고·출하·반품·정산 흐름이 느슨하게 연결됨</li>
+    <li><strong>정합성 문제</strong> - 확정 발주 이후 품목 정보 변경 시 주문 기준 불일치 발생</li>
+    <li><strong>식자재 특성</strong> - 원산지, 인증, 유통기한, 보관 조건 등 추적 필요</li>
   </ul>
-<p>
-    결국 ATLAS는
-    <strong>발주부터 납품, 재고, 반품, 정산까지 하나의 흐름으로 연결해 공급망 운영을 효율화하는 SCM 플랫폼</strong>이다.
-    단절된 주문 관리 방식에서 벗어나,
-    공급사 협업과 운영 이력을 체계적으로 관리함으로써
-    <strong>공급망 운영의 가시성과 업무 신뢰성을 높이는 운영 중심 주문 관리 시스템</strong>을 제안한다.
+
+  <h4>기획의도</h4>
+  <ul>
+    <li><strong>통합 관리</strong> - 발주부터 정산까지 하나의 업무 흐름으로 연결</li>
+    <li><strong>운영 가시화</strong> - 공급 가능 수량, 재고, 출하, 반품 상태를 한눈에 확인</li>
+    <li><strong>데이터 정합성</strong> - 확정 발주 이후 품목 수정 제한 등 업무 규칙 반영</li>
+    <li><strong>사후 처리 추적</strong> - 반품/교환 사유, 증빙, 검수, 정산 연계 관리</li>
+  </ul>
+
+  <p>
+    <strong>ATLAS는 발주·재고·출하·반품·정산을 연결하는 운영 중심 SCM 주문 관리 시스템이다.</strong>
   </p>
+
 </details>
 
-<h3>2) 핵심 기능 요약</h3>
-<div id="features">
-  <details>
-    <summary><b>②.1 요약</b></summary>
 
-  <table>
-      <thead>
-        <tr>
-          <th>영역</th>
-          <th>주요 기능</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>관리자</strong></td>
-          <td>사용자 계정 관리, 조직 관리, 권한 관리, 품목 카테고리 관리, 인증서 유형 관리, 공급망 운영 데이터 조회, 발주·재고·출하·반품·정산 상태 확인</td>
-        </tr>
-        <tr>
-          <td><strong>조직관리</strong></td>
-          <td>발주사/공급사 조직 등록·조회·수정, 조직별 사용자 연결, 조직 유형별 업무 권한 관리, 담당자 및 연락처 정보 관리</td>
-        </tr>
-        <tr>
-          <td><strong>품목</strong></td>
-          <td>품목 등록·조회·수정, 카테고리 연결, 단가·규격·단위·유통기한 관리, 월간 생산량·주문 가능 수량·최소 주문 수량·리드타임 관리, 품목 이미지/파일 관리, 확정 발주 품목 수정 제한</td>
-        </tr>
-        <tr>
-          <td><strong>인증서</strong></td>
-          <td>공급사 인증서 등록·조회, 인증서 유형 관리, 원산지·품질·보관 조건 등 식자재 공급망 검증 자료 관리, 인증서 파일 업로드/조회</td>
-        </tr>
-        <tr>
-          <td><strong>창고</strong></td>
-          <td>창고·센터·출발지·도착지 등 창고 등록·조회·수정, 주소·좌표·담당 조직 관리, 출하 생성 시 출발/도착 창고 연동, 지도 기반 위치 시각화</td>
-        </tr>
-        <tr>
-          <td><strong>재고</strong></td>
-          <td>재고 등록·조회·수정, 품목별/창고별 재고 조회, 제조일·유통기한·잔여 수량·예약 수량·주문 가능 수량 관리, 품목 상세 내 해당 품목 재고 상태 표시</td>
-        </tr>
-        <tr>
-          <td><strong>발주</strong></td>
-          <td>발주 생성·목록 조회·상세 조회, 발주 품목 및 요청 수량 관리, 공급사 발주 수락·반려·부분 확정, 확정 수량 관리, 발주 상태 전환 및 후속 출하/정산 흐름 연결</td>
-        </tr>
-        <tr>
-          <td><strong>출하</strong></td>
-          <td>확정 발주 기반 출하 생성, 출하 목록·상세 조회, 출발/도착 창고 연결, 배송 상태 및 ETA 관리, 지도 기반 출하 흐름 시각화</td>
-        </tr>
-        <tr>
-          <td><strong>반품/교환</strong></td>
-          <td>반품 요청 등록, 반품 품목 선택, 반품 사유 및 증빙 이미지 첨부, 검수 결과 등록, 교환·폐기·반품 완료 처리, 반품/교환 상태 추적</td>
-        </tr>
-        <tr>
-          <td><strong>정산</strong></td>
-          <td>정산 목록·상세 조회, 정산 기간·금액·상태 관리, 발주·출하·반품 결과와 연결된 정산 데이터 확인, 공급사별 정산 흐름 관리</td>
-        </tr>
-        <tr>
-          <td><strong>알림/채팅</strong></td>
-          <td>발주·출하·반품·정산 상태 변경 알림, 이메일 알림 연동, 발주사와 공급사 간 업무 협의를 위한 실시간 채팅, WebSocket/STOMP 기반 메시지 송수신</td>
-        </tr>
-        <tr>
-          <td><strong>프로필</strong></td>
-          <td>내 정보 조회·수정, 비밀번호 변경, 소속 조직 및 권한 확인, 사용자별 접근 가능 업무 확인</td>
-        </tr>
-      </tbody>
-    </table>
-  </details>
-</div>
 
-<h3>3) 공급망형 주문관리(SCM Order Management) 흐름</h3>
+
+
+
+<section id="project-plan">
+    <h2>3. 공급망형 주문관리 흐름</h2>
+    
 <div id="order-supply">
-  <details>
-    <summary><b>③.1 흐름</b></summary>
+<h3> SCM 비즈니스 흐름도 </h3>
+    <img width="" height="" src="images\SCM 비즈니스 흐름도.png" />
+  <details> 
+    <summary><b>흐름 상세</b></summary>
 
   <ol>
       <li>
@@ -257,140 +124,10 @@
         발주, 출하, 반품, 정산 상태 변경 시 알림 발송 → 발주사와 공급사 간 채팅으로 업무 협의 → 처리 이력 확인
       </li>
     </ol>
-     <h3> SCM 비즈니스 흐름도 </h3>
-    <img width="" height="" src="images\SCM 비즈니스 흐름도.png" />
+     
   </details>
 </div>
 
-<h3>4) 발표 시나리오</h3>
-<div id="demo">
-  <details>
-    <summary><b>④.1 시나리오</b></summary>
-
-  <ol>
-      <li>
-        <strong>관리자 기준 정보 세팅</strong>
-        관리자가 품목 카테고리, 인증서 유형, 조직/사용자 정보를 등록하여 발주사와 공급사가 업무를 시작할 수 있는 기본 환경을 구성한다.
-      </li>
-
-  <li>
-        <strong>공급사 창고 등록</strong>
-        공급사가 재고를 보관할 창고 또는 물류거점을 등록하고, 출하 시 사용할 출발 거점 정보를 구성한다.
-    </li>
-
-  <li>
-        <strong>공급사 품목 등록</strong>
-        공급사가 품목명, 카테고리, 단가, 규격, 유통기한, 월간 생산량, 주문 가능 수량, 최소 주문 수량, 리드타임을 등록하고 품목 이미지와 인증서 정보를 연결한다.
-      </li>
-
-  <li>
-        <strong>품목 재고 등록</strong>
-        공급사가 등록한 품목을 기준으로 창고별 재고를 생성하고, 제조일, 유통기한, 입고 수량, 잔여 수량, 재고 상태를 입력한다.
-      </li>
-
-  <li>
-        <strong>발주사 창고 등록</strong>
-        발주사가 납품받을 창고 또는 물류거점을 등록하고, 출하 도착지로 사용할 주소와 위치 정보를 구성한다.
-      </li>
-
-  <li>
-        <strong>발주사 발주 생성</strong>
-        발주사가 공급사와 품목을 선택한 뒤 요청 수량, 납기일, 납품 거점을 입력하여 발주를 생성한다.
-      </li>
-
-  <li>
-        <strong>공급사 발주 처리</strong>
-        공급사는 발주 상세를 확인하고 재고와 공급 가능 수량을 기준으로 수락, 반려 또는 부분 확정을 선택한다. 부분 확정 시 품목별 확정 수량을 입력한다.
-      </li>
-
-  <li>
-        <strong>확정 발주 이후 품목 수정 제한</strong>
-        발주가 확정된 품목은 수정할 수 없도록 제한되어, 발주 이후 기준 정보가 임의로 변경되지 않고 데이터 정합성이 유지되는 것을 확인한다.
-      </li>
-
-  <li>
-        <strong>재고 확인 및 출하 생성</strong>
-        확정된 발주를 기준으로 해당 품목의 재고를 확인하고, 공급사 창고를 출발지로, 발주사 창고를 도착지로 지정하여 출하를 생성한다.
-      </li>
-
-  <li>
-        <strong>지도 기반 출하 상태 확인</strong>
-        출하 상세 화면에서 출발/도착 물류거점, 배송 상태, ETA 정보를 확인하고 지도 기반으로 물류 이동 흐름을 시각적으로 확인한다.
-      </li>
-
-  <li>
-        <strong>반품/교환 요청</strong>
-        납품 이후 품질 문제, 파손, 수량 불일치 등의 상황을 가정하여 반품 품목을 선택하고 반품 사유와 증빙 이미지를 등록한다.
-      </li>
-
-  <li>
-        <strong>반품 검수 및 처리</strong>
-        공급사가 반품 요청을 확인하고 검수 결과를 등록한 뒤 교환, 폐기, 반품 완료 등 처리 방식을 선택하여 상태를 변경한다.
-      </li>
-
-  <li>
-        <strong>정산 확인</strong>
-        발주, 출하, 반품/교환 처리 결과를 기반으로 공급사별 정산 목록과 상세 금액, 정산 기간, 처리 상태를 확인한다.
-      </li>
-
-  <li>
-        <strong>알림/채팅 확인</strong>
-        발주 수락, 출하 생성, 반품 요청, 정산 상태 변경에 따른 알림을 확인하고, 발주사와 공급사 간 채팅을 통해 업무 협의 흐름을 시연한다.
-      </li>
-    </ol>
-  </details>
-</div>
-
-
-
-</section>
-
-<section id="analysis-design">
-  <h2>3. 분석 및 설계</h2>
-  
-  ### 요구사항 명세서 [상세보기](https://docs.google.com/spreadsheets/d/1-9XXxS_f5A81Zk5Z6et8IepxUo-Pm2fp-omdqqYuDvY/edit?gid=0#gid=00)
-  <details>
-    <summary><b>요구사항 명세서</b></summary>
-    <img width="" height="" src="images\스크린샷 2026-05-08 101817.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101822.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101825.png" />
-  </details>
-
-  ### 화면 설계서 [상세보기](https://stitch.withgoogle.com/projects/3858843644991271330)
-  <details>
-    <summary><b>화면 설계서</b></summary>
-    <img width="569" height="548" src="images/발주관리.png" />
-    <img width="569" height="548" src="images/출하관리.png" />
-  </details>
-  
-  ### ERD [상세보기](https://www.erdcloud.com/d/CTyFQXjoQ3my9vYvr)
-  <details>
-    <summary><b>ERD</b></summary>
-    <img width="" height="" src="images/erd.png" />
-  </details>
-
-  ### WBS [상세보기](https://docs.google.com/spreadsheets/d/1-9XXxS_f5A81Zk5Z6et8IepxUo-Pm2fp-omdqqYuDvY/edit?gid=176847268#gid=176847268)
-  <details>
-    <summary><b>WBS</b></summary>
-    <img width="" height="" src="images\스크린샷 2026-05-08 101457.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101506.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101511.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101518.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101522.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101527.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101540.png" />
-  </details>
-
-  ### API 명세서 [상세보기](https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0?view=uiDocs)
-  <details>
-    <summary><b>API 명세서[상세보기](https://docs.google.com/spreadsheets/d/1-9XXxS_f5A81Zk5Z6et8IepxUo-Pm2fp-omdqqYuDvY/edit?gid=1910787508#gid=1910787508)</b></summary>
-    
-    <img width="" height="" src="images\스크린샷 2026-05-08 101024.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101033.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101040.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101116.png" />
-    <img width="" height="" src="images\스크린샷 2026-05-08 101134.png" />
-  </details>
 </section>
 
 <section id="techstack">
@@ -481,80 +218,111 @@
   <h2>5. 시스템 아키텍처</h2>
   <h3> 시스템 아키텍처 </h3>
     <img width="" height="" src="images\ATLAS 시스템 아키텍처.png" />
+</section>
+
+<section id="tech-summary">
+  <h2>6. 기술 요약</h2>
+
+  <details>
+    <summary><b>6.1 Backend</b></summary>
+    <table>
+      <thead>
+        <tr>
+          <th>사용기술</th>
+          <th>설명</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Spring Boot 기반 MSA 도메인 분리</b></td>
+          <td>Auth, Supply, File, Control Service로 기능을 분리하고 API Gateway를 통해 요청을 라우팅했습니다.</td>
+        </tr>
+        <tr>
+          <td><b>Spring Data JPA 기반 데이터 관리</b></td>
+          <td>품목, 발주, 재고, 출하, 반품, 정산 등 주요 도메인을 Entity 관계로 관리했습니다.</td>
+        </tr>
+        <tr>
+          <td><b>Redis / Elasticsearch / Kafka</b></td>
+          <td>Redis는 인증·캐시, Elasticsearch는 검색, Kafka는 이벤트 처리 기반으로 활용했습니다.</td>
+        </tr>
+        <tr>
+          <td><b>File Service 기반 첨부파일 관리</b></td>
+          <td>인증서, 품목 이미지, 반품 증빙 이미지 등 파일 데이터를 별도 서비스로 관리했습니다.</td>
+        </tr>
+        <tr>
+          <td><b>Swagger/OpenAPI 문서화</b></td>
+          <td>각 서비스 API를 Swagger/OpenAPI로 문서화하여 프론트엔드 연동과 협업 효율을 높였습니다.</td>
+        </tr>
+      </tbody>
+    </table>
+  </details>
+
+  <details>
+    <summary><b>6.2 Frontend</b></summary>
+    <table>
+      <thead>
+        <tr>
+          <th>사용기술</th>
+          <th>설명</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Vue 3 + Pinia 기반 운영 화면</b></td>
+          <td>발주, 품목, 재고, 출하, 반품, 정산 화면을 일관된 목록·상세·생성·수정 흐름으로 구성했습니다.</td>
+        </tr>
+        <tr>
+          <td><b>MapLibre 기반 출하/물류 지도</b></td>
+          <td>창고와 출하 흐름을 지도 기반으로 시각화하여 출발지, 도착지, 배송 상태를 확인할 수 있도록 했습니다.</td>
+        </tr>
+        <tr>
+          <td><b>운영 중심 UX 검증</b></td>
+          <td>품목 수정 제한, 정수 입력 검증, 상태 칩, 모달 안내 등을 통해 업무 처리 오류를 줄였습니다.</td>
+        </tr>
+      </tbody>
+    </table>
+  </details>
+
+  <details>
+    <summary><b>6.3 DevOps</b></summary>
+    <table>
+      <thead>
+        <tr>
+          <th>사용기술</th>
+          <th>설명</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Docker/Kubernetes 기반 배포</b></td>
+          <td>각 백엔드 서비스를 컨테이너 이미지로 빌드하고 Kubernetes manifest 기반으로 배포 구조를 구성했습니다.</td>
+        </tr>
+        <tr>
+          <td><b>GitHub Actions 기반 CI/CD</b></td>
+          <td>코드 변경 이후 빌드, 이미지 생성, 배포로 이어지는 자동화 흐름을 구성했습니다.</td>
+        </tr>
+      </tbody>
+    </table>
+  </details>
+</section>
 
 
   
 </section>
 
-<section id="tech-summary">
-  <h2>6. 기술 요약</h2>
-<table>
-  <thead>
-    <tr>
-      <th>사용기술</th>
-      <th>설명</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-        <td><b>Spring Boot 기반 MSA 도메인 분리 구조</b></td>
-        <td>ATLAS는 인증, 공급망 운영, 파일, 관제 기능을 각각 Auth Service, Supply Service, File Service, Control Service로 분리한 MSA 구조로 설계했습니다. 각 서비스는 독립적인 책임을 가지며 API Gateway를 통해 외부 요청을 라우팅합니다. 특히 Supply Service는 품목, 공급사, 발주, 재고, 출하, 반품, 정산 등 SCM 핵심 도메인을 담당하고, 공통 예외 처리와 응답 구조는 Common Module로 분리하여 서비스 간 중복 구현을 줄였습니다.</td>
-    </tr>
-    <tr>
-      <td><b>발주-재고-출하-반품-정산 통합 업무 흐름</b></td>
-      <td>공급망 운영에서 분리되어 관리되기 쉬운 발주, 재고, 출하, 반품/교환, 정산 데이터를 하나의 흐름으로 연결했습니다. 발주가 확정되면 품목 수정 제한과 재고 예약, 출하 상태 관리 등 후속 업무에 영향을 주도록 설계해 데이터 정합성을 높였습니다. 이를 통해 사용자는 주문 이후의 처리 상태를 단계별로 추적하고, 공급사와 발주사 간 업무 진행 상황을 한눈에 확인할 수 있습니다.</td>
-    </tr>
-    <tr>
-        <td><b>Spring Data JPA 기반 도메인 데이터 관리</b></td>
-        <td>품목, 공급사, 발주, 재고, 출하, 반품, 정산 등 주요 도메인은 Spring Data JPA 기반으로 관리했습니다. Entity 간 연관관계를 통해 주문 품목, 공급사 품목, 재고 Lot, 출하, 반품 품목 등 업무 데이터를 구조화했으며, 공통 BaseTimeEntity를 활용해 생성일과 수정일을 일관되게 기록합니다. 또한 Public ID 기반 식별자를 사용하여 내부 DB ID 노출을 줄이고 API 사용 안정성을 높였습니다.</td>
-      </tr>
-      <tr>
-        <td><b>Redis 기반 인증 보조 및 캐시 처리</b></td>
-        <td>Redis는 인증 흐름과 서비스 성능 보조를 위한 인메모리 저장소로 활용했습니다. 빠른 조회가 필요한 인증 관련 데이터나 반복 조회되는 데이터를 Redis에 저장하여 DB 접근 부담을 줄이고, 사용자 요청 처리 속도를 개선했습니다. 이를 통해 로그인, 권한 확인, 세션성 데이터 처리 등에서 안정적인 응답 구조를 구성했습니다.</td>
-      </tr>
-      <tr>
-        <td><b>Elasticsearch 기반 검색 기능</b></td>
-        <td>ATLAS는 단순 DB 조회만으로 처리하기 어려운 검색 요구를 위해 Elasticsearch를 도입했습니다. 품목, 공급사, 발주 등 운영 데이터에 대해 빠른 검색과 필터링이 가능하도록 구성하여 사용자가 필요한 데이터를 신속하게 찾을 수 있도록 했습니다. 공급망 운영 화면에서 목록 조회와 검색 편의성을 높이는 데 활용했습니다.</td>
-      </tr>
-      <tr>
-        <td><b>Kafka 기반 이벤트 처리 구조</b></td>
-        <td>서비스 간 직접 호출에만 의존하지 않고 Kafka를 활용해 이벤트 기반 처리 구조를 구성했습니다. 발주, 재고, 출하 등 도메인 이벤트를 비동기적으로 전달할 수 있는 기반을 마련하여 서비스 간 결합도를 낮추고 확장 가능한 구조를 지향했습니다. 향후 알림, 통계, 모니터링, 이력 적재 기능으로 확장하기 쉬운 이벤트 중심 아키텍처입니다.</td>
-      </tr>
-      <tr>
-        <td><b>파일 서비스 기반 첨부파일 관리</b></td>
-        <td>인증서, 품목 이미지, 반품 증빙 이미지 등 업무 과정에서 필요한 파일을 File Service로 분리하여 관리했습니다. SCM 업무에서는 단순 텍스트 데이터뿐 아니라 인증 문서와 증빙 이미지가 중요하기 때문에, 파일 업로드와 조회 책임을 별도 서비스로 분리했습니다. 이를 통해 품목 관리, 공급사 인증, 반품/교환 처리 과정에서 필요한 파일 데이터를 일관되게 연동할 수 있습니다.</td>
-      </tr>
-      <tr>
-        <td><b>MapLibre 기반 출하/물류 지도 시각화</b></td>
-        <td>출하 관리 화면에서는 MapLibre를 활용해 창고과 출하 흐름을 지도 기반으로 시각화했습니다. 단순 테이블 중심의 출하 관리에서 벗어나 출발지, 도착지, 물류 이동 경로를 직관적으로 확인할 수 있도록 구성했습니다. 이를 통해 운영자는 출하 상태와 위치 정보를 함께 파악하고, 배송 지연이나 이동 흐름을 더 쉽게 이해할 수 있습니다.</td>
-      </tr>
-     <tr>
-        <td><b>Vue 3 + Pinia 기반 운영 중심 Frontend</b></td>
-        <td>Frontend는 Vue 3, TypeScript, Vite, Pinia 기반으로 구성했습니다. 발주, 품목, 재고, 출하, 반품/교환, 정산 등 반복 업무가 많은 SCM 화면 특성에 맞춰 목록, 상세, 생성, 수정 흐름을 일관된 UI 패턴으로 설계했습니다. 또한 품목 수정 제한, 정수 입력 검증, 상태 칩 표시, 모달 안내 등 프론트 단의 검증과 사용자 피드백을 강화해 업무 처리 오류를 줄였습니다.</td>
-      </tr>
-      <tr>
-        <td><b>Swagger/OpenAPI 기반 API 문서화</b></td>
-        <td>각 백엔드 서비스는 Swagger/OpenAPI를 통해 API 명세를 문서화했습니다. Controller 단위로 Tag와 Operation 정보를 작성하여 발주, 품목, 재고, 출하, 반품, 정산 API의 목적과 요청/응답 구조를 쉽게 확인할 수 있도록 구성했습니다. 이를 통해 프론트엔드와 백엔드 간 연동 과정에서 API 이해도를 높이고, 협업 효율을 개선했습니다.</td>
-      </tr>
-      <tr>
-        <td><b>Docker/Kubernetes 기반 배포 구조</b></td>
-        <td>각 백엔드 서비스는 Dockerfile을 통해 컨테이너 이미지로 빌드할 수 있도록 구성했으며, Kubernetes manifest를 통해 서비스 단위 배포 구조를 설계했습니다. API Gateway, Auth Service, Supply Service, File Service, Control Service를 각각 독립적으로 배포할 수 있어 서비스 확장성과 운영 유연성을 확보했습니다. 또한 MariaDB, PostgreSQL, Redis, Elasticsearch, Kafka 등 인프라 구성 요소를 목적별로 분리해 운영 환경에 가깝게 구성했습니다.</td>
-      </tr>
-    <tr>
-        <td><b>GitHub Actions 기반 CI/CD 자동화</b></td>
-        <td>GitHub Actions를 활용해 코드 변경 이후 빌드, 이미지 생성, 배포로 이어지는 자동화 흐름을 구성했습니다. 개발자는 GitHub에 코드를 반영하면 워크플로우를 통해 서비스 빌드와 배포 과정을 자동으로 수행할 수 있습니다. 이를 통해 반복적인 수동 배포 작업을 줄이고, 팀 단위 협업에서 배포 일관성을 확보했습니다.</td>
-      </tr>
-  </tbody>
-</table>
-</section>
 
 <section id="features">
-  <h2>7. 주요 기능</h2>
+  <h2>7. 주요 기능 상세</h2>
 
   <details>
     <summary><b>7.1 관리자</b></summary>
 
   <h4>7.1.1 시스템 운영 관리</h4>
+    <img width="" height="" src="images\조직생성.png" />
+    <img width="" height="" src="images\조직대표자생성.png" />
+    <img width="" height="" src="images\카테고리생성.png" />
+    <img width="" height="" src="images\인증분류생성.png" />
+    <img width="" height="" src="images\리스크규칙관리.png" />
     <ul>
       <li><strong>전체 업무 현황 관리:</strong> 품목, 발주, 재고, 출하, 반품/교환, 정산 등 공급망 운영 데이터를 관리</li>
       <li><strong>사용자 관리:</strong> 사용자 계정 생성, 조회, 수정, 상태 관리</li>
@@ -562,17 +330,14 @@
       <li><strong>기준 정보 관리:</strong> 카테고리, 인증서 유형, 조직 정보 등 공통 기준 데이터 관리</li>
       <li><strong>운영 데이터 추적:</strong> 발주부터 정산까지 업무 단계별 처리 상태와 이력 확인</li>
     </ul>
-    <img width="" height="" src="images\조직생성.png" />
-    <img width="" height="" src="images\조직대표자생성.png" />
-    <img width="" height="" src="images\카테고리생성.png" />
-    <img width="" height="" src="images\인증분류생성.png" />
-    <img width="" height="" src="images\리스크규칙관리.png" />
+    
   </details>
 
   <details>
     <summary><b>7.2 창고</b></summary>
 
   <h4>7.2.1 창고 관리</h4>
+  <img width="" height="" src="images\창고등록.png" />
     <ul>
       <li><strong>창고 등록:</strong> 창고, 센터, 출발지, 도착지 등 창고 정보 등록</li>
       <li><strong>창고 상세 조회:</strong> 창고명, 주소, 좌표, 담당 조직 등 상세 정보 확인</li>
@@ -580,22 +345,23 @@
       <li><strong>출하 연동:</strong> 출하 생성 시 출발 창고과 도착 창고을 연결하여 배송 흐름 관리</li>
       <li><strong>지도 시각화:</strong> 출하 및 물류 흐름을 지도 기반으로 확인</li>
     </ul>
-    <img width="" height="" src="images\창고등록.png" />
   </details>
 
   <details>
     <summary><b>7.3 품목</b></summary>
 
   <h4>7.3.1 카테고리 관리</h4>
+  <img width="" height="" src="images\카테고리생성.png" />
     <ul>
       <li><strong>카테고리 등록:</strong> 식자재 등 품목 분류 기준 등록</li>
       <li><strong>카테고리 조회:</strong> 품목 생성 및 검색에 사용할 카테고리 목록 제공</li>
       <li><strong>카테고리 상태 관리:</strong> 사용 여부에 따른 카테고리 관리</li>
     </ul>
-    <img width="" height="" src="images\카테고리생성.png" />
-  </details>
+    
 
   <h4>7.3.2 품목 관리</h4>
+  <img width="" height="" src="images\품목등록.png" />
+      <img width="" height="" src="images\품목상세.png" />
     <ul>
       <li><strong>품목 등록:</strong> 품목명, 카테고리, 규격, 단위, 단가, 유통기한 등 기본 정보 입력</li>
       <li><strong>품목 상세 조회:</strong> 품목 기본 정보, 공급 정보, 재고 현황, 관련 이미지 확인</li>
@@ -604,15 +370,16 @@
       <li><strong>품목 상태 관리:</strong> ACTIVE/DEACTIVE 등 품목 운영 상태 관리</li>
       <li><strong>공급 조건 관리:</strong> 월간 생산량, 주문 가능 수량, 최소 주문 수량, 리드타임 관리</li>
       <li><strong>품목 미디어 관리:</strong> 품목 이미지 및 관련 파일 업로드/조회</li>
-      <img width="" height="" src="images\품목등록.png" />
-      <img width="" height="" src="images\품목상세.png" />
     </ul>
+      </details>
 
 
   <details>
     <summary><b>7.4 재고</b></summary>
 
   <h4>7.4.1 재고 관리</h4>
+  <img width="" height="" src="images\재고관리.png" />
+    <img width="" height="" src="images\재고상세.png" />
     <ul>
       <li><strong>재고 등록:</strong> 품목, 창고, 제조일, 유통기한, 수량 등 재고 정보 등록</li>
       <li><strong>재고 목록 조회:</strong> 품목별, 창고별, 상태별 재고 목록 확인</li>
@@ -622,23 +389,22 @@
       <li><strong>유통기한 관리:</strong> 제조일과 유통기한 기반으로 재고 상태 추적</li>
       <li><strong>재고 상태 관리:</strong> 사용 가능, 예약, 출하 대기 등 업무 상태별 재고 관리</li>
     </ul>
-    <img width="" height="" src="images\재고관리.png" />
-    <img width="" height="" src="images\재고상세.png" />
   </details>
 
   <details>
     <summary><b>7.5 발주</b></summary>
 
   <h4>7.5.1 발주 생성 및 조회</h4>
+  <img width="" height="" src="images\발주관리.png" />
     <ul>
       <li><strong>발주 생성:</strong> 공급사, 품목, 요청 수량, 납기일 등을 입력하여 발주 생성</li>
       <li><strong>발주 목록 조회:</strong> 발주 번호, 발주사, 공급사, 상태, 생성일 기준으로 발주 목록 확인</li>
       <li><strong>발주 상세 조회:</strong> 발주 기본 정보, 발주 품목, 요청 수량, 확정 수량, 처리 상태 확인</li>
       <li><strong>발주 품목 관리:</strong> 하나의 발주에 여러 품목을 연결하여 주문 처리</li>
     </ul>
-    <img width="" height="" src="images\발주관리.png" />
 
   <h4>7.5.2 발주 처리</h4>
+    <img width="" height="" src="images\발주관리.png" />
     <ul>
       <li><strong>발주 수락:</strong> 공급사가 요청된 발주를 수락하고 후속 재고/출하 흐름으로 연결</li>
       <li><strong>발주 반려:</strong> 공급 불가 또는 조건 불일치 시 발주 반려 처리</li>
@@ -646,13 +412,14 @@
       <li><strong>상태 전환 관리:</strong> 요청, 검토, 수락, 반려, 확정 등 발주 처리 상태 관리</li>
       <li><strong>업무 정합성 확보:</strong> 확정된 발주 기준으로 품목 수정 제한 및 후속 업무 연결</li>
     </ul>
-    <img width="" height="" src="images\발주관리.png" />
   </details>
 
   <details>
     <summary><b>7.6 출하</b></summary>
 
   <h4>7.6.1 출하 관리</h4>
+  <img width="" height="" src="images\출하.png" />
+    <img width="" height="" src="images\출하상세.png" />
     <ul>
       <li><strong>출하 생성:</strong> 확정된 발주를 기준으로 출하 데이터 생성</li>
       <li><strong>출하 목록 조회:</strong> 출하 번호, 발주 정보, 출발지, 도착지, 상태 기준으로 목록 확인</li>
@@ -661,37 +428,37 @@
       <li><strong>창고 연동:</strong> 출발 창고과 도착 창고을 연결하여 물류 흐름 관리</li>
       <li><strong>지도 기반 시각화:</strong> 출하 경로와 창고 정보를 지도 화면에서 확인</li>
     </ul>
-    <img width="" height="" src="images\출하.png" />
-    <img width="" height="" src="images\출하상세.png" />
   </details>
 
   <details>
     <summary><b>7.7 반품/교환</b></summary>
 
   <h4>7.7.1 반품 요청</h4>
+  <img width="" height="" src="images\반품.png" />
+    <img width="" height="" src="images\반품요청.png" />
     <ul>
       <li><strong>반품 요청 등록:</strong> 납품 이후 품목 이상, 수량 불일치, 품질 문제 등 반품 사유 입력</li>
       <li><strong>반품 품목 선택:</strong> 발주 또는 출하와 연결된 품목 중 반품 대상 품목 선택</li>
       <li><strong>증빙 파일 첨부:</strong> 반품 사유를 확인할 수 있는 이미지 또는 문서 업로드</li>
       <li><strong>반품 상세 조회:</strong> 반품 요청 정보, 품목, 사유, 증빙 자료, 처리 상태 확인</li>
     </ul>
-    <img width="" height="" src="images\반품.png" />
-    <img width="" height="" src="images\반품요청.png" />
 
   <h4>7.7.2 교환 및 처리</h4>
+    <img width="" height="" src="images\반품.png" />
     <ul>
       <li><strong>검수 결과 등록:</strong> 반품 품목에 대한 검수 결과와 처리 의견 기록</li>
       <li><strong>처리 방식 결정:</strong> 교환, 폐기, 반품 완료 등 처리 결과 관리</li>
       <li><strong>처리 상태 관리:</strong> 요청, 검수 중, 처리 완료 등 반품/교환 상태 추적</li>
       <li><strong>정산 연동:</strong> 반품/교환 결과가 정산 데이터에 반영될 수 있도록 후속 흐름 연결</li>
     </ul>
-    <img width="" height="" src="images\반품.png" />
   </details>
 
   <details>
     <summary><b>7.8 정산</b></summary>
 
    <h4>7.8.1 정산 관리</h4>
+   <img width="" height="" src="images\정산관리1.png" />
+    <img width="" height="" src="images\정산관리2.png" />
     <ul>
       <li><strong>정산 목록 조회:</strong> 정산 기간, 공급사, 금액, 상태 기준으로 정산 데이터 확인</li>
       <li><strong>정산 상세 조회:</strong> 발주, 출하, 반품 결과와 연결된 정산 상세 정보 확인</li>
@@ -699,14 +466,17 @@
       <li><strong>금액 관리:</strong> 공급 품목, 수량, 단가, 반품/교환 결과를 기반으로 정산 금액 확인</li>
       <li><strong>업무 흐름 연결:</strong> 발주부터 납품, 반품/교환까지의 결과를 정산 단계로 연결</li>
     </ul>
-    <img width="" height="" src="images\정산관리1.png" />
-    <img width="" height="" src="images\정산관리2.png" />
   </details>
 
   <details>
     <summary><b>7.9 조직관리</b></summary>
 
   <h4>7.9.1 조직 및 사용자 관리</h4>
+  <img width="" height="" src="images\최초 로그인 화면.png" />
+    <img width="" height="" src="images\조직생성.png" />
+    <img width="" height="" src="images\조직대표자생성.png" />
+    <img width="" height="" src="images\조직대표자비밀번호변경.png" />
+    <img width="" height="" src="images\개인프로필.png" />
     <ul>
       <li><strong>조직 등록:</strong> 발주사, 공급사 등 공급망 참여 조직 정보 등록</li>
       <li><strong>조직 상세 조회:</strong> 조직명, 유형, 연락처, 주소, 담당자 정보 확인</li>
@@ -714,17 +484,13 @@
       <li><strong>사용자 연결:</strong> 조직에 소속된 사용자 계정 관리</li>
       <li><strong>역할 기반 관리:</strong> 조직 유형과 사용자 역할에 따라 접근 가능한 업무 범위 구분</li>
     </ul>
-    <img width="" height="" src="images\최초 로그인 화면.png" />
-    <img width="" height="" src="images\조직생성.png" />
-    <img width="" height="" src="images\조직대표자생성.png" />
-    <img width="" height="" src="images\조직대표자비밀번호변경.png" />
-    <img width="" height="" src="images\개인프로필.png" />
   </details>
 
   <details>
     <summary><b>7.10 알림</b></summary>
 
   <h4>7.10.1 업무 알림</h4>
+  <img width="" height="" src="images\알림 관리.png" />
     <ul>
       <li><strong>발주 알림:</strong> 신규 발주, 발주 수락/반려, 확정 상태 변경 알림</li>
       <li><strong>출하 알림:</strong> 출하 생성, 배송 진행, 납품 완료 등 상태 변경 알림</li>
@@ -732,13 +498,13 @@
       <li><strong>정산 알림:</strong> 정산 생성, 확정, 완료 등 정산 상태 알림</li>
       <li><strong>메일 연동:</strong> SMTP 기반 이메일 알림 발송</li>
     </ul>
-    <img width="" height="" src="images\알림 관리.png" />
   </details>
 
   <details>
     <summary><b>7.11 채팅</b></summary>
 
   <h4>7.11.1 실시간 커뮤니케이션</h4>
+  <img width="" height="" src="images\채팅.png" />
     <ul>
       <li><strong>업무 채팅:</strong> 발주사와 공급사 간 업무 협의를 위한 채팅 기능</li>
       <li><strong>발주 관련 대화:</strong> 발주 수량, 납기, 출하 일정 등 주문 처리 과정에서 필요한 협의 지원</li>
@@ -751,6 +517,10 @@
     <summary><b>7.12 인증서</b></summary>
 
   <h4>7.12.1 공급사 인증서 관리</h4>
+  <img width="" height="" src="images\인증분류생성.png" />
+    <img width="" height="" src="images\인증서 관리.png" />
+    <img width="" height="" src="images\인증서등록.png" />
+    <img width="" height="" src="images\인증서문서관리.png" />
     <ul>
       <li><strong>인증서 유형 관리:</strong> HACCP, 원산지 증명, 품질 인증 등 인증서 유형 등록 및 관리</li>
       <li><strong>인증서 등록:</strong> 공급사별 인증서 파일 및 인증 정보 등록</li>
@@ -758,16 +528,14 @@
       <li><strong>인증서 파일 관리:</strong> 인증서 이미지 또는 문서 파일 업로드/조회</li>
       <li><strong>식자재 공급망 검증:</strong> 원산지, 품질, 보관 조건 등 실무 검증에 필요한 자료 관리</li>
     </ul>
-    <img width="" height="" src="images\인증분류생성.png" />
-    <img width="" height="" src="images\인증서 관리.png" />
-    <img width="" height="" src="images\인증서등록.png" />
-    <img width="" height="" src="images\인증서문서관리.png" />
   </details>
 
   <details>
     <summary><b>7.13 프로필</b></summary>
 
   <h4>7.13.1 사용자 프로필</h4>
+  <img width="" height="" src="images\개인프로필.png" />
+    <img width="" height="" src="images\조직대표자비밀번호변경.png" />
     <ul>
       <li><strong>내 정보 조회:</strong> 로그인한 사용자의 기본 정보, 조직, 권한 확인</li>
       <li><strong>프로필 수정:</strong> 이름, 연락처 등 사용자 기본 정보 수정</li>
@@ -775,8 +543,6 @@
       <li><strong>조직 정보 확인:</strong> 사용자가 소속된 발주사 또는 공급사 정보 확인</li>
       <li><strong>업무 접근 정보 확인:</strong> 사용자 권한에 따라 접근 가능한 메뉴와 기능 확인</li>
     </ul>
-    <img width="" height="" src="images\개인프로필.png" />
-    <img width="" height="" src="images\조직대표자비밀번호변경.png" />
   </details>
 </section>
 
@@ -887,11 +653,11 @@
     <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/42ddc3e4-07cd-4902-95b2-f7880a8ef131" /></p>
   </details>
 
-  <!-- <details>
+  <details>
 <summary><b>⑧ 알림 관리</b></summary>
     <p><b>알림 페이지</b></p>
-    <p align="center"><img src="https://github.com/user-attachments/assets/2828caf8-4c30-4cb3-a5b9-b16ffd8f5ed1" alt="실시간 고객 활동 모달" width="#"></p>
-  </details> -->
+    <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/63e83947-f6fd-4110-be95-509ea990a00f" /></p>
+  </details>
 
   <details>
 <summary><b>⑧ 인증서 관리</b></summary>
@@ -915,6 +681,54 @@
     <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/df5a6369-5d93-4444-9a8c-b3b4e436bd2f" /></p>
     <p><b>채팅방 반품 정보</b></p>
     <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/196698d8-f84b-4224-b431-b10f6adca668" /></p>
+  </details>
+</section>
+
+<section id="analysis-design">
+  <h2>9. 분석 및 설계</h2>
+  
+  ### 요구사항 명세서 [상세보기](https://docs.google.com/spreadsheets/d/1-9XXxS_f5A81Zk5Z6et8IepxUo-Pm2fp-omdqqYuDvY/edit?gid=0#gid=00)
+  <details>
+    <summary><b>요구사항 명세서</b></summary>
+    <img width="" height="" src="images\스크린샷 2026-05-08 101817.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101822.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101825.png" />
+  </details>
+
+  ### 화면 설계서 [상세보기](https://stitch.withgoogle.com/projects/3858843644991271330)
+  <details>
+    <summary><b>화면 설계서</b></summary>
+    <img width="569" height="548" src="images/발주관리.png" />
+    <img width="569" height="548" src="images/출하관리.png" />
+  </details>
+  
+  ### ERD [상세보기](https://www.erdcloud.com/d/CTyFQXjoQ3my9vYvr)
+  <details>
+    <summary><b>ERD</b></summary>
+    <img width="" height="" src="images/erd.png" />
+  </details>
+
+  ### WBS [상세보기](https://docs.google.com/spreadsheets/d/1-9XXxS_f5A81Zk5Z6et8IepxUo-Pm2fp-omdqqYuDvY/edit?gid=176847268#gid=176847268)
+  <details>
+    <summary><b>WBS</b></summary>
+    <img width="" height="" src="images\스크린샷 2026-05-08 101457.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101506.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101511.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101518.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101522.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101527.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101540.png" />
+  </details>
+
+  ### API 명세서 [상세보기](https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0?view=uiDocs)
+  <details>
+    <summary><b><a href="https://docs.google.com/spreadsheets/d/1-9XXs_f5A81Zk5Z6et8lepxUo-Pm2fp-omdqqYuDvY/edit?gid=1910787508#gid=1910787508">API 명세서</a></b></summary>
+    
+  <img width="" height="" src="images\스크린샷 2026-05-08 101024.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101033.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101040.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101116.png" />
+    <img width="" height="" src="images\스크린샷 2026-05-08 101134.png" />
   </details>
 </section>
 
