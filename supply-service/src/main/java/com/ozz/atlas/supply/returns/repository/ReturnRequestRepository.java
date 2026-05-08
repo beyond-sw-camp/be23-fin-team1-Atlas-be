@@ -16,6 +16,7 @@ import java.util.Optional;
 public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, Long> {
 
     Optional<ReturnRequest> findByPublicId(String publicId);
+    boolean existsByPublicId(String publicId);
 
     Optional<ReturnRequest> findByPublicIdAndRequestOrganizationPublicIdOrPublicIdAndTargetOrganizationPublicId(
             String publicId,
