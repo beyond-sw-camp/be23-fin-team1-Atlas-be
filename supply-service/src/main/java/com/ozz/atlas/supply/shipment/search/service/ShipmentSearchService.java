@@ -11,6 +11,7 @@ import com.ozz.atlas.supply.shipment.exception.ShipmentException;
 import com.ozz.atlas.supply.shipment.repository.ShipmentRepository;
 import com.ozz.atlas.supply.shipment.search.document.ShipmentDocument;
 import com.ozz.atlas.supply.shipment.search.dtos.ShipmentSearchDto;
+import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
 import com.ozz.atlas.supply.shipment.search.repository.ShipmentSearchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -39,6 +40,7 @@ public class ShipmentSearchService {
     private final ShipmentRepository shipmentRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ElasticsearchOperations elasticsearchOperations;
+    private final ReturnRequestRepository returnRequestRepository;
 
     // 출하 엔티티를 Elasticsearch 문서로 저장한다.
     @Transactional
@@ -187,6 +189,7 @@ public class ShipmentSearchService {
                 .temperatureRequired(Boolean.TRUE.equals(document.getTemperatureRequired()))
                 .sealedPackagingRequired(Boolean.TRUE.equals(document.getSealedPackagingRequired()))
                 .fragile(Boolean.TRUE.equals(document.getFragile()))
+                .hasReturn(returnRequestRepository.existsBySourceShipmentPublicId(document.getPublicId()))
                 .build();
     }
 

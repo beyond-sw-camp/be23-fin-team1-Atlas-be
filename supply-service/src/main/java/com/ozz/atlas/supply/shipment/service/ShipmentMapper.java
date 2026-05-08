@@ -8,6 +8,7 @@ import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentLineResponseDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
 import com.ozz.atlas.supply.shipment.repository.ShipmentLineRepository;
+import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
 import org.springframework.stereotype.Component;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
 
@@ -24,13 +25,16 @@ public class ShipmentMapper {
 
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ShipmentLineRepository shipmentLineRepository;
+    private final ReturnRequestRepository returnRequestRepository;
 
     public ShipmentMapper(
             LogisticsNodeRepository logisticsNodeRepository,
-            ShipmentLineRepository shipmentLineRepository
+            ShipmentLineRepository shipmentLineRepository,
+            ReturnRequestRepository returnRequestRepository
     ) {
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.shipmentLineRepository = shipmentLineRepository;
+        this.returnRequestRepository = returnRequestRepository;
     }
 
     public ShipmentResponseDto toShipmentResponseDto(Shipment shipment) {
@@ -91,6 +95,7 @@ public class ShipmentMapper {
                 .canCancel(permissions.canCancel())
                 .canTrack(permissions.canTrack())
                 .canRegisterException(permissions.canRegisterException())
+                .hasReturn(returnRequestRepository.existsBySourceShipmentPublicId(shipment.getPublicId()))
                 .shipmentLines(getShipmentLineResponses(shipment))
                 .build();
 
@@ -141,6 +146,7 @@ public class ShipmentMapper {
                 .canCancel(permissions.canCancel())
                 .canTrack(permissions.canTrack())
                 .canRegisterException(permissions.canRegisterException())
+                .hasReturn(returnRequestRepository.existsBySourceShipmentPublicId(shipment.getPublicId()))
                 .build();
     }
 
