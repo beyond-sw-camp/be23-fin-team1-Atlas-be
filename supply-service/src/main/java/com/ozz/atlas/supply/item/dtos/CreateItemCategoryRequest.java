@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.item.dtos;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -11,14 +12,18 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Create Item Category 값 요청")
 public class CreateItemCategoryRequest {
 
     @Size(max = 26)
+    @Schema(description = "공개 식별자", example = "sample_public_id", nullable = true)
     private String parentCategoryPublicId;
 
     @NotBlank
     @Size(max = 100)
+    @Schema(description = "이름", example = "샘플 이름")
     private String categoryName;
 
+    @Schema(description = "sort Order 값", example = "1", nullable = true)
     private Integer sortOrder;
 }

@@ -57,7 +57,6 @@ public class CreateLogisticsNodeRequestDto {
                 .active(true)
                 .build();
     }
-
     private String buildDisplayAddress(String baseAddress, String detailAddress) {
         if (detailAddress == null || detailAddress.isBlank()) {
             return baseAddress;

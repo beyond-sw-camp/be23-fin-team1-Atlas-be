@@ -15,6 +15,7 @@ import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
 import com.ozz.atlas.supply.purchaseorder.search.dtos.PurchaseOrderSearchDto;
 import com.ozz.atlas.supply.purchaseorder.search.service.PurchaseOrderSearchService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 
@@ -48,9 +49,11 @@ public class PurchaseOrderController {
     @GetMapping
     public ResponseEntity<Page<PurchaseOrderSummaryResponse>> getPurchaseOrderList(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @Parameter(description = "조회 관점. 구매사 기준은 BUYER, 공급사 기준은 SUPPLIER", example = "BUYER")
             @RequestParam("viewType") PurchaseOrderViewType viewType,
             @RequestParam(value = "supplierPublicId", required = false) String supplierPublicId,
             @RequestParam(value = "keyword", required = false) String keyword,
+            @Parameter(description = "발주 상태 필터", example = "CREATED")
             @RequestParam(value = "poStatus", required = false) PoStatus poStatus,
             @PageableDefault(size = 10) Pageable pageable
     ) {

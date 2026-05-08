@@ -32,7 +32,6 @@ public class DeliveryExceptionResponseDto {
     private LocalDateTime resolvedAt;
     @Schema(description = "예외 메모", example = "기상 악화로 허브 도착이 지연되었습니다.", nullable = true)
     private String note;
-
     public static DeliveryExceptionResponseDto from(DeliveryException deliveryException, String shipmentPublicId) {
         return DeliveryExceptionResponseDto.builder()
                 .shipmentPublicId(shipmentPublicId)

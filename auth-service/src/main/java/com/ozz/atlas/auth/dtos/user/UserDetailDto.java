@@ -51,7 +51,6 @@ public class UserDetailDto {
     @Schema(description = "사용자 권한", example = "USER")
     private UserRole userRole;
 
-
     public static UserDetailDto fromEntity(User user) {
         return UserDetailDto.builder()
                 .userPublicId(user.getPublicId())

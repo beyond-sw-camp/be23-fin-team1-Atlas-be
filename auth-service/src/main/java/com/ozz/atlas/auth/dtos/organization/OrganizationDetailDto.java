@@ -54,19 +54,12 @@ public class OrganizationDetailDto {
 
     @Schema(description = "조직 상태", example = "ACTIVE")
     private Status status;
-
     private String address;
-
     private String addressDetail;
-
     private String zipCode;
-
     private String organizationImageAttachmentPublicId;
-
     private String organizationImageThumbPath;
-
     private long memberCount;
-
 
     public static OrganizationDetailDto fromEntity(Organization organization, long memberCount) {
         return OrganizationDetailDto.builder()

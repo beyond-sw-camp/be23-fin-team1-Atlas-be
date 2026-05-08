@@ -1,8 +1,10 @@
 package com.ozz.atlas.control.kafka.monitoring.dtos;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import org.springframework.data.domain.Page;
 
+@Schema(description = "Page 값 응답")
 public record PageResponse<T>(
         List<T> content,
         int page,
@@ -12,7 +14,6 @@ public record PageResponse<T>(
         boolean first,
         boolean last
 ) {
-
     public static <T> PageResponse<T> from(Page<T> page) {
         return new PageResponse<>(
                 page.getContent(),

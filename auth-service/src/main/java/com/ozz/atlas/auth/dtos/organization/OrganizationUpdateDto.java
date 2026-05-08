@@ -48,9 +48,7 @@ public class OrganizationUpdateDto {
 
     @Schema(description = "우편번호", example = "06234", nullable = true)
     private String zipCode;
-
     private String organizationImageAttachmentPublicId;
-
     private String organizationImageThumbPath;
 
 }

@@ -47,7 +47,6 @@ public class LogisticsNodeResponseDto {
     private LocalDateTime createdAt;
     @Schema(description = "수정 시각", example = "2026-04-24T09:40:39")
     private LocalDateTime updatedAt;
-
     public static LogisticsNodeResponseDto from(LogisticsNode node){
         return LogisticsNodeResponseDto.builder()
                 .publicId(node.getPublicId())
