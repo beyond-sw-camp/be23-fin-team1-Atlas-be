@@ -15,7 +15,7 @@ public enum LogisticsNodeErrorCode implements ErrorCode {
     ADDRESS_GEOCODING_FAILED(400, "LOGISTICS_003", "주소를 좌표로 변환할 수 없습니다."),
     ACCESS_DENIED(403, "LOGISTICS_004", "물류거점에 접근할 권한이 없습니다."),
     INTERNAL_SERVER_ERROR(500, "LOGISTICS_999", "서버 내부 오류가 발생했습니다."),
-    NODE_HAS_REMAINING_INVENTORY(409, "LOGISTICS_NODE_409", "재고가 남아있는 창고는 비활성화할 수 없습니다.");
+    NODE_HAS_RESERVED_INVENTORY(409, "LOGISTICS_NODE_409", "예약 재고가 있는 창고는 비활성화할 수 없습니다.");
 
 
     private final int status;
