@@ -90,6 +90,33 @@ public class SupplierCertificateService {
                 .collect(Collectors.toList());
     }
 
+    public SupplierCertificateSummaryResponseDto getCertificateSummaryBySupplier(
+            String supplierPublicId,
+            int expiringWithinDays
+    ) {
+        LocalDate today = LocalDate.now();
+        LocalDate targetDate = today.plusDays(Math.max(expiringWithinDays, 0));
+        List<SupplierCertificate> certificates = supplierCertificateRepository.findBySupplierPublicId(supplierPublicId);
+
+        long validCount = certificates.stream()
+                .filter(certificate -> certificate.getCertificateStatus() == CertificateStatus.APPROVED)
+                .count();
+        long expiringSoonCount = certificates.stream()
+                .filter(certificate -> isExpiringWithin(certificate, today, targetDate))
+                .count();
+        long renewalNeededCount = certificates.stream()
+                .filter(certificate -> certificate.getCertificateStatus() == CertificateStatus.EXPIRED
+                        || certificate.getCertificateStatus() == CertificateStatus.REVOKED)
+                .count();
+
+        return SupplierCertificateSummaryResponseDto.builder()
+                .validCount(validCount)
+                .expiringSoonCount(expiringSoonCount)
+                .renewalNeededCount(renewalNeededCount)
+                .totalCount(certificates.size())
+                .build();
+    }
+
     public SupplierCertificateResponseDto getCertificate(String publicId) {
         SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
@@ -202,6 +229,11 @@ public class SupplierCertificateService {
                 .actorPublicId(actor)
                 .build();
         supplierCertificateHistoryRepository.save(history);
+    }
+
+    private boolean isExpiringWithin(SupplierCertificate certificate, LocalDate startDate, LocalDate endDate) {
+        LocalDate expiredAt = certificate.getExpiredAt();
+        return expiredAt != null && !expiredAt.isBefore(startDate) && !expiredAt.isAfter(endDate);
     }
 
     private SupplierCertificateResponseDto toResponseDto(SupplierCertificate cert) {

@@ -46,6 +46,16 @@ public class SupplierCertificateController {
         return ResponseEntity.ok(supplierCertificateService.getCertificatesBySupplier(supplierPublicId));
     }
 
+    @Operation(summary = "협력사별 인증서 요약 조회")
+    @GetMapping("/suppliers/{supplierPublicId}/certificates/summary")
+    public ResponseEntity<SupplierCertificateSummaryResponseDto> getCertificateSummaryBySupplier(
+            @PathVariable String supplierPublicId,
+            @RequestParam(defaultValue = "30") int expiringWithinDays) {
+        return ResponseEntity.ok(
+                supplierCertificateService.getCertificateSummaryBySupplier(supplierPublicId, expiringWithinDays)
+        );
+    }
+
     @Operation(summary = "협력사 인증서 상세 조회")
     @GetMapping("/certificates/{publicId}")
     public ResponseEntity<SupplierCertificateResponseDto> getCertificate(@PathVariable String publicId) {
