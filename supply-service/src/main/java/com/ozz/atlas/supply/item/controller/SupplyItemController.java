@@ -33,10 +33,11 @@ public class SupplyItemController {
     public ResponseEntity<?> createItem(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody CreateItemRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(supplyItemService.createItem(organizationPublicId, organizationType, request));
+                .body(supplyItemService.createItem(organizationPublicId, organizationType, actorUserPublicId, request));
     }
 
     @Operation(summary = "품목 수정")
@@ -45,12 +46,14 @@ public class SupplyItemController {
             @PathVariable String itemPublicId,
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody UpdateItemRequest request
     ) {
         return ResponseEntity.ok(
                 supplyItemService.updateItem(
                         organizationPublicId,
                         organizationType,
+                        actorUserPublicId,
                         itemPublicId,
                         request
                 )
@@ -62,9 +65,10 @@ public class SupplyItemController {
     public ResponseEntity<?> deleteItem(
             @PathVariable String itemPublicId,
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
-            @RequestHeader("X-Organization-Type") String organizationType
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId
     ) {
-        supplyItemService.deleteItem(organizationPublicId, organizationType, itemPublicId);
+        supplyItemService.deleteItem(organizationPublicId, organizationType, actorUserPublicId, itemPublicId);
         return ResponseEntity.noContent().build();
     }
 
@@ -145,18 +149,32 @@ public class SupplyItemController {
         );
     }
 
+    @GetMapping("/managed/{itemPublicId}/histories")
+    @Operation(summary = "관리 품목 히스토리 조회", description = "관리 품목 공개 ID로 품목 생성, 수정, 상태 변경, 대표 미디어 변경 이력을 조회한다.")
+    public ResponseEntity<?> getManagedItemHistories(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @PathVariable String itemPublicId
+    ) {
+        return ResponseEntity.ok(
+                supplyItemService.getItemHistories(organizationPublicId, organizationType, itemPublicId)
+        );
+    }
+
     @PatchMapping("/{itemPublicId}/status")
     @Operation(summary = "품목 상태 변경", description = "품목 공개 ID로 품목 상태를 변경한다.")
     public ResponseEntity<?> changeItemStatus(
             @PathVariable String itemPublicId,
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody ChangeItemStatusRequest request
     ) {
         return ResponseEntity.ok(
                 supplyItemService.changeItemStatus(
                         organizationPublicId,
                         organizationType,
+                        actorUserPublicId,
                         itemPublicId,
                         request
                 )
@@ -169,16 +187,35 @@ public class SupplyItemController {
             @PathVariable String itemPublicId,
             @PathVariable String filePublicId,
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
-            @RequestHeader("X-Organization-Type") String organizationType
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId
     ) {
         return ResponseEntity.ok(
                 supplyItemService.changePrimaryMedia(
                         organizationPublicId,
                         organizationType,
+                        actorUserPublicId,
                         itemPublicId,
                         filePublicId
                 )
         );
+    }
+
+    @PostMapping("/{itemPublicId}/media/histories")
+    @Operation(summary = "품목 미디어 수정 이력 기록", description = "품목 미디어 추가, 삭제, 순서 변경 이력을 기록한다.")
+    public ResponseEntity<?> recordMediaChanged(
+            @PathVariable String itemPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId
+    ) {
+        supplyItemService.recordMediaChanged(
+                organizationPublicId,
+                organizationType,
+                actorUserPublicId,
+                itemPublicId
+        );
+        return ResponseEntity.noContent().build();
     }
 
 }

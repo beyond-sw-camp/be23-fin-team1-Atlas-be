@@ -24,10 +24,27 @@ public class ItemInventoryController {
     public ResponseEntity<?> createInventory(
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody CreateItemInventoryRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(itemInventoryService.createInventory(organizationPublicId, organizationType, request));
+                .body(itemInventoryService.createInventory(organizationPublicId, organizationType, actorUserPublicId, request));
+    }
+
+    @GetMapping("/{inventoryPublicId}/histories")
+    @Operation(summary = "재고 히스토리 조회", description = "재고 공개 ID로 재고 생성, 수정, 예약, 출하 차감 이력을 조회한다.")
+    public ResponseEntity<?> getInventoryHistories(
+            @PathVariable String inventoryPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType
+    ) {
+        return ResponseEntity.ok(
+                itemInventoryService.getInventoryHistories(
+                        organizationPublicId,
+                        organizationType,
+                        inventoryPublicId
+                )
+        );
     }
 
     @GetMapping
@@ -93,12 +110,14 @@ public class ItemInventoryController {
             @PathVariable String inventoryPublicId,
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
             @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @Valid @RequestBody UpdateItemInventoryRequest request
     ) {
         return ResponseEntity.ok(
                 itemInventoryService.updateInventory(
                         organizationPublicId,
                         organizationType,
+                        actorUserPublicId,
                         inventoryPublicId,
                         request
                 )
@@ -110,9 +129,10 @@ public class ItemInventoryController {
     public ResponseEntity<?> deleteInventory(
             @PathVariable String inventoryPublicId,
             @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
-            @RequestHeader("X-Organization-Type") String organizationType
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId
     ) {
-        itemInventoryService.deleteInventory(organizationPublicId, organizationType, inventoryPublicId);
+        itemInventoryService.deleteInventory(organizationPublicId, organizationType, actorUserPublicId, inventoryPublicId);
         return ResponseEntity.noContent().build();
     }
 
