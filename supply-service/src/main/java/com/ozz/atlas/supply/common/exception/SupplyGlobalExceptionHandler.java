@@ -19,7 +19,7 @@ public class SupplyGlobalExceptionHandler extends BaseExceptionAdviceSupport {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
-        return badRequest("COMMON_400", "유효하지 않은 요청 값입니다.");
+        return badRequest("COMMON_400", firstValidationMessage(e, "유효하지 않은 요청 값입니다."));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

@@ -27,8 +27,8 @@ public class CreatePurchaseOrderBatchLineRequest {
     @Schema(description = "품목 공개 식별자", example = "sample_public_id")
     private String itemPublicId;
 
-    @NotNull
-    @Positive
+    @NotNull(message = "발주 수량은 필수입니다.")
+    @Positive(message = "발주 수량은 0보다 커야 합니다.")
     @Schema(description = "수량", example = "1")
     private Long orderedQty;
 
