@@ -85,6 +85,17 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.getPurchaseOrder(poPublicId));
     }
 
+    @Operation(summary = "발주 히스토리 조회")
+    @GetMapping("/{poPublicId}/histories")
+    public ResponseEntity<?> getPurchaseOrderHistories(
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @PathVariable String poPublicId
+    ) {
+        return ResponseEntity.ok(
+                purchaseOrderService.getPurchaseOrderHistories(organizationPublicId, poPublicId)
+        );
+    }
+
     @Operation(summary = "발주 수정")
     @PatchMapping("/{poPublicId}")
     public ResponseEntity<?> updatePurchaseOrder(
@@ -102,9 +113,10 @@ public class PurchaseOrderController {
     @DeleteMapping("/{poPublicId}")
     public ResponseEntity<?> deletePurchaseOrder(
             @RequestHeader("X-Organization-Public-Id") String buyerOrganizationPublicId,
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorUserPublicId,
             @PathVariable String poPublicId
     ) {
-        purchaseOrderService.deletePurchaseOrder(buyerOrganizationPublicId, poPublicId);
+        purchaseOrderService.deletePurchaseOrder(buyerOrganizationPublicId, poPublicId, actorUserPublicId);
         return ResponseEntity.noContent().build();
     }
 
