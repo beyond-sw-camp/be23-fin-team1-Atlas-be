@@ -20,6 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class InitialDataLoad implements CommandLineRunner {
 
     private static final String DEFAULT_PASSWORD = "12341234";
+    private static final String ADMIN_ORGANIZATION_PUBLIC_ID = "ORG_ATLAS_ADMIN";
+    private static final String BUYER_ORGANIZATION_PUBLIC_ID = "ORG_ATLAS_BUYER";
+    private static final String TIER1_ORGANIZATION_PUBLIC_ID = "ORG_ATLAS_SUPPLIER_TIER1";
+    private static final String TIER2_ORGANIZATION_PUBLIC_ID = "ORG_ATLAS_SUPPLIER_TIER2";
+    private static final String TIER3_ORGANIZATION_PUBLIC_ID = "ORG_ATLAS_SUPPLIER_TIER3";
 
     private final OrganizationRepository organizationRepository;
     private final DepartmentRepository departmentRepository;
@@ -43,6 +48,7 @@ public class InitialDataLoad implements CommandLineRunner {
         createDepartmentIfAbsent("PURCHASE_DEPARTMENT", "구매 부서");
 
         SeedOrganization adminOrganization = new SeedOrganization(
+                ADMIN_ORGANIZATION_PUBLIC_ID,
                 OrganizationType.ADMIN,
                 "아틀라스 관리조직",
                 "Atlas Platform Admin",
@@ -80,6 +86,7 @@ public class InitialDataLoad implements CommandLineRunner {
 
         createSeedUser(
                 new SeedOrganization(
+                        BUYER_ORGANIZATION_PUBLIC_ID,
                         OrganizationType.BUYER,
                         "Atlas Buyer Org",
                         "Atlas Buyer Organization",
@@ -105,6 +112,7 @@ public class InitialDataLoad implements CommandLineRunner {
 
         createSeedUser(
                 new SeedOrganization(
+                        TIER1_ORGANIZATION_PUBLIC_ID,
                         OrganizationType.SUPPLIER,
                         "Atlas Supplier Tier1",
                         "Atlas Supplier Tier1",
@@ -130,6 +138,7 @@ public class InitialDataLoad implements CommandLineRunner {
 
         createSeedUser(
                 new SeedOrganization(
+                        TIER2_ORGANIZATION_PUBLIC_ID,
                         OrganizationType.SUPPLIER,
                         "Atlas Supplier Tier2",
                         "Atlas Supplier Tier2",
@@ -155,6 +164,7 @@ public class InitialDataLoad implements CommandLineRunner {
 
         createSeedUser(
                 new SeedOrganization(
+                        TIER3_ORGANIZATION_PUBLIC_ID,
                         OrganizationType.SUPPLIER,
                         "Atlas Supplier Tier3",
                         "Atlas Supplier Tier3",
@@ -209,6 +219,7 @@ public class InitialDataLoad implements CommandLineRunner {
         return organizationRepository.findByOrganizationAlias(seedOrganization.organizationAlias())
                 .orElseGet(() -> organizationRepository.save(
                         Organization.builder()
+                                .publicId(seedOrganization.publicId())
                                 .organizationType(seedOrganization.organizationType())
                                 .organizationName(seedOrganization.organizationName())
                                 .organizationEnglishName(seedOrganization.organizationEnglishName())
@@ -248,6 +259,7 @@ public class InitialDataLoad implements CommandLineRunner {
     }
 
     private record SeedOrganization(
+            String publicId,
             OrganizationType organizationType,
             String organizationName,
             String organizationEnglishName,
