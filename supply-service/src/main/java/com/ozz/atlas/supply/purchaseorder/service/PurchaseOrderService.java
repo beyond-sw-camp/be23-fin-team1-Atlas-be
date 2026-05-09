@@ -17,12 +17,15 @@ import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
 import com.ozz.atlas.supply.purchaseorder.domain.PoStatus;
+import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderHistory;
+import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderHistoryActionType;
 import com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderViewType;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrder;
 import com.ozz.atlas.supply.purchaseorder.domain.SupplyPurchaseOrderItem;
 import com.ozz.atlas.supply.purchaseorder.dtos.*;
 import com.ozz.atlas.supply.purchaseorder.exception.PurchaseOrderErrorCode;
 import com.ozz.atlas.supply.purchaseorder.exception.PurchaseOrderException;
+import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderHistoryRepository;
 import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus;
 import com.ozz.atlas.supply.subpurchaseorder.domain.SubPurchaseOrderLineStatus;
@@ -73,6 +76,7 @@ public class PurchaseOrderService {
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ItemInventoryService itemInventoryService;
     private final SupplierRelationService supplierRelationService;
+    private final PurchaseOrderHistoryRepository purchaseOrderHistoryRepository;
 
 
     public PurchaseOrderDetailResponse createPurchaseOrder(
@@ -148,6 +152,19 @@ public class PurchaseOrderService {
                 "발주 생성",
                 "발주 생성 시"
         );
+        appendPurchaseOrderHistory(
+                savedPurchaseOrder,
+                PurchaseOrderHistoryActionType.CREATED,
+                null,
+                savedPurchaseOrder.getPoStatus(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                createdByUserPublicId,
+                "발주 생성"
+        );
         return PurchaseOrderDetailResponse.fromEntity(savedPurchaseOrder);
     }
 
@@ -208,6 +225,25 @@ public class PurchaseOrderService {
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
+    @Transactional(readOnly = true)
+    public List<PurchaseOrderHistoryResponse> getPurchaseOrderHistories(
+            String organizationPublicId,
+            String poPublicId
+    ) {
+        SupplyPurchaseOrder purchaseOrder = purchaseOrderRepository.findByPublicIdAndPoStatusNot(
+                        poPublicId,
+                        PoStatus.DELETED
+                )
+                .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_NOT_FOUND));
+
+        validatePurchaseOrderReadable(purchaseOrder, organizationPublicId);
+
+        return purchaseOrderHistoryRepository.findByPurchaseOrderIdOrderByRecordedAtDesc(purchaseOrder.getId())
+                .stream()
+                .map(PurchaseOrderHistoryResponse::from)
+                .toList();
+    }
+
     public PurchaseOrderDetailResponse updatePurchaseOrder(
             String buyerOrganizationPublicId,
             String poPublicId,
@@ -228,6 +264,7 @@ public class PurchaseOrderService {
         // 발주 상태가 CREATED일 때만 수정 가능
         validateBuyerEditable(purchaseOrder);
 
+        PoStatus beforeStatus = purchaseOrder.getPoStatus();
         purchaseOrder.updateHeader(request.getMemo());
 
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
@@ -239,6 +276,19 @@ public class PurchaseOrderService {
                 "발주 수정",
                 "발주 수정 시"
         );
+        appendPurchaseOrderHistory(
+                purchaseOrder,
+                PurchaseOrderHistoryActionType.UPDATED,
+                beforeStatus,
+                purchaseOrder.getPoStatus(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                actorUserPublicId,
+                "발주 메모 수정"
+        );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
@@ -248,8 +298,10 @@ public class PurchaseOrderService {
             String actorUserPublicId
     ) {
         SupplyPurchaseOrder purchaseOrder = getSupplierOwnedPurchaseOrder(supplierOrganizationPublicId, poPublicId);
+        validateNotBuyerSupplierAction(purchaseOrder, supplierOrganizationPublicId);
         validateSupplierActionable(purchaseOrder);
 
+        PoStatus beforeStatus = purchaseOrder.getPoStatus();
         purchaseOrder.reject();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         appendPurchaseOrderEvent(
@@ -259,6 +311,19 @@ public class PurchaseOrderService {
                 supplierOrganizationPublicId,
                 "발주 거절",
                 "발주 거절 시"
+        );
+        appendPurchaseOrderHistory(
+                purchaseOrder,
+                PurchaseOrderHistoryActionType.REJECTED,
+                beforeStatus,
+                purchaseOrder.getPoStatus(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                actorUserPublicId,
+                "발주 거절"
         );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
@@ -273,6 +338,7 @@ public class PurchaseOrderService {
 
         if (request.getPoStatus() == PoStatus.CANCELLED) {
             validateNoActiveSubOrdersForPurchaseOrder(purchaseOrder.getId());
+            PoStatus beforeStatus = purchaseOrder.getPoStatus();
             purchaseOrder.cancel();
             purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
             appendPurchaseOrderEvent(
@@ -283,6 +349,19 @@ public class PurchaseOrderService {
                     "발주 취소",
                     "발주 취소 시"
             );
+            appendPurchaseOrderHistory(
+                    purchaseOrder,
+                    PurchaseOrderHistoryActionType.CANCELLED,
+                    beforeStatus,
+                    purchaseOrder.getPoStatus(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    actorUserPublicId,
+                    "발주 취소"
+            );
             return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
         }
 
@@ -290,20 +369,48 @@ public class PurchaseOrderService {
             if (purchaseOrder.getPoStatus() != PoStatus.CONFIRMED) {
                 throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_STATUS_CHANGE_NOT_ALLOWED);
             }
+            PoStatus beforeStatus = purchaseOrder.getPoStatus();
             purchaseOrder.complete();
             purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+            appendPurchaseOrderHistory(
+                    purchaseOrder,
+                    PurchaseOrderHistoryActionType.COMPLETED,
+                    beforeStatus,
+                    purchaseOrder.getPoStatus(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    actorUserPublicId,
+                    "발주 완료"
+            );
             return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
         }
 
         throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_STATUS_CHANGE_NOT_ALLOWED);
     }
 
-    public void deletePurchaseOrder(String buyerOrganizationPublicId, String poPublicId) {
+    public void deletePurchaseOrder(String buyerOrganizationPublicId, String poPublicId, String actorUserPublicId) {
         SupplyPurchaseOrder purchaseOrder = getBuyerOwnedPurchaseOrder(buyerOrganizationPublicId, poPublicId);
 
         validateNoActiveSubOrdersForPurchaseOrder(purchaseOrder.getId());
+        PoStatus beforeStatus = purchaseOrder.getPoStatus();
         purchaseOrder.delete();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
+        appendPurchaseOrderHistory(
+                purchaseOrder,
+                PurchaseOrderHistoryActionType.DELETED,
+                beforeStatus,
+                purchaseOrder.getPoStatus(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                actorUserPublicId,
+                "발주 삭제"
+        );
     }
 
     public PurchaseOrderDetailResponse addPurchaseOrderItem(
@@ -331,17 +438,17 @@ public class PurchaseOrderService {
                 buyerOrganizationPublicId,
                 request.getArrivalLogisticsNodePublicId()
         );
-        purchaseOrder.addItem(
-                SupplyPurchaseOrderItem.create(
-                        item,
-                        request.getOrderedQty(),
-                        item.getUnitPrice(),
-                        capability.getLeadTimeDays(),
-                        capability.getPartialConfirmationAllowed(),
-                        calculateExpectedDueDate(capability),
-                        arrivalLogisticsNode
-                )
+        PoStatus beforeStatus = purchaseOrder.getPoStatus();
+        SupplyPurchaseOrderItem createdItem = SupplyPurchaseOrderItem.create(
+                item,
+                request.getOrderedQty(),
+                item.getUnitPrice(),
+                capability.getLeadTimeDays(),
+                capability.getPartialConfirmationAllowed(),
+                calculateExpectedDueDate(capability),
+                arrivalLogisticsNode
         );
+        purchaseOrder.addItem(createdItem);
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
         appendPurchaseOrderEvent(
                 EventTypes.PURCHASE_ORDER_UPDATED,
@@ -350,6 +457,19 @@ public class PurchaseOrderService {
                 buyerOrganizationPublicId,
                 "발주 품목 추가",
                 "발주 수정 시"
+        );
+        appendPurchaseOrderHistory(
+                purchaseOrder,
+                PurchaseOrderHistoryActionType.ITEM_ADDED,
+                beforeStatus,
+                purchaseOrder.getPoStatus(),
+                createdItem,
+                null,
+                createdItem.getOrderedQty(),
+                null,
+                createdItem.getConfirmedQty(),
+                actorUserPublicId,
+                "발주 품목 추가: " + createdItem.getItem().getItemName()
         );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
@@ -402,6 +522,9 @@ public class PurchaseOrderService {
             );
         }
 
+        PoStatus beforeStatus = purchaseOrder.getPoStatus();
+        Long beforeOrderedQty = purchaseOrderItem.getOrderedQty();
+        Long beforeConfirmedQty = purchaseOrderItem.getConfirmedQty();
         purchaseOrderItem.update(
                 targetItem,
                 request.getOrderedQty() != null ? request.getOrderedQty() : purchaseOrderItem.getOrderedQty(),
@@ -424,6 +547,19 @@ public class PurchaseOrderService {
                 "발주 품목 수정",
                 "발주 수정 시"
         );
+        appendPurchaseOrderHistory(
+                purchaseOrder,
+                PurchaseOrderHistoryActionType.ITEM_UPDATED,
+                beforeStatus,
+                purchaseOrder.getPoStatus(),
+                purchaseOrderItem,
+                beforeOrderedQty,
+                purchaseOrderItem.getOrderedQty(),
+                beforeConfirmedQty,
+                purchaseOrderItem.getConfirmedQty(),
+                actorUserPublicId,
+                "발주 품목 수정: " + purchaseOrderItem.getItem().getItemName()
+        );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
     }
 
@@ -443,6 +579,9 @@ public class PurchaseOrderService {
             throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ITEM_MINIMUM_REQUIRED);
         }
 
+        PoStatus beforeStatus = purchaseOrder.getPoStatus();
+        Long beforeOrderedQty = purchaseOrderItem.getOrderedQty();
+        Long beforeConfirmedQty = purchaseOrderItem.getConfirmedQty();
         purchaseOrderItem.delete();
         purchaseOrder.refreshAfterItemChanged();
         purchaseOrderSearchService.savePurchaseOrderDocument(purchaseOrder);
@@ -454,6 +593,19 @@ public class PurchaseOrderService {
                 "발주 품목 삭제",
                 "발주 수정 시"
         );
+        appendPurchaseOrderHistory(
+                purchaseOrder,
+                PurchaseOrderHistoryActionType.ITEM_DELETED,
+                beforeStatus,
+                purchaseOrder.getPoStatus(),
+                purchaseOrderItem,
+                beforeOrderedQty,
+                null,
+                beforeConfirmedQty,
+                null,
+                actorUserPublicId,
+                "발주 품목 삭제: " + purchaseOrderItem.getItem().getItemName()
+        );
     }
 
     public PurchaseOrderDetailResponse confirmPurchaseOrderItem(
@@ -464,6 +616,7 @@ public class PurchaseOrderService {
             ConfirmPurchaseOrderItemRequest request
     ) {
         SupplyPurchaseOrder purchaseOrder = getSupplierOwnedPurchaseOrder(supplierOrganizationPublicId, poPublicId);
+        validateNotBuyerSupplierAction(purchaseOrder, supplierOrganizationPublicId);
         validateSupplierConfirmable(purchaseOrder);
 
         SupplyPurchaseOrderItem purchaseOrderItem = findActivePurchaseOrderItem(purchaseOrder, poItemPublicId);
@@ -486,6 +639,8 @@ public class PurchaseOrderService {
             );
         }
 
+        PoStatus beforeStatus = purchaseOrder.getPoStatus();
+        Long beforeConfirmedQty = purchaseOrderItem.getConfirmedQty();
         purchaseOrderItem.confirm(request.getConfirmedQty());
         purchaseOrder.refreshAfterItemChanged();
         purchaseOrder.refreshConfirmationStatus();
@@ -498,7 +653,57 @@ public class PurchaseOrderService {
                 resolvePurchaseOrderConfirmationEventName(purchaseOrder),
                 resolvePurchaseOrderConfirmationDescription(purchaseOrder)
         );
+        appendPurchaseOrderHistory(
+                purchaseOrder,
+                resolvePurchaseOrderConfirmationHistoryActionType(purchaseOrder),
+                beforeStatus,
+                purchaseOrder.getPoStatus(),
+                purchaseOrderItem,
+                purchaseOrderItem.getOrderedQty(),
+                purchaseOrderItem.getOrderedQty(),
+                beforeConfirmedQty,
+                purchaseOrderItem.getConfirmedQty(),
+                actorUserPublicId,
+                "확정 수량 입력: " + request.getConfirmedQty()
+        );
         return PurchaseOrderDetailResponse.fromEntity(purchaseOrder);
+    }
+
+    private void appendPurchaseOrderHistory(
+            SupplyPurchaseOrder purchaseOrder,
+            PurchaseOrderHistoryActionType actionType,
+            PoStatus beforeStatus,
+            PoStatus afterStatus,
+            SupplyPurchaseOrderItem purchaseOrderItem,
+            Long beforeOrderedQty,
+            Long afterOrderedQty,
+            Long beforeConfirmedQty,
+            Long afterConfirmedQty,
+            String actorUserPublicId,
+            String memo
+    ) {
+        purchaseOrderHistoryRepository.save(
+                PurchaseOrderHistory.builder()
+                        .purchaseOrderId(purchaseOrder.getId())
+                        .purchaseOrderPublicId(purchaseOrder.getPublicId())
+                        .poNumber(purchaseOrder.getPoNumber())
+                        .buyerOrganizationPublicId(purchaseOrder.getBuyerOrganizationPublicId())
+                        .supplierPublicId(purchaseOrder.getSupplier().getPublicId())
+                        .supplierOrganizationPublicId(purchaseOrder.getSupplier().getOrganizationPublicId())
+                        .actionType(actionType)
+                        .beforeStatus(beforeStatus)
+                        .afterStatus(afterStatus)
+                        .poItemPublicId(purchaseOrderItem == null ? null : purchaseOrderItem.getPublicId())
+                        .itemPublicId(purchaseOrderItem == null ? null : purchaseOrderItem.getItem().getPublicId())
+                        .itemName(purchaseOrderItem == null ? null : purchaseOrderItem.getItem().getItemName())
+                        .beforeOrderedQty(beforeOrderedQty)
+                        .afterOrderedQty(afterOrderedQty)
+                        .beforeConfirmedQty(beforeConfirmedQty)
+                        .afterConfirmedQty(afterConfirmedQty)
+                        .memo(memo)
+                        .recordedBy(actorUserPublicId)
+                        .build()
+        );
     }
 
     private void appendPurchaseOrderEvent(
@@ -550,6 +755,13 @@ public class PurchaseOrderService {
             return "발주 수락 시";
         }
         return "발주 확정 시";
+    }
+
+    private PurchaseOrderHistoryActionType resolvePurchaseOrderConfirmationHistoryActionType(SupplyPurchaseOrder purchaseOrder) {
+        if (purchaseOrder.getPoStatus() == PoStatus.CONFIRMED) {
+            return PurchaseOrderHistoryActionType.CONFIRMED;
+        }
+        return PurchaseOrderHistoryActionType.PARTIALLY_CONFIRMED;
     }
 
     // 발주 생성 요청 검증
@@ -615,6 +827,28 @@ public class PurchaseOrderService {
                         PoStatus.DELETED
                 )
                 .orElseThrow(() -> new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED));
+    }
+
+    private void validatePurchaseOrderReadable(SupplyPurchaseOrder purchaseOrder, String organizationPublicId) {
+        if (organizationPublicId == null || organizationPublicId.isBlank()) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        boolean buyer = organizationPublicId.equals(purchaseOrder.getBuyerOrganizationPublicId());
+        boolean supplier = organizationPublicId.equals(purchaseOrder.getSupplier().getOrganizationPublicId());
+
+        if (!buyer && !supplier) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED);
+        }
+    }
+
+    private void validateNotBuyerSupplierAction(
+            SupplyPurchaseOrder purchaseOrder,
+            String supplierOrganizationPublicId
+    ) {
+        if (purchaseOrder.getBuyerOrganizationPublicId().equals(supplierOrganizationPublicId)) {
+            throw new PurchaseOrderException(PurchaseOrderErrorCode.PURCHASE_ORDER_ACCESS_DENIED);
+        }
     }
 
     private void validateBuyerEditable(SupplyPurchaseOrder purchaseOrder) {
