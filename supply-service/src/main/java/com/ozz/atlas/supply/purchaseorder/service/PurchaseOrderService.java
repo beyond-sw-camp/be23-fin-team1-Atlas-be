@@ -629,7 +629,8 @@ public class PurchaseOrderService {
             itemInventoryService.reserveConfirmedQty(
                     purchaseOrder.getSupplier(),
                     purchaseOrderItem.getItem(),
-                    request.getConfirmedQty()
+                    request.getConfirmedQty(),
+                    actorUserPublicId
             );
         } else {
             validateMakeToOrderCapacity(

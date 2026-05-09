@@ -53,4 +53,22 @@ public interface PurchaseOrderItemRepository extends JpaRepository<SupplyPurchas
         order by po.orderedAt desc
     """)
     List<ItemLinkedPurchaseOrderResponse> findLinkedOrdersByItemPublicId(@Param("itemPublicId") String itemPublicId);
+
+    @Query("""
+        select count(poi) > 0
+        from SupplyPurchaseOrderItem poi
+        join poi.purchaseOrder po
+        where poi.item.publicId = :itemPublicId
+          and po.poStatus in (
+            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.CREATED,
+            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.PARTIALLY_CONFIRMED,
+            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.CONFIRMED
+          )
+          and poi.itemStatus not in (
+            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.REJECTED,
+            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.CANCELLED,
+            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.DELETED
+          )
+    """)
+    boolean existsEditBlockingOrderByItemPublicId(@Param("itemPublicId") String itemPublicId);
 }

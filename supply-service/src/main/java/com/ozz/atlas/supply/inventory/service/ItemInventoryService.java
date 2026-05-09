@@ -3,13 +3,13 @@ package com.ozz.atlas.supply.inventory.service;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.inventory.domain.InventoryStatus;
 import com.ozz.atlas.supply.inventory.domain.SupplyItemInventory;
-import com.ozz.atlas.supply.inventory.dtos.CreateItemInventoryRequest;
-import com.ozz.atlas.supply.inventory.dtos.ItemInventoryResponse;
-import com.ozz.atlas.supply.inventory.dtos.ItemInventorySummaryResponse;
-import com.ozz.atlas.supply.inventory.dtos.UpdateItemInventoryRequest;
+import com.ozz.atlas.supply.inventory.domain.SupplyItemInventoryHistory;
+import com.ozz.atlas.supply.inventory.domain.SupplyItemInventoryHistoryActionType;
+import com.ozz.atlas.supply.inventory.dtos.*;
 import com.ozz.atlas.supply.inventory.exception.ItemInventoryErrorCode;
 import com.ozz.atlas.supply.inventory.exception.ItemInventoryException;
 import com.ozz.atlas.supply.inventory.repository.SupplyItemInventoryRepository;
+import com.ozz.atlas.supply.inventory.repository.SupplyItemInventoryHistoryRepository;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyType;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
@@ -43,10 +43,12 @@ public class ItemInventoryService {
     private final SupplierItemCapabilityRepository capabilityRepository;
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final InventoryTransactionRepository transactionRepository;
+    private final SupplyItemInventoryHistoryRepository inventoryHistoryRepository;
 
     public ItemInventoryResponse createInventory(
             String organizationPublicId,
             String organizationType,
+            String actorUserPublicId,
             CreateItemInventoryRequest request
     ) {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
@@ -74,6 +76,7 @@ public class ItemInventoryService {
         SupplyItemInventory saved = inventoryRepository.save(inventory);
         
         recordTransaction(saved, TransactionReason.INITIAL_STOCK, request.getQty(), null);
+        appendInventoryHistory(null, saved, SupplyItemInventoryHistoryActionType.CREATED, request.getQty(), null, actorUserPublicId, "재고 생성");
         syncCapabilityAvailableQty(supplier, item);
 
         return ItemInventoryResponse.from(saved);
@@ -90,11 +93,66 @@ public class ItemInventoryService {
         transactionRepository.save(transaction);
     }
 
-    public void reserveForExchange(SupplySupplier supplier, SupplyItem item, Long qty, String returnPublicId) {
-        reserveConfirmedQtyInternal(supplier, item, qty, TransactionReason.EXCHANGE_RESERVE, returnPublicId);
+    private InventorySnapshot snapshot(SupplyItemInventory inventory) {
+        if (inventory == null) return null;
+        return new InventorySnapshot(
+                inventory.getInitialQty(),
+                inventory.getRemainingQty(),
+                inventory.getReservedQty(),
+                inventory.getDefectiveQty(),
+                inventory.getStatus(),
+                inventory.getManufacturedDate(),
+                inventory.getExpirationDate()
+        );
     }
 
-    private void reserveConfirmedQtyInternal(SupplySupplier supplier, SupplyItem item, Long confirmQty, TransactionReason reason, String referenceId) {
+    private void appendInventoryHistory(
+            InventorySnapshot before,
+            SupplyItemInventory inventory,
+            SupplyItemInventoryHistoryActionType actionType,
+            Long quantityChange,
+            String referenceId,
+            String recordedBy,
+            String memo
+    ) {
+        InventorySnapshot after = snapshot(inventory);
+        inventoryHistoryRepository.save(SupplyItemInventoryHistory.builder()
+                .inventoryId(inventory.getInventoryId())
+                .inventoryPublicId(inventory.getPublicId())
+                .itemPublicId(inventory.getItem().getPublicId())
+                .itemCode(inventory.getItem().getItemCode())
+                .itemName(inventory.getItem().getItemName())
+                .actionType(actionType)
+                .quantityChange(quantityChange)
+                .beforeInitialQty(before != null ? before.initialQty() : null)
+                .afterInitialQty(after != null ? after.initialQty() : null)
+                .beforeRemainingQty(before != null ? before.remainingQty() : null)
+                .afterRemainingQty(after != null ? after.remainingQty() : null)
+                .beforeReservedQty(before != null ? before.reservedQty() : null)
+                .afterReservedQty(after != null ? after.reservedQty() : null)
+                .beforeDefectiveQty(before != null ? before.defectiveQty() : null)
+                .afterDefectiveQty(after != null ? after.defectiveQty() : null)
+                .beforeStatus(before != null ? before.status() : null)
+                .afterStatus(after != null ? after.status() : null)
+                .beforeManufacturedDate(before != null ? before.manufacturedDate() : null)
+                .afterManufacturedDate(after != null ? after.manufacturedDate() : null)
+                .beforeExpirationDate(before != null ? before.expirationDate() : null)
+                .afterExpirationDate(after != null ? after.expirationDate() : null)
+                .referenceId(referenceId)
+                .recordedBy(recordedBy)
+                .memo(memo)
+                .build());
+    }
+
+    public void reserveForExchange(SupplySupplier supplier, SupplyItem item, Long qty, String returnPublicId) {
+        reserveForExchange(supplier, item, qty, returnPublicId, null);
+    }
+
+    public void reserveForExchange(SupplySupplier supplier, SupplyItem item, Long qty, String returnPublicId, String actorUserPublicId) {
+        reserveConfirmedQtyInternal(supplier, item, qty, TransactionReason.EXCHANGE_RESERVE, returnPublicId, actorUserPublicId);
+    }
+
+    private void reserveConfirmedQtyInternal(SupplySupplier supplier, SupplyItem item, Long confirmQty, TransactionReason reason, String referenceId, String actorUserPublicId) {
         validateAvailableQty(supplier, item, confirmQty);
 
         long remaining = confirmQty;
@@ -112,8 +170,10 @@ public class ItemInventoryService {
             }
 
             long reserveQty = Math.min(inventory.getAvailableQty(), remaining);
+            InventorySnapshot before = snapshot(inventory);
             inventory.reserve(reserveQty);
             recordTransaction(inventory, reason, reserveQty, referenceId);
+            appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.RESERVED, reserveQty, referenceId, actorUserPublicId, "재고 예약");
             remaining -= reserveQty;
         }
 
@@ -125,6 +185,10 @@ public class ItemInventoryService {
     }
 
     public void processReturnInventory(SupplySupplier supplier, SupplyItem item, Long qty, String qcGrade, String returnPublicId) {
+        processReturnInventory(supplier, item, qty, qcGrade, returnPublicId, null);
+    }
+
+    public void processReturnInventory(SupplySupplier supplier, SupplyItem item, Long qty, String qcGrade, String returnPublicId, String actorUserPublicId) {
         // 반품 입고 시에는 특정 물류 거점의 재고에 가산해야 함.
         // 여기서는 편의상 해당 상품의 가장 최근 ACTIVE 재고 또는 새로 생성함.
         // 실제로는 반품된 물류 거점에 입고되어야 함.
@@ -144,17 +208,25 @@ public class ItemInventoryService {
         SupplyItemInventory inventory = inventories.get(0); // 가장 최근 것 선택
 
         if ("A".equals(qcGrade)) {
+            InventorySnapshot before = snapshot(inventory);
             inventory.addStock(qty);
             recordTransaction(inventory, TransactionReason.RETURN_RESTOCK, qty, returnPublicId);
+            appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.RETURN_RESTOCKED, qty, returnPublicId, actorUserPublicId, "반품 재고 입고");
         } else {
+            InventorySnapshot before = snapshot(inventory);
             inventory.addDefectiveStock(qty);
             recordTransaction(inventory, TransactionReason.RETURN_DEFECTIVE, qty, returnPublicId);
+            appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.DEFECTIVE_ADDED, qty, returnPublicId, actorUserPublicId, "불량 재고 입고");
         }
 
         syncCapabilityAvailableQty(supplier, item);
     }
 
     public void deductForDisposal(SupplySupplier supplier, SupplyItem item, Long qty, String returnPublicId) {
+        deductForDisposal(supplier, item, qty, returnPublicId, null);
+    }
+
+    public void deductForDisposal(SupplySupplier supplier, SupplyItem item, Long qty, String returnPublicId, String actorUserPublicId) {
         // 불량 재고에서 차감
         long remaining = qty;
         List<SupplyItemInventory> inventories = inventoryRepository.findAllBySupplier_IdAndItem_IdAndStatusNotOrderByExpirationDateAsc(
@@ -167,8 +239,10 @@ public class ItemInventoryService {
             if (remaining <= 0) break;
             if (inventory.getDefectiveQty() > 0) {
                 long deductQty = Math.min(inventory.getDefectiveQty(), remaining);
+                InventorySnapshot before = snapshot(inventory);
                 inventory.deductDefectiveStock(deductQty);
                 recordTransaction(inventory, TransactionReason.ADJUSTMENT_OUT_DISPOSAL, -deductQty, returnPublicId);
+                appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.DEFECTIVE_DEDUCTED, -deductQty, returnPublicId, actorUserPublicId, "불량 재고 차감");
                 remaining -= deductQty;
             }
         }
@@ -176,13 +250,13 @@ public class ItemInventoryService {
         if (remaining > 0) {
             // 불량 재고가 부족하면 정상 재고에서 차감할지 여부는 정책에 따라 다름
             // 여기서는 남은 만큼 정상 재고에서 차감 시도
-            deductStockBasedShipmentQtyInternal(supplier, item, remaining, TransactionReason.ADJUSTMENT_OUT_DISPOSAL, returnPublicId);
+            deductStockBasedShipmentQtyInternal(supplier, item, remaining, TransactionReason.ADJUSTMENT_OUT_DISPOSAL, returnPublicId, actorUserPublicId);
         }
 
         syncCapabilityAvailableQty(supplier, item);
     }
 
-    private void deductStockBasedShipmentQtyInternal(SupplySupplier supplier, SupplyItem item, Long shipmentQty, TransactionReason reason, String referenceId) {
+    private void deductStockBasedShipmentQtyInternal(SupplySupplier supplier, SupplyItem item, Long shipmentQty, TransactionReason reason, String referenceId, String actorUserPublicId) {
         long remaining = shipmentQty;
 
         List<SupplyItemInventory> inventories = inventoryRepository.findReservedForUpdate(
@@ -208,13 +282,17 @@ public class ItemInventoryService {
 
             if (inventory.getReservedQty() > 0) {
                 long deductQty = Math.min(inventory.getReservedQty(), remaining);
+                InventorySnapshot before = snapshot(inventory);
                 inventory.deductReserved(deductQty);
                 recordTransaction(inventory, reason, -deductQty, referenceId);
+                appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.SHIPMENT_DEDUCTED, -deductQty, referenceId, actorUserPublicId, "출하 재고 차감");
                 remaining -= deductQty;
             } else if (inventory.getAvailableQty() > 0) {
                 long deductQty = Math.min(inventory.getAvailableQty(), remaining);
+                InventorySnapshot before = snapshot(inventory);
                 inventory.deductRemainingOnly(deductQty);
                 recordTransaction(inventory, reason, -deductQty, referenceId);
+                appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.ADJUSTMENT, -deductQty, referenceId, actorUserPublicId, "재고 차감");
                 remaining -= deductQty;
             }
         }
@@ -250,9 +328,25 @@ public class ItemInventoryService {
         return ItemInventoryResponse.from(getOwnedInventory(supplier, inventoryPublicId));
     }
 
+    @Transactional(readOnly = true)
+    public List<ItemInventoryHistoryResponse> getInventoryHistories(
+            String organizationPublicId,
+            String organizationType,
+            String inventoryPublicId
+    ) {
+        SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
+        SupplyItemInventory inventory = getOwnedInventory(supplier, inventoryPublicId);
+
+        return inventoryHistoryRepository.findByInventoryIdOrderByRecordedAtDesc(inventory.getInventoryId())
+                .stream()
+                .map(ItemInventoryHistoryResponse::from)
+                .toList();
+    }
+
     public ItemInventoryResponse updateInventory(
             String organizationPublicId,
             String organizationType,
+            String actorUserPublicId,
             String inventoryPublicId,
             UpdateItemInventoryRequest request
     ) {
@@ -269,6 +363,7 @@ public class ItemInventoryService {
         validateInventoryDates(request.getManufacturedDate(), expirationDate);
 
         try {
+            InventorySnapshot before = snapshot(inventory);
             inventory.update(
                     logisticsNode,
                     request.getManufacturedDate(),
@@ -276,6 +371,7 @@ public class ItemInventoryService {
                     request.getQty(),
                     request.getMemo()
             );
+            appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.UPDATED, inventory.getInitialQty() - before.initialQty(), null, actorUserPublicId, "재고 정보 수정");
         } catch (IllegalStateException e) {
             throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_EDIT_NOT_ALLOWED);
         }
@@ -286,12 +382,14 @@ public class ItemInventoryService {
     }
 
 
-    public void deleteInventory(String organizationPublicId, String organizationType, String inventoryPublicId) {
+    public void deleteInventory(String organizationPublicId, String organizationType, String actorUserPublicId, String inventoryPublicId) {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
         SupplyItemInventory inventory = getOwnedInventory(supplier, inventoryPublicId);
 
         try {
+            InventorySnapshot before = snapshot(inventory);
             inventory.delete();
+            appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.DELETED, 0L, null, actorUserPublicId, "재고 삭제");
         } catch (IllegalStateException e) {
             throw new ItemInventoryException(ItemInventoryErrorCode.INVENTORY_DELETE_NOT_ALLOWED);
         }
@@ -300,7 +398,11 @@ public class ItemInventoryService {
     }
 
     public void reserveConfirmedQty(SupplySupplier supplier, SupplyItem item, Long confirmQty) {
-        reserveConfirmedQtyInternal(supplier, item, confirmQty, TransactionReason.ORDER_DEDUCT, null); // 기존 로직 유지용
+        reserveConfirmedQty(supplier, item, confirmQty, null);
+    }
+
+    public void reserveConfirmedQty(SupplySupplier supplier, SupplyItem item, Long confirmQty, String actorUserPublicId) {
+        reserveConfirmedQtyInternal(supplier, item, confirmQty, TransactionReason.ORDER_DEDUCT, null, actorUserPublicId); // 기존 로직 유지용
     }
 
     public void validateAvailableQty(SupplySupplier supplier, SupplyItem item, Long confirmQty) {
@@ -340,7 +442,9 @@ public class ItemInventoryService {
             }
 
             long deductQty = Math.min(inventory.getRemainingQty(), remaining);
+            InventorySnapshot before = snapshot(inventory);
             inventory.deductRemainingOnly(deductQty);
+            appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.SHIPMENT_DEDUCTED, -deductQty, null, null, "출하 재고 차감");
             remaining -= deductQty;
         }
 
@@ -365,7 +469,9 @@ public class ItemInventoryService {
             }
 
             long deductQty = Math.min(inventory.getReservedQty(), remaining);
+            InventorySnapshot before = snapshot(inventory);
             inventory.deductReserved(deductQty);
+            appendInventoryHistory(before, inventory, SupplyItemInventoryHistoryActionType.SHIPMENT_DEDUCTED, -deductQty, null, null, "출하 재고 차감");
             remaining -= deductQty;
         }
 
@@ -433,6 +539,17 @@ public class ItemInventoryService {
         if (capability != null) {
             capability.syncAvailableQty(availableQty);
         }
+    }
+
+    private record InventorySnapshot(
+            Long initialQty,
+            Long remainingQty,
+            Long reservedQty,
+            Long defectiveQty,
+            InventoryStatus status,
+            LocalDate manufacturedDate,
+            LocalDate expirationDate
+    ) {
     }
 
     @Transactional(readOnly = true)

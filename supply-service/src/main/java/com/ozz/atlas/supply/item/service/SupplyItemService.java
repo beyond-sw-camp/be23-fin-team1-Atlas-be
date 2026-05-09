@@ -6,10 +6,14 @@ import com.ozz.atlas.supply.common.code.YearlySequenceCodeGenerator;
 import com.ozz.atlas.supply.item.client.FileServiceClient;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
+import com.ozz.atlas.supply.item.domain.SupplyItemHistory;
+import com.ozz.atlas.supply.item.domain.SupplyItemHistoryActionType;
+import com.ozz.atlas.supply.item.domain.SupplyType;
 import com.ozz.atlas.supply.item.dtos.*;
 import com.ozz.atlas.supply.item.exception.ItemErrorCode;
 import com.ozz.atlas.supply.item.exception.ItemException;
 import com.ozz.atlas.supply.item.repository.SupplyItemCategoryRepository;
+import com.ozz.atlas.supply.item.repository.SupplyItemHistoryRepository;
 import com.ozz.atlas.supply.item.repository.SupplyItemRepository;
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
@@ -48,12 +52,14 @@ public class SupplyItemService {
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final SupplierItemCapabilityRepository supplierItemCapabilityRepository;
     private final FileServiceClient fileServiceClient;
+    private final SupplyItemHistoryRepository supplyItemHistoryRepository;
 
 
 
     public ItemResponse createItem(
             String organizationPublicId,
             String organizationType,
+            String actorUserPublicId,
             CreateItemRequest request
     ) {
         SupplySupplier supplier = getWritableSupplier(organizationPublicId, organizationType);
@@ -83,6 +89,18 @@ public class SupplyItemService {
         );
 
         SupplyItem savedItem = supplyItemRepository.save(item);
+        appendItemHistory(
+                savedItem,
+                SupplyItemHistoryActionType.CREATED,
+                null,
+                savedItem.getSupplyType(),
+                null,
+                savedItem.getStatus(),
+                null,
+                savedItem.getPrimaryMediaFilePublicId(),
+                actorUserPublicId,
+                "품목 생성: " + savedItem.getItemName()
+        );
         itemSearchService.saveItemDocument(savedItem);
         return ItemResponse.fromEntity(savedItem);
     }
@@ -90,6 +108,7 @@ public class SupplyItemService {
     public ItemResponse updateItem(
             String organizationPublicId,
             String organizationType,
+            String actorUserPublicId,
             String itemPublicId,
             UpdateItemRequest request
     ) {
@@ -102,6 +121,7 @@ public class SupplyItemService {
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
         validateItemOwner(item, organizationPublicId);
+        validateNoEditBlockingOrders(itemPublicId);
 
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(
                         request.getItemCategoryPublicId(),
@@ -115,6 +135,10 @@ public class SupplyItemService {
                 request.getOriginLogisticsNodePublicId()
         );
 
+        SupplyType beforeSupplyType = item.getSupplyType();
+        Status beforeStatus = item.getStatus();
+        String beforePrimaryMediaFilePublicId = item.getPrimaryMediaFilePublicId();
+
         item.update(
                 category,
                 originLogisticsNode,
@@ -126,6 +150,22 @@ public class SupplyItemService {
                 request.getSupplyType()
         );
 
+        appendItemHistory(
+                item,
+                beforeSupplyType == item.getSupplyType()
+                        ? SupplyItemHistoryActionType.UPDATED
+                        : SupplyItemHistoryActionType.SUPPLY_TYPE_CHANGED,
+                beforeSupplyType,
+                item.getSupplyType(),
+                beforeStatus,
+                item.getStatus(),
+                beforePrimaryMediaFilePublicId,
+                item.getPrimaryMediaFilePublicId(),
+                actorUserPublicId,
+                beforeSupplyType == item.getSupplyType()
+                        ? "품목 정보 수정"
+                        : "공급 유형 변경: " + displaySupplyType(beforeSupplyType) + " -> " + displaySupplyType(item.getSupplyType())
+        );
         itemSearchService.saveItemDocument(item);
         return toItemResponseWithCapability(item);
     }
@@ -133,6 +173,7 @@ public class SupplyItemService {
     public void deleteItem(
             String organizationPublicId,
             String organizationType,
+            String actorUserPublicId,
             String itemPublicId
     ) {
         getWritableSupplier(organizationPublicId, organizationType);
@@ -144,7 +185,20 @@ public class SupplyItemService {
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
         validateItemOwner(item, organizationPublicId);
+        Status beforeStatus = item.getStatus();
         item.changeActiveYn(Status.DELETE);
+        appendItemHistory(
+                item,
+                SupplyItemHistoryActionType.DELETED,
+                item.getSupplyType(),
+                item.getSupplyType(),
+                beforeStatus,
+                item.getStatus(),
+                item.getPrimaryMediaFilePublicId(),
+                item.getPrimaryMediaFilePublicId(),
+                actorUserPublicId,
+                "품목 삭제"
+        );
         itemSearchService.saveItemDocument(item);
     }
 
@@ -188,6 +242,12 @@ public class SupplyItemService {
     private void validateItemOwner(SupplyItem item, String organizationPublicId) {
         if (!item.getSupplier().getOrganizationPublicId().equals(organizationPublicId)) {
             throw new ItemException(ItemErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    private void validateNoEditBlockingOrders(String itemPublicId) {
+        if (purchaseOrderItemRepository.existsEditBlockingOrderByItemPublicId(itemPublicId)) {
+            throw new ItemException(ItemErrorCode.ITEM_LINKED_ORDER_EDIT_NOT_ALLOWED);
         }
     }
 
@@ -337,6 +397,7 @@ public class SupplyItemService {
     public ItemResponse changeItemStatus(
             String organizationPublicId,
             String organizationType,
+            String actorUserPublicId,
             String itemPublicId,
             ChangeItemStatusRequest request
     ) {
@@ -354,7 +415,22 @@ public class SupplyItemService {
             throw new ItemException(ItemErrorCode.INVALID_INPUT_VALUE);
         }
 
+        Status beforeStatus = item.getStatus();
         item.changeActiveYn(request.getStatus());
+        appendItemHistory(
+                item,
+                request.getStatus() == Status.ACTIVE
+                        ? SupplyItemHistoryActionType.ACTIVATED
+                        : SupplyItemHistoryActionType.DEACTIVATED,
+                item.getSupplyType(),
+                item.getSupplyType(),
+                beforeStatus,
+                item.getStatus(),
+                item.getPrimaryMediaFilePublicId(),
+                item.getPrimaryMediaFilePublicId(),
+                actorUserPublicId,
+                request.getStatus() == Status.ACTIVE ? "품목 활성화" : "품목 비활성화"
+        );
         itemSearchService.saveItemDocument(item);
         return toItemResponseWithCapability(item);
     }
@@ -362,6 +438,7 @@ public class SupplyItemService {
     public ItemResponse changePrimaryMedia(
             String organizationPublicId,
             String organizationType,
+            String actorUserPublicId,
             String itemPublicId,
             String filePublicId
     ) {
@@ -376,9 +453,70 @@ public class SupplyItemService {
         validateItemOwner(item, organizationPublicId);
         fileServiceClient.getItemImageFile(itemPublicId, filePublicId);
 
+        String beforePrimaryMediaFilePublicId = item.getPrimaryMediaFilePublicId();
         item.changePrimaryMedia(filePublicId);
+        appendItemHistory(
+                item,
+                SupplyItemHistoryActionType.PRIMARY_MEDIA_CHANGED,
+                item.getSupplyType(),
+                item.getSupplyType(),
+                item.getStatus(),
+                item.getStatus(),
+                beforePrimaryMediaFilePublicId,
+                item.getPrimaryMediaFilePublicId(),
+                actorUserPublicId,
+                "대표 미디어 변경"
+        );
         itemSearchService.saveItemDocument(item);
         return toItemResponseWithCapability(item);
+    }
+
+    public void recordMediaChanged(
+            String organizationPublicId,
+            String organizationType,
+            String actorUserPublicId,
+            String itemPublicId
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
+
+        SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
+                        itemPublicId,
+                        MANAGED_ITEM_STATUSES
+                )
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        validateItemOwner(item, organizationPublicId);
+        appendItemHistory(
+                item,
+                SupplyItemHistoryActionType.MEDIA_CHANGED,
+                item.getSupplyType(),
+                item.getSupplyType(),
+                item.getStatus(),
+                item.getStatus(),
+                item.getPrimaryMediaFilePublicId(),
+                item.getPrimaryMediaFilePublicId(),
+                actorUserPublicId,
+                "품목 미디어 수정"
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemHistoryResponse> getItemHistories(
+            String organizationPublicId,
+            String organizationType,
+            String itemPublicId
+    ) {
+        getWritableSupplier(organizationPublicId, organizationType);
+
+        SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(itemPublicId, MANAGED_ITEM_STATUSES)
+                .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        validateItemOwner(item, organizationPublicId);
+
+        return supplyItemHistoryRepository.findByItemIdOrderByRecordedAtDesc(item.getId())
+                .stream()
+                .map(ItemHistoryResponse::from)
+                .toList();
     }
 
     private LogisticsNode resolveOriginLogisticsNode(
@@ -405,6 +543,42 @@ public class SupplyItemService {
                 .orElse(null);
 
         return ItemResponse.fromEntityWithCapability(item, capability);
+    }
+
+    private void appendItemHistory(
+            SupplyItem item,
+            SupplyItemHistoryActionType actionType,
+            SupplyType beforeSupplyType,
+            SupplyType afterSupplyType,
+            Status beforeStatus,
+            Status afterStatus,
+            String beforePrimaryMediaFilePublicId,
+            String afterPrimaryMediaFilePublicId,
+            String recordedBy,
+            String memo
+    ) {
+        supplyItemHistoryRepository.save(SupplyItemHistory.builder()
+                .itemId(item.getId())
+                .itemPublicId(item.getPublicId())
+                .itemCode(item.getItemCode())
+                .itemName(item.getItemName())
+                .actionType(actionType)
+                .beforeSupplyType(beforeSupplyType)
+                .afterSupplyType(afterSupplyType)
+                .beforeStatus(beforeStatus)
+                .afterStatus(afterStatus)
+                .beforePrimaryMediaFilePublicId(beforePrimaryMediaFilePublicId)
+                .afterPrimaryMediaFilePublicId(afterPrimaryMediaFilePublicId)
+                .recordedBy(recordedBy)
+                .memo(memo)
+                .build());
+    }
+
+    private String displaySupplyType(SupplyType supplyType) {
+        if (supplyType == SupplyType.MAKE_TO_ORDER) {
+            return "주문 생산";
+        }
+        return "재고 기반";
     }
 
 

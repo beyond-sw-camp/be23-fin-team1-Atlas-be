@@ -285,7 +285,7 @@ public class ReturnService {
             // 반품 승인은 '대상 조직(공급사)'이 수행함.
             // 교환 시 재고 선점
             if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.EXCHANGE) {
-                reserveExchangeStock(returnRequest);
+                reserveExchangeStock(returnRequest, actorPublicId);
                 createReturnShipment(returnRequest, actorPublicId);
             } else if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.RETURN) {
                 createReturnShipment(returnRequest, actorPublicId);
@@ -300,7 +300,7 @@ public class ReturnService {
 
         if (request.getReturnStatus() == ReturnStatus.COMPLETED) {
             // 재고 반영 (반품 입고 / 불량 처리 등)
-            processInventoryOnCompletion(returnRequest);
+            processInventoryOnCompletion(returnRequest, actorPublicId);
             settlementService.createReturnSettlementIfAbsent(returnRequest.getPublicId());
         }
 
@@ -352,6 +352,10 @@ public class ReturnService {
     }
 
     private void reserveExchangeStock(ReturnRequest returnRequest) {
+        reserveExchangeStock(returnRequest, null);
+    }
+
+    private void reserveExchangeStock(ReturnRequest returnRequest, String actorPublicId) {
         SupplySupplier supplier = supplierRepository.findByOrganizationPublicId(returnRequest.getTargetOrganizationPublicId())
                 .orElseThrow(() -> new IllegalStateException("공급사를 찾을 수 없습니다."));
 
@@ -359,11 +363,15 @@ public class ReturnService {
             SupplyItem supplyItem = supplyItemRepository.findByPublicId(item.getItemPublicId())
                     .orElseThrow(() -> new IllegalStateException("품목을 찾을 수 없습니다."));
             
-            itemInventoryService.reserveForExchange(supplier, supplyItem, item.getReturnQty().longValue(), returnRequest.getPublicId());
+            itemInventoryService.reserveForExchange(supplier, supplyItem, item.getReturnQty().longValue(), returnRequest.getPublicId(), actorPublicId);
         }
     }
 
     private void processInventoryOnCompletion(ReturnRequest returnRequest) {
+        processInventoryOnCompletion(returnRequest, null);
+    }
+
+    private void processInventoryOnCompletion(ReturnRequest returnRequest, String actorPublicId) {
         SupplySupplier supplier = supplierRepository.findByOrganizationPublicId(returnRequest.getTargetOrganizationPublicId())
                 .orElseThrow(() -> new IllegalStateException("공급사를 찾을 수 없습니다."));
 
@@ -373,10 +381,10 @@ public class ReturnService {
 
             if (returnRequest.getResolutionType() == com.ozz.atlas.supply.returns.domain.ResolutionType.DISPOSAL) {
                 // 폐기 처리
-                itemInventoryService.deductForDisposal(supplier, supplyItem, item.getReturnQty().longValue(), returnRequest.getPublicId());
+                itemInventoryService.deductForDisposal(supplier, supplyItem, item.getReturnQty().longValue(), returnRequest.getPublicId(), actorPublicId);
             } else {
                 // 반납/교환 후 입고 처리 (검수 결과 반영)
-                itemInventoryService.processReturnInventory(supplier, supplyItem, item.getReturnQty().longValue(), item.getQcGrade(), returnRequest.getPublicId());
+                itemInventoryService.processReturnInventory(supplier, supplyItem, item.getReturnQty().longValue(), item.getQcGrade(), returnRequest.getPublicId(), actorPublicId);
             }
         }
     }
