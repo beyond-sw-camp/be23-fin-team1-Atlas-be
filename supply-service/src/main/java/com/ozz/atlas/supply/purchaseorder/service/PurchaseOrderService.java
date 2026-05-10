@@ -150,7 +150,7 @@ public class PurchaseOrderService {
                 createdByUserPublicId,
                 buyerOrganizationPublicId,
                 "발주 생성",
-                "발주 생성 시"
+                "신규 발주가 생성되었습니다."
         );
         appendPurchaseOrderHistory(
                 savedPurchaseOrder,

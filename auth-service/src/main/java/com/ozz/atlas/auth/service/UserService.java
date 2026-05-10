@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -404,6 +406,8 @@ public class UserService {
             return List.of();
         }
 
+        Map<String, UserRecipientDto> recipients = new LinkedHashMap<>();
+
         if (hasText(departmentCode)) {
             List<User> departmentUsers = userRepository
                     .findAllByOrganization_PublicIdAndDepartment_DepartmentCodeAndStatus(
@@ -411,21 +415,21 @@ public class UserService {
                             departmentCode,
                             Status.ACTIVE
                     );
-            if (!departmentUsers.isEmpty()) {
-                return departmentUsers.stream()
-                        .map(UserRecipientDto::fromEntity)
-                        .toList();
-            }
+            departmentUsers.stream()
+                    .map(UserRecipientDto::fromEntity)
+                    .forEach(recipient -> recipients.put(recipient.userPublicId(), recipient));
         }
 
-        return userRepository.findAllByOrganization_PublicIdAndUserRoleAndStatus(
+        userRepository.findAllByOrganization_PublicIdAndUserRoleAndStatus(
                         organizationPublicId,
                         UserRole.ORG_ADMIN,
                         Status.ACTIVE
                 )
                 .stream()
                 .map(UserRecipientDto::fromEntity)
-                .toList();
+                .forEach(recipient -> recipients.putIfAbsent(recipient.userPublicId(), recipient));
+
+        return List.copyOf(recipients.values());
     }
 
     @Transactional(readOnly = true)
