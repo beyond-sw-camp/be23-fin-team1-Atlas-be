@@ -748,12 +748,18 @@ public class PurchaseOrderService {
         if (purchaseOrder.getPoStatus() == PoStatus.CONFIRMED) {
             return "발주 수락";
         }
+        if (purchaseOrder.getPoStatus() == PoStatus.PARTIALLY_CONFIRMED) {
+            return "발주 부분 확정";
+        }
         return "발주 확정";
     }
 
     private String resolvePurchaseOrderConfirmationDescription(SupplyPurchaseOrder purchaseOrder) {
         if (purchaseOrder.getPoStatus() == PoStatus.CONFIRMED) {
             return "발주 수락 시";
+        }
+        if (purchaseOrder.getPoStatus() == PoStatus.PARTIALLY_CONFIRMED) {
+            return "발주 부분 확정 시";
         }
         return "발주 확정 시";
     }
@@ -971,6 +977,12 @@ public class PurchaseOrderService {
                     organizationPublicId,
                     PoStatus.DELETED
             );
+            long shortageOrderCount = purchaseOrderRepository.countShortageOrders(
+                    organizationPublicId,
+                    PoStatus.PARTIALLY_CONFIRMED
+            );
+            List<OrderDashboardSummaryResponse.OrderShortageResponse> shortageOrders =
+                    getShortageOrders(organizationPublicId);
 
             return OrderDashboardSummaryResponse.of(
                     totalOrderCount,
@@ -978,7 +990,9 @@ public class PurchaseOrderService {
                     completedOrderCount,
                     totalOrderCount,
                     0L,
-                    totalAmount
+                    totalAmount,
+                    shortageOrderCount,
+                    shortageOrders
             );
         }
 
@@ -1000,6 +1014,12 @@ public class PurchaseOrderService {
                     organizationPublicId,
                     SubPoStatus.DELETED
             );
+            long shortageOrderCount = purchaseOrderRepository.countShortageOrders(
+                    organizationPublicId,
+                    PoStatus.PARTIALLY_CONFIRMED
+            );
+            List<OrderDashboardSummaryResponse.OrderShortageResponse> shortageOrders =
+                    getShortageOrders(organizationPublicId);
 
             return OrderDashboardSummaryResponse.of(
                     receivedOrderCount + issuedOrderCount,
@@ -1007,11 +1027,51 @@ public class PurchaseOrderService {
                     0L,
                     issuedOrderCount,
                     receivedOrderCount,
-                    receivedAmount.add(issuedAmount)
+                    receivedAmount.add(issuedAmount),
+                    shortageOrderCount,
+                    shortageOrders
             );
         }
 
         throw new PurchaseOrderException(PurchaseOrderErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    private List<OrderDashboardSummaryResponse.OrderShortageResponse> getShortageOrders(String buyerOrganizationPublicId) {
+        return purchaseOrderRepository
+                .findTop5ByBuyerOrganizationPublicIdAndPoStatusOrderByUpdatedAtDesc(
+                        buyerOrganizationPublicId,
+                        PoStatus.PARTIALLY_CONFIRMED
+                )
+                .stream()
+                .map(this::toShortageResponse)
+                .filter(response -> response.getShortageItemCount() > 0)
+                .toList();
+    }
+
+    private OrderDashboardSummaryResponse.OrderShortageResponse toShortageResponse(SupplyPurchaseOrder purchaseOrder) {
+        List<SupplyPurchaseOrderItem> shortageItems = purchaseOrder.getActiveItems().stream()
+                .filter(item -> item.getConfirmedQty() != null)
+                .filter(item -> item.getOrderedQty() != null)
+                .filter(item -> item.getOrderedQty() > item.getConfirmedQty())
+                .toList();
+
+        SupplyPurchaseOrderItem representativeItem = shortageItems.isEmpty() ? null : shortageItems.get(0);
+        Long shortageQty = representativeItem == null
+                ? 0L
+                : representativeItem.getOrderedQty() - representativeItem.getConfirmedQty();
+
+        return OrderDashboardSummaryResponse.OrderShortageResponse.builder()
+                .poPublicId(purchaseOrder.getPublicId())
+                .poNumber(purchaseOrder.getPoNumber())
+                .poItemPublicId(representativeItem != null ? representativeItem.getPublicId() : null)
+                .supplierPublicId(purchaseOrder.getSupplier().getPublicId())
+                .supplierName(purchaseOrder.getSupplier().getSupplierName())
+                .itemName(representativeItem != null ? representativeItem.getItem().getItemName() : null)
+                .itemPublicId(representativeItem != null ? representativeItem.getItem().getPublicId() : null)
+                .shortageItemCount((long) shortageItems.size())
+                .shortageQty(shortageQty)
+                .unit(representativeItem != null ? representativeItem.getItem().getUnit().name() : null)
+                .build();
     }
 
     public List<PurchaseOrderDetailResponse> createPurchaseOrdersBatch(

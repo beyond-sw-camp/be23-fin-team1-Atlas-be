@@ -174,6 +174,14 @@ public class NotificationCommandFactory {
     }
 
     private String resolveSupplyMessageSentence(String eventType, String fallbackDescription) {
+        if (
+                EventTypes.PURCHASE_ORDER_CONFIRMED.equals(eventType)
+                        && StringUtils.hasText(fallbackDescription)
+                        && fallbackDescription.contains("부분")
+        ) {
+            return "발주가 부분 확정되었습니다.";
+        }
+
         return switch (eventType) {
             case EventTypes.PURCHASE_ORDER_CREATED -> "신규 발주가 생성되었습니다.";
             case EventTypes.PURCHASE_ORDER_UPDATED -> "발주가 수정되었습니다.";

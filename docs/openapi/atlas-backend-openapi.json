@@ -92,6 +92,9 @@
       "name": "SupplyBatch"
     },
     {
+      "name": "SupplyChain"
+    },
+    {
       "name": "SupplyEsgAssessment"
     },
     {
@@ -9833,6 +9836,40 @@
           }
         ],
         "description": "협력사 관계 삭제 API입니다. 경로 변수 parentSupplierPublicId, relationPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id 값을 함께 전달해야 할 수 있습니다."
+      }
+    },
+    "/api/supply/order-chains": {
+      "get": {
+        "operationId": "getSupplyChains",
+        "tags": [
+          "SupplyChain"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplyChainResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "주문 기반 공급망 체인 조회",
+        "parameters": [
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          }
+        ],
+        "description": "주문 기반 공급망 체인 조회 API입니다. 헤더 X-Organization-Public-Id 값을 함께 전달해야 할 수 있습니다."
       }
     },
     "/api/control/chats/rooms/{roomPublicId}/messages": {
@@ -20075,6 +20112,240 @@
         "type": "string",
         "enum": [],
         "description": "Purchase Order History Action Type 모델"
+      },
+      "SupplyChainResponse": {
+        "type": "object",
+        "properties": {
+          "chains": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "chains 값",
+              "example": "sample"
+            },
+            "description": "chains 값",
+            "example": [
+              "sample"
+            ]
+          },
+          "metrics": {
+            "type": "object",
+            "description": "metrics 값",
+            "example": "sample"
+          },
+          "chainCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "개수",
+            "example": 1
+          },
+          "directSegmentCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "개수",
+            "example": 1
+          },
+          "extendedSupplierCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "개수",
+            "example": 1
+          },
+          "priceVisibleSegmentCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "금액",
+            "example": 100
+          },
+          "riskChainCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "개수",
+            "example": 1
+          },
+          "chainId": {
+            "type": "string",
+            "description": "내부 식별자",
+            "example": "sample_id"
+          },
+          "rootOrderPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "rootOrderNumber": {
+            "type": "string",
+            "description": "업무 번호",
+            "example": "NO-2026-0001"
+          },
+          "itemName": {
+            "type": "string",
+            "description": "이름",
+            "example": "샘플 이름"
+          },
+          "status": {
+            "type": "string",
+            "description": "상태 값",
+            "example": "sample"
+          },
+          "currentStep": {
+            "type": "string",
+            "description": "current Step 값",
+            "example": "sample"
+          },
+          "viewerRole": {
+            "type": "string",
+            "description": "권한 값",
+            "example": "sample"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "nodes 값",
+              "example": "sample"
+            },
+            "description": "nodes 값",
+            "example": [
+              "sample"
+            ]
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "edges 값",
+              "example": "sample"
+            },
+            "description": "edges 값",
+            "example": [
+              "sample"
+            ]
+          },
+          "visibility": {
+            "type": "object",
+            "description": "visibility 값",
+            "example": "sample"
+          },
+          "nodeId": {
+            "type": "string",
+            "description": "내부 식별자",
+            "example": "sample_id"
+          },
+          "organizationPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "label": {
+            "type": "string",
+            "description": "label 값",
+            "example": "sample"
+          },
+          "role": {
+            "type": "string",
+            "description": "권한 값",
+            "example": "sample"
+          },
+          "scope": {
+            "type": "string",
+            "description": "scope 값",
+            "example": "sample"
+          },
+          "edgeId": {
+            "type": "string",
+            "description": "내부 식별자",
+            "example": "sample_id"
+          },
+          "fromNodeId": {
+            "type": "string",
+            "description": "내부 식별자",
+            "example": "sample_id"
+          },
+          "toNodeId": {
+            "type": "string",
+            "description": "내부 식별자",
+            "example": "sample_id"
+          },
+          "documentPublicId": {
+            "type": "string",
+            "description": "공개 식별자",
+            "example": "sample_public_id"
+          },
+          "documentNumber": {
+            "type": "string",
+            "description": "업무 번호",
+            "example": "NO-2026-0001"
+          },
+          "documentType": {
+            "type": "string",
+            "description": "유형 값",
+            "example": "sample"
+          },
+          "orderedQty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ordered Qty 값",
+            "example": 1
+          },
+          "confirmedQty": {
+            "type": "integer",
+            "format": "int64",
+            "description": "confirmed Qty 값",
+            "example": 1
+          },
+          "expectedDueDate": {
+            "type": "string",
+            "format": "date",
+            "description": "날짜 값",
+            "example": "2026-04-17"
+          },
+          "directContract": {
+            "type": "boolean",
+            "description": "direct Contract 값",
+            "example": true
+          },
+          "priceVisible": {
+            "type": "boolean",
+            "description": "금액",
+            "example": 100
+          },
+          "amount": {
+            "type": "number",
+            "description": "금액",
+            "example": 100
+          },
+          "visibleFields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "visible Fields 값",
+              "example": "sample"
+            },
+            "description": "visible Fields 값",
+            "example": [
+              "sample"
+            ]
+          },
+          "hiddenFields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "hidden Fields 값",
+              "example": "sample"
+            },
+            "description": "hidden Fields 값",
+            "example": [
+              "sample"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "사유",
+            "example": "샘플 사유"
+          }
+        },
+        "description": "Supply Chain 응답 모델"
       }
     },
     "securitySchemes": {
