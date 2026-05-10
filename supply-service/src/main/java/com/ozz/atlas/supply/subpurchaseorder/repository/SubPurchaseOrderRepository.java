@@ -283,6 +283,29 @@ public interface SubPurchaseOrderRepository extends JpaRepository<SupplySubPurch
             @Param("deletedStatus") SubPoStatus deletedStatus
     );
 
+    @EntityGraph(attributePaths = {
+            "parentPurchaseOrder",
+            "parentPurchaseOrder.supplier",
+            "supplier",
+            "subPurchaseOrderItems",
+            "subPurchaseOrderItems.item",
+            "subPurchaseOrderItems.parentPurchaseOrderItem"
+    })
+    @Query("""
+    select distinct subPo
+    from SupplySubPurchaseOrder subPo
+    where subPo.subPoStatus <> :deletedStatus
+      and (
+          subPo.parentPurchaseOrder.buyerOrganizationPublicId = :organizationPublicId
+          or subPo.parentPurchaseOrder.supplier.organizationPublicId = :organizationPublicId
+          or subPo.supplier.organizationPublicId = :organizationPublicId
+      )
+    order by subPo.orderedAt desc
+    """)
+    List<SupplySubPurchaseOrder> findAllReadableForSupplyChain(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("deletedStatus") SubPoStatus deletedStatus
+    );
 
 
 }

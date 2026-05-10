@@ -111,6 +111,28 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
             PoStatus poStatus
     );
 
+    @EntityGraph(attributePaths = {"supplier"})
+    List<SupplyPurchaseOrder> findTop5ByBuyerOrganizationPublicIdAndPoStatusOrderByUpdatedAtDesc(
+            String buyerOrganizationPublicId,
+            PoStatus poStatus
+    );
+
+    @Query("""
+    select count(distinct po)
+    from SupplyPurchaseOrder po
+    join po.purchaseOrderItems item
+    where po.buyerOrganizationPublicId = :buyerOrganizationPublicId
+      and po.poStatus = :poStatus
+      and item.itemStatus <> com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.DELETED
+      and item.confirmedQty is not null
+      and item.orderedQty is not null
+      and item.orderedQty > item.confirmedQty
+    """)
+    long countShortageOrders(
+            @Param("buyerOrganizationPublicId") String buyerOrganizationPublicId,
+            @Param("poStatus") PoStatus poStatus
+    );
+
     long countByBuyerOrganizationPublicIdAndPoStatusNot(String buyerOrganizationPublicId, PoStatus poStatus);
 
     long countByBuyerOrganizationPublicIdAndPoStatus(String buyerOrganizationPublicId, PoStatus poStatus);
@@ -179,6 +201,22 @@ public interface PurchaseOrderRepository extends JpaRepository<SupplyPurchaseOrd
     List<String> findRelatedPurchaseOrderPublicIdsByStatuses(
             @Param("organizationPublicId") String organizationPublicId,
             @Param("statuses") Collection<PoStatus> statuses
+    );
+
+    @EntityGraph(attributePaths = {"supplier", "purchaseOrderItems", "purchaseOrderItems.item"})
+    @Query("""
+    select distinct po
+    from SupplyPurchaseOrder po
+    where po.poStatus <> :deletedStatus
+      and (
+            po.buyerOrganizationPublicId = :organizationPublicId
+            or po.supplier.organizationPublicId = :organizationPublicId
+      )
+    order by po.orderedAt desc
+    """)
+    List<SupplyPurchaseOrder> findAllReadableForSupplyChain(
+            @Param("organizationPublicId") String organizationPublicId,
+            @Param("deletedStatus") PoStatus deletedStatus
     );
 
 
