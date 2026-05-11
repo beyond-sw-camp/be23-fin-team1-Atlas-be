@@ -55,6 +55,7 @@ public class ShipmentService {
     private final ShipmentCreateService shipmentCreateService;
     private final ShipmentMapper shipmentMapper;
     private final ShipmentEtaCalculator shipmentEtaCalculator;
+    private final ShipmentOrganizationClient shipmentOrganizationClient;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -73,7 +74,8 @@ public class ShipmentService {
             ShipmentStatusService shipmentStatusService,
             ShipmentCreateService shipmentCreateService,
             ShipmentMapper shipmentMapper,
-            ShipmentEtaCalculator shipmentEtaCalculator
+            ShipmentEtaCalculator shipmentEtaCalculator,
+            ShipmentOrganizationClient shipmentOrganizationClient
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentCheckpointRepository = shipmentCheckpointRepository;
@@ -92,6 +94,7 @@ public class ShipmentService {
         this.shipmentCreateService = shipmentCreateService;
         this.shipmentMapper = shipmentMapper;
         this.shipmentEtaCalculator = shipmentEtaCalculator;
+        this.shipmentOrganizationClient = shipmentOrganizationClient;
     }
 
     // 출하 생성
@@ -343,7 +346,8 @@ public class ShipmentService {
                     node.getNodeName(),
                     node.getLatitude(),
                     node.getLongitude(),
-                    actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
+                    actorUserPublicId != null ? actorUserPublicId : "SYSTEM",
+                    organizationPublicId
             );
 
             List<ShipmentCheckpoint> updatedCheckpoints =
@@ -556,7 +560,8 @@ public class ShipmentService {
             String locationText,
             java.math.BigDecimal latitude,
             java.math.BigDecimal longitude,
-            String recordedBy
+            String recordedBy,
+            String recordedOrganizationPublicId
     ) {
         ShipmentStatusHistory history = ShipmentStatusHistory.builder()
                 .shipmentId(shipment.getId())
@@ -567,6 +572,8 @@ public class ShipmentService {
                 .longitude(longitude)
                 .recordedAt(recordedAt)
                 .recordedBy(recordedBy)
+                .recordedOrganizationPublicId(recordedOrganizationPublicId)
+                .recordedOrganizationName(shipmentOrganizationClient.getOrganizationName(recordedOrganizationPublicId))
                 .build();
 
         shipmentStatusHistoryRepository.save(history);

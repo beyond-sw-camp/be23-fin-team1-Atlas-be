@@ -62,6 +62,7 @@ public class ShipmentCreateService {
     private final ShipmentAuthorizationService shipmentAuthorizationService;
     private final ShipmentMapper shipmentMapper;
     private final ShipmentInventoryService shipmentInventoryService;
+    private final ShipmentOrganizationClient shipmentOrganizationClient;
 
     public ShipmentCreateService(
             ShipmentRepository shipmentRepository,
@@ -76,7 +77,8 @@ public class ShipmentCreateService {
             SupplyChainContextResolver supplyChainContextResolver,
             ShipmentAuthorizationService shipmentAuthorizationService,
             ShipmentMapper shipmentMapper,
-            ShipmentInventoryService shipmentInventoryService
+            ShipmentInventoryService shipmentInventoryService,
+            ShipmentOrganizationClient shipmentOrganizationClient
     ) {
         this.shipmentRepository = shipmentRepository;
         this.shipmentLineRepository = shipmentLineRepository;
@@ -91,6 +93,7 @@ public class ShipmentCreateService {
         this.shipmentAuthorizationService = shipmentAuthorizationService;
         this.shipmentMapper = shipmentMapper;
         this.shipmentInventoryService = shipmentInventoryService;
+        this.shipmentOrganizationClient = shipmentOrganizationClient;
     }
 
     public ShipmentResponseDto createShipment(
@@ -168,7 +171,7 @@ public class ShipmentCreateService {
                 .build();
 
         Shipment savedShipment = shipmentRepository.save(shipment);
-        saveCreatedHistory(savedShipment, originNode, actorUserPublicId);
+        saveCreatedHistory(savedShipment, originNode, actorUserPublicId, organizationPublicId);
         publishCreatedEvent(savedShipment, originNode, destinationNode, actorUserPublicId, organizationPublicId);
 
         return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
@@ -257,7 +260,7 @@ public class ShipmentCreateService {
             );
         }
 
-        saveCreatedHistory(savedShipment, originNode, actorUserPublicId);
+        saveCreatedHistory(savedShipment, originNode, actorUserPublicId, organizationPublicId);
         publishCreatedEvent(savedShipment, originNode, destinationNode, actorUserPublicId, organizationPublicId);
 
         return shipmentMapper.toShipmentResponseDto(savedShipment, organizationPublicId);
@@ -266,7 +269,8 @@ public class ShipmentCreateService {
     private void saveCreatedHistory(
             Shipment shipment,
             LogisticsNode originNode,
-            String actorUserPublicId
+            String actorUserPublicId,
+            String organizationPublicId
     ) {
         ShipmentStatusHistory history = ShipmentStatusHistory.builder()
                 .shipmentId(shipment.getId())
@@ -277,6 +281,8 @@ public class ShipmentCreateService {
                 .longitude(originNode.getLongitude())
                 .recordedAt(LocalDateTime.now())
                 .recordedBy(actorUserPublicId != null ? actorUserPublicId : "SYSTEM")
+                .recordedOrganizationPublicId(organizationPublicId)
+                .recordedOrganizationName(shipmentOrganizationClient.getOrganizationName(organizationPublicId))
                 .build();
 
         shipmentStatusHistoryRepository.save(history);

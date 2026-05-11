@@ -34,6 +34,10 @@ public class ShipmentStatusHistoryResponseDto {
     private LocalDateTime recordedAt;
     @Schema(description = "recorded By 값", example = "sample", nullable = true)
     private String recordedBy;
+    @Schema(description = "처리 조직 공개 식별자", example = "01HQ456789ABCDEF01HQ456789", nullable = true)
+    private String recordedOrganizationPublicId;
+    @Schema(description = "처리 조직명", example = "테스트창고", nullable = true)
+    private String recordedOrganizationName;
     public static ShipmentStatusHistoryResponseDto from(ShipmentStatusHistory history, String shipmentPublicId){
         return ShipmentStatusHistoryResponseDto.builder()
                 .shipmentPublicId(shipmentPublicId)
@@ -44,6 +48,8 @@ public class ShipmentStatusHistoryResponseDto {
                 .longitude(history.getLongitude())
                 .recordedAt(history.getRecordedAt())
                 .recordedBy(history.getRecordedBy())
+                .recordedOrganizationPublicId(history.getRecordedOrganizationPublicId())
+                .recordedOrganizationName(history.getRecordedOrganizationName())
                 .build();
     }
 }
