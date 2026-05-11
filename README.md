@@ -702,7 +702,7 @@
     <img width="569" height="548" src="images/발주관리.png" />
     <img width="569" height="548" src="images/출하대표.png" />
     <img width="569" height="548" src="images/정산관리2.png" />
-  </details>` 
+  </details> 
   
   ### ERD [상세보기](https://www.erdcloud.com/d/CTyFQXjoQ3my9vYvr)
   <details>
