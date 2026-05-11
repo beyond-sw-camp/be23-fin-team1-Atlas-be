@@ -2,6 +2,8 @@ package com.ozz.atlas.supply.shipment.service;
 
 import com.ozz.atlas.supply.logistics.domain.LogisticsNode;
 import com.ozz.atlas.supply.logistics.repository.LogisticsNodeRepository;
+import com.ozz.atlas.supply.purchaseorder.repository.PurchaseOrderRepository;
+import com.ozz.atlas.supply.returns.domain.ReturnRequest;
 import com.ozz.atlas.supply.shipment.domain.Shipment;
 import com.ozz.atlas.supply.shipment.domain.ShipmentSourceType;
 import com.ozz.atlas.supply.shipment.domain.ShipmentStatus;
@@ -9,6 +11,7 @@ import com.ozz.atlas.supply.shipment.dtos.ShipmentLineResponseDto;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentResponseDto;
 import com.ozz.atlas.supply.shipment.repository.ShipmentLineRepository;
 import com.ozz.atlas.supply.returns.repository.ReturnRequestRepository;
+import com.ozz.atlas.supply.subpurchaseorder.repository.SubPurchaseOrderRepository;
 import org.springframework.stereotype.Component;
 import com.ozz.atlas.supply.shipment.dtos.ShipmentListResponseDto;
 
@@ -26,15 +29,21 @@ public class ShipmentMapper {
     private final LogisticsNodeRepository logisticsNodeRepository;
     private final ShipmentLineRepository shipmentLineRepository;
     private final ReturnRequestRepository returnRequestRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final SubPurchaseOrderRepository subPurchaseOrderRepository;
 
     public ShipmentMapper(
             LogisticsNodeRepository logisticsNodeRepository,
             ShipmentLineRepository shipmentLineRepository,
-            ReturnRequestRepository returnRequestRepository
+            ReturnRequestRepository returnRequestRepository,
+            PurchaseOrderRepository purchaseOrderRepository,
+            SubPurchaseOrderRepository subPurchaseOrderRepository
     ) {
         this.logisticsNodeRepository = logisticsNodeRepository;
         this.shipmentLineRepository = shipmentLineRepository;
         this.returnRequestRepository = returnRequestRepository;
+        this.purchaseOrderRepository = purchaseOrderRepository;
+        this.subPurchaseOrderRepository = subPurchaseOrderRepository;
     }
 
     public ShipmentResponseDto toShipmentResponseDto(Shipment shipment) {
@@ -53,16 +62,22 @@ public class ShipmentMapper {
                 destinationNode,
                 organizationPublicId
         );
+        String purchaseOrderNumber = resolvePurchaseOrderNumber(shipment);
+        String subPurchaseOrderNumber = resolveSubPurchaseOrderNumber(shipment);
+        String sourceNumber = resolveSourceNumber(shipment, purchaseOrderNumber, subPurchaseOrderNumber);
 
         return ShipmentResponseDto.builder()
                 .publicId(shipment.getPublicId())
                 .shipmentNumber(shipment.getShipmentNumber())
                 .sourceType(resolveSourceType(shipment))
                 .sourcePublicId(shipment.getSourcePublicId())
+                .sourceNumber(sourceNumber)
                 .poId(shipment.getPoId())
                 .purchaseOrderPublicId(shipment.getPurchaseOrderPublicId())
+                .purchaseOrderNumber(purchaseOrderNumber)
                 .subPoId(shipment.getSubPoId())
                 .subPurchaseOrderPublicId(shipment.getSubPurchaseOrderPublicId())
+                .subPurchaseOrderNumber(subPurchaseOrderNumber)
                 .carrierName(shipment.getCarrierName())
                 .vehicleNo(shipment.getVehicleNo())
                 .trackingNo(shipment.getTrackingNo())
@@ -174,6 +189,65 @@ public class ShipmentMapper {
 
     private ShipmentSourceType resolveSourceType(Shipment shipment) {
         return shipment.getSourceType() != null ? shipment.getSourceType() : ShipmentSourceType.ORDER;
+    }
+
+    private String resolvePurchaseOrderNumber(Shipment shipment) {
+        if (shipment.getPoId() != null) {
+            return purchaseOrderRepository.findById(shipment.getPoId())
+                    .map(order -> order.getPoNumber())
+                    .orElse(null);
+        }
+
+        if (shipment.getPurchaseOrderPublicId() != null && !shipment.getPurchaseOrderPublicId().isBlank()) {
+            return purchaseOrderRepository.findByPublicIdAndPoStatusNot(
+                            shipment.getPurchaseOrderPublicId(),
+                            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.DELETED
+                    )
+                    .map(order -> order.getPoNumber())
+                    .orElse(null);
+        }
+
+        return null;
+    }
+
+    private String resolveSubPurchaseOrderNumber(Shipment shipment) {
+        if (shipment.getSubPoId() != null) {
+            return subPurchaseOrderRepository.findById(shipment.getSubPoId())
+                    .map(order -> order.getSubPoNumber())
+                    .orElse(null);
+        }
+
+        if (shipment.getSubPurchaseOrderPublicId() != null && !shipment.getSubPurchaseOrderPublicId().isBlank()) {
+            return subPurchaseOrderRepository.findByPublicIdAndSubPoStatusNot(
+                            shipment.getSubPurchaseOrderPublicId(),
+                            com.ozz.atlas.supply.subpurchaseorder.domain.SubPoStatus.DELETED
+                    )
+                    .map(order -> order.getSubPoNumber())
+                    .orElse(null);
+        }
+
+        return null;
+    }
+
+    private String resolveSourceNumber(
+            Shipment shipment,
+            String purchaseOrderNumber,
+            String subPurchaseOrderNumber
+    ) {
+        ShipmentSourceType sourceType = resolveSourceType(shipment);
+        if ((sourceType == ShipmentSourceType.RETURN || sourceType == ShipmentSourceType.EXCHANGE)
+                && shipment.getSourcePublicId() != null
+                && !shipment.getSourcePublicId().isBlank()) {
+            return returnRequestRepository.findByPublicId(shipment.getSourcePublicId())
+                    .map(ReturnRequest::getReturnNumber)
+                    .orElse(null);
+        }
+
+        if (subPurchaseOrderNumber != null) {
+            return subPurchaseOrderNumber;
+        }
+
+        return purchaseOrderNumber;
     }
 
     private List<ShipmentLineResponseDto> getShipmentLineResponses(

@@ -26,14 +26,20 @@ public class ShipmentResponseDto {
     private ShipmentSourceType sourceType;
     @Schema(description = "출하 기준 공개 식별자", example = "01HZY1SOURCE12345678901234", nullable = true)
     private String sourcePublicId;
+    @Schema(description = "출하 기준 문서 번호", example = "PO-2026-0000001", nullable = true)
+    private String sourceNumber;
     @Schema(description = "상위 발주 ID", example = "101")
     private Long poId;
     @Schema(description = "상위 발주 공개 식별자", example = "po_01HZY1PO123456789", nullable = true)
     private String purchaseOrderPublicId;
+    @Schema(description = "상위 발주 번호", example = "PO-2026-0000001", nullable = true)
+    private String purchaseOrderNumber;
     @Schema(description = "하위 발주 ID", example = "202", nullable = true)
     private Long subPoId;
     @Schema(description = "하위 발주 공개 식별자", example = "subpo_01HZY1SUBPO123456789", nullable = true)
     private String subPurchaseOrderPublicId;
+    @Schema(description = "하위 발주 번호", example = "SUBPO-2026-0000001", nullable = true)
+    private String subPurchaseOrderNumber;
     @Schema(description = "운송사명", example = "CJ Logistics")
     private String carrierName;
     @Schema(description = "차량 번호", example = "12가3456")
