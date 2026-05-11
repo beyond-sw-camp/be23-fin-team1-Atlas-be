@@ -583,7 +583,7 @@
 </p>
 <p><b>인증 분류 생성</b></p>
 <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/975540a9-631a-4939-ab31-14a6b73fc64b" /></p>
-<p><b>리스크 규칙 생성</b></p>
+<p><b>리스크 규칙 관리</b></p>
 <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/614b836e-5776-4e6c-9546-d1450bc2cbee" /></p>
 
   </details>
