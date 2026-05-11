@@ -473,10 +473,8 @@
     <summary><b>7.9 조직관리</b></summary>
 
   <h4>7.9.1 조직 및 사용자 관리</h4>
-  <img width="" height="" src="images\최초 로그인 화면.png" />
     <img width="" height="" src="images\조직생성.png" />
     <img width="" height="" src="images\조직대표자생성.png" />
-    <img width="" height="" src="images\조직대표자비밀번호변경.png" />
     <img width="" height="" src="images\개인프로필.png" />
     <ul>
       <li><strong>조직 등록:</strong> 발주사, 공급사 등 공급망 참여 조직 정보 등록</li>
