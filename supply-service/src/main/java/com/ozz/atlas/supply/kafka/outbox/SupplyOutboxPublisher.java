@@ -2,9 +2,11 @@ package com.ozz.atlas.supply.kafka.outbox;
 
 import com.ozz.atlas.supply.kafka.log.EventLog;
 import com.ozz.atlas.supply.kafka.log.EventLogRepository;
+import com.ozz.atlas.supply.kafka.log.search.service.EventLogSearchIndexService;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class SupplyOutboxPublisher {
 
     private static final int BATCH_SIZE = 50;
@@ -21,6 +24,7 @@ public class SupplyOutboxPublisher {
 
     private final OutboxEventRepository outboxEventRepository;
     private final EventLogRepository eventLogRepository;
+    private final EventLogSearchIndexService eventLogSearchIndexService;
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     @Scheduled(fixedDelayString = "${atlas.kafka.outbox.publish-delay-ms:2000}")
@@ -62,9 +66,13 @@ public class SupplyOutboxPublisher {
                 .ifPresentOrElse(
                         existing -> {
                             existing.markPublished(outboxEvent);
-                            eventLogRepository.save(existing);
+                            EventLog savedLog = eventLogRepository.save(existing);
+                            saveEventLogDocumentSafely(savedLog);
                         },
-                        () -> eventLogRepository.save(EventLog.publishedFrom(outboxEvent))
+                        () -> {
+                            EventLog savedLog = eventLogRepository.save(EventLog.publishedFrom(outboxEvent));
+                            saveEventLogDocumentSafely(savedLog);
+                        }
                 );
     }
 
@@ -73,9 +81,21 @@ public class SupplyOutboxPublisher {
                 .ifPresentOrElse(
                         existing -> {
                             existing.markFailed(outboxEvent, errorMessage);
-                            eventLogRepository.save(existing);
+                            EventLog savedLog = eventLogRepository.save(existing);
+                            saveEventLogDocumentSafely(savedLog);
                         },
-                        () -> eventLogRepository.save(EventLog.failedFrom(outboxEvent, errorMessage))
+                        () -> {
+                            EventLog savedLog = eventLogRepository.save(EventLog.failedFrom(outboxEvent, errorMessage));
+                            saveEventLogDocumentSafely(savedLog);
+                        }
                 );
+    }
+
+    private void saveEventLogDocumentSafely(EventLog eventLog) {
+        try {
+            eventLogSearchIndexService.saveEventLogDocument(eventLog);
+        } catch (Exception e) {
+            log.warn("Kafka 감사로그 Elasticsearch 저장에 실패했습니다. eventId={}", eventLog.getEventId(), e);
+        }
     }
 }
