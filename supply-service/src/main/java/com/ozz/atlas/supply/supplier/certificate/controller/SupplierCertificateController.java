@@ -116,4 +116,10 @@ public class SupplierCertificateController {
     public ResponseEntity<List<SupplierCertificateHistoryResponseDto>> getCertificateHistories(@PathVariable String publicId) {
         return ResponseEntity.ok(supplierCertificateService.getCertificateHistories(publicId));
     }
+
+    @Operation(summary = "협력사 인증서 심사 로그 조회")
+    @GetMapping("/certificates/{publicId}/review-logs")
+    public ResponseEntity<List<SupplierCertificateReviewLogResponseDto>> getCertificateReviewLogs(@PathVariable String publicId) {
+        return ResponseEntity.ok(supplierCertificateService.getCertificateReviewLogs(publicId));
+    }
 }

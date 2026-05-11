@@ -8,15 +8,18 @@ import com.ozz.atlas.supply.kafka.context.SupplyChainContextResolver;
 import com.ozz.atlas.supply.kafka.event.SupplyDomainEventFactory;
 import com.ozz.atlas.supply.kafka.outbox.OutboxEventAppender;
 import com.ozz.atlas.supply.supplier.certificate.domain.CertificateStatus;
+import com.ozz.atlas.supply.supplier.certificate.domain.CertificateReviewDecision;
 import com.ozz.atlas.supply.supplier.certificate.domain.CertificateType;
 import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificate;
 import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificateHistory;
+import com.ozz.atlas.supply.supplier.certificate.domain.SupplierCertificateReviewLog;
 import com.ozz.atlas.supply.supplier.certificate.dtos.*;
 import com.ozz.atlas.supply.supplier.certificate.exception.CertificateErrorCode;
 import com.ozz.atlas.supply.supplier.certificate.exception.CertificateException;
 import com.ozz.atlas.supply.supplier.certificate.repository.CertificateTypeRepository;
 import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateHistoryRepository;
 import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateRepository;
+import com.ozz.atlas.supply.supplier.certificate.repository.SupplierCertificateReviewLogRepository;
 import com.ozz.atlas.supply.supplier.domain.SupplySupplier;
 import com.ozz.atlas.supply.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,7 @@ public class SupplierCertificateService {
     private final SupplierCertificateRepository supplierCertificateRepository;
     private final CertificateTypeRepository certificateTypeRepository;
     private final SupplierCertificateHistoryRepository supplierCertificateHistoryRepository;
+    private final SupplierCertificateReviewLogRepository supplierCertificateReviewLogRepository;
     private final SupplierRepository supplierRepository;
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
@@ -64,6 +68,8 @@ public class SupplierCertificateService {
                 .expiredAt(request.getExpiredAt())
                 .issuerName(request.getIssuerName())
                 .attachmentPublicId(request.getAttachmentPublicId())
+                .requestedByUserPublicId(actorPublicId)
+                .requestedByOrganizationPublicId(supplier.getOrganizationPublicId())
                 .build();
 
         SupplierCertificate savedCert = supplierCertificateRepository.save(cert);
@@ -148,13 +154,22 @@ public class SupplierCertificateService {
         }
 
         CertificateStatus beforeStatus = cert.getCertificateStatus();
-        cert.update(request.getCertificateNo(), request.getIssuedAt(), request.getExpiredAt(), request.getIssuerName(), request.getAttachmentPublicId());
+        SupplySupplier supplier = resolveSupplier(cert);
+        cert.update(
+                request.getCertificateNo(),
+                request.getIssuedAt(),
+                request.getExpiredAt(),
+                request.getIssuerName(),
+                request.getAttachmentPublicId(),
+                actorPublicId,
+                supplier.getOrganizationPublicId()
+        );
         
         saveHistory(cert.getId(), "UPDATE", beforeStatus, cert.getCertificateStatus(), "인증서 수정 및 재심사 요청", actorPublicId);
         appendCertificateEvent(
                 EventTypes.SUPPLIER_CERTIFICATE_CREATED,
                 cert,
-                resolveSupplier(cert),
+                supplier,
                 actorPublicId,
                 "협력사 인증서 수정",
                 "협력사 인증서 수정 시"
@@ -185,12 +200,25 @@ public class SupplierCertificateService {
         
         CertificateStatus beforeStatus = cert.getCertificateStatus();
         cert.approve(reviewerOrganizationPublicId);
+        SupplySupplier supplier = resolveSupplier(cert);
+        String reviewerOrganizationName =
+                certificateReviewerOrganizationClient.getOrganizationName(reviewerOrganizationPublicId);
         
         saveHistory(cert.getId(), "APPROVE", beforeStatus, cert.getCertificateStatus(), "관리자 승인 처리", actorPublicId);
+        saveReviewLog(
+                cert,
+                supplier,
+                beforeStatus,
+                CertificateReviewDecision.APPROVE,
+                actorPublicId,
+                reviewerOrganizationPublicId,
+                reviewerOrganizationName,
+                null
+        );
         appendCertificateEvent(
                 EventTypes.SUPPLIER_CERTIFICATE_APPROVED,
                 cert,
-                resolveSupplier(cert),
+                supplier,
                 actorPublicId,
                 "협력사 인증서 승인",
                 "협력사 인증서 승인 시"
@@ -209,12 +237,25 @@ public class SupplierCertificateService {
         
         CertificateStatus beforeStatus = cert.getCertificateStatus();
         cert.reject(request.getRejectReason(), reviewerOrganizationPublicId);
+        SupplySupplier supplier = resolveSupplier(cert);
+        String reviewerOrganizationName =
+                certificateReviewerOrganizationClient.getOrganizationName(reviewerOrganizationPublicId);
         
         saveHistory(cert.getId(), "REJECT", beforeStatus, cert.getCertificateStatus(), request.getRejectReason(), actorPublicId);
+        saveReviewLog(
+                cert,
+                supplier,
+                beforeStatus,
+                CertificateReviewDecision.REJECT,
+                actorPublicId,
+                reviewerOrganizationPublicId,
+                reviewerOrganizationName,
+                request.getRejectReason()
+        );
         appendCertificateEvent(
                 EventTypes.SUPPLIER_CERTIFICATE_REJECTED,
                 cert,
-                resolveSupplier(cert),
+                supplier,
                 actorPublicId,
                 "협력사 인증서 거절",
                 "협력사 인증서 거절 시"
@@ -239,6 +280,16 @@ public class SupplierCertificateService {
                 .collect(Collectors.toList());
     }
 
+    public List<SupplierCertificateReviewLogResponseDto> getCertificateReviewLogs(String publicId) {
+        SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
+
+        return supplierCertificateReviewLogRepository.findBySupplierCertificateIdOrderByReviewedAtDesc(cert.getId())
+                .stream()
+                .map(SupplierCertificateReviewLogResponseDto::from)
+                .collect(Collectors.toList());
+    }
+
     private void saveHistory(Long certId, String actionType, CertificateStatus before, CertificateStatus after, String reason, String actor) {
         SupplierCertificateHistory history = SupplierCertificateHistory.builder()
                 .supplierCertificateId(certId)
@@ -249,6 +300,30 @@ public class SupplierCertificateService {
                 .actorPublicId(actor)
                 .build();
         supplierCertificateHistoryRepository.save(history);
+    }
+
+    private void saveReviewLog(
+            SupplierCertificate certificate,
+            SupplySupplier supplier,
+            CertificateStatus beforeStatus,
+            CertificateReviewDecision decision,
+            String reviewerUserPublicId,
+            String reviewerOrganizationPublicId,
+            String reviewerOrganizationName,
+            String rejectReason
+    ) {
+        SupplierCertificateReviewLog reviewLog = SupplierCertificateReviewLog.of(
+                certificate,
+                supplier != null ? supplier.getSupplierName() : null,
+                certificateReviewerOrganizationClient.getOrganizationName(certificate.getRequestedByOrganizationPublicId()),
+                beforeStatus,
+                decision,
+                reviewerUserPublicId,
+                reviewerOrganizationPublicId,
+                reviewerOrganizationName,
+                rejectReason
+        );
+        supplierCertificateReviewLogRepository.save(reviewLog);
     }
 
     private boolean isExpiringWithin(SupplierCertificate certificate, LocalDate startDate, LocalDate endDate) {

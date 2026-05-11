@@ -56,6 +56,14 @@ public class SupplierCertificate extends BaseTimeEntity {
     private String rejectReason;
 
     @Column(length = 26)
+    private String requestedByUserPublicId;
+
+    @Column(length = 26)
+    private String requestedByOrganizationPublicId;
+
+    private LocalDateTime requestedAt;
+
+    @Column(length = 26)
     private String reviewedByOrganizationPublicId;
 
     private LocalDateTime reviewedAt;
@@ -71,7 +79,18 @@ public class SupplierCertificate extends BaseTimeEntity {
     }
 
     @Builder
-    public SupplierCertificate(Long supplierId, String supplierPublicId, CertificateType certificateType, String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName, String attachmentPublicId) {
+    public SupplierCertificate(
+            Long supplierId,
+            String supplierPublicId,
+            CertificateType certificateType,
+            String certificateNo,
+            LocalDate issuedAt,
+            LocalDate expiredAt,
+            String issuerName,
+            String attachmentPublicId,
+            String requestedByUserPublicId,
+            String requestedByOrganizationPublicId
+    ) {
         this.supplierId = supplierId;
         this.supplierPublicId = supplierPublicId;
         this.certificateType = certificateType;
@@ -81,6 +100,9 @@ public class SupplierCertificate extends BaseTimeEntity {
         this.issuerName = issuerName;
         this.attachmentPublicId = attachmentPublicId;
         this.certificateStatus = CertificateStatus.REVIEW_REQUESTED;
+        this.requestedByUserPublicId = requestedByUserPublicId;
+        this.requestedByOrganizationPublicId = requestedByOrganizationPublicId;
+        this.requestedAt = LocalDateTime.now();
     }
 
     public void approve(String reviewerOrganizationPublicId) {
@@ -101,7 +123,15 @@ public class SupplierCertificate extends BaseTimeEntity {
         this.certificateStatus = CertificateStatus.EXPIRED;
     }
 
-    public void update(String certificateNo, LocalDate issuedAt, LocalDate expiredAt, String issuerName, String attachmentPublicId) {
+    public void update(
+            String certificateNo,
+            LocalDate issuedAt,
+            LocalDate expiredAt,
+            String issuerName,
+            String attachmentPublicId,
+            String requestedByUserPublicId,
+            String requestedByOrganizationPublicId
+    ) {
         if (certificateNo != null) this.certificateNo = certificateNo;
         if (issuedAt != null) this.issuedAt = issuedAt;
         if (expiredAt != null) this.expiredAt = expiredAt;
@@ -111,6 +141,9 @@ public class SupplierCertificate extends BaseTimeEntity {
         // Re-request review when updated
         this.certificateStatus = CertificateStatus.REVIEW_REQUESTED;
         this.rejectReason = null;
+        this.requestedByUserPublicId = requestedByUserPublicId;
+        this.requestedByOrganizationPublicId = requestedByOrganizationPublicId;
+        this.requestedAt = LocalDateTime.now();
         this.reviewedByOrganizationPublicId = null;
         this.reviewedAt = null;
     }
