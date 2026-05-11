@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -34,7 +35,17 @@ public class SupplierCertificateResponseDto {
     private String attachmentPublicId;
     @Schema(description = "사유", example = "샘플 내용", nullable = true)
     private String rejectReason;
-    public static SupplierCertificateResponseDto from(SupplierCertificate entity, String supplierName) {
+    @Schema(description = "심사자 조직 공개 식별자", example = "sample_public_id", nullable = true)
+    private String reviewedByOrganizationPublicId;
+    @Schema(description = "심사자 조직명", example = "아틀라스 본사", nullable = true)
+    private String reviewerOrganizationName;
+    @Schema(description = "심사 시각", example = "2026-05-11T16:30:00", nullable = true)
+    private LocalDateTime reviewedAt;
+    public static SupplierCertificateResponseDto from(
+            SupplierCertificate entity,
+            String supplierName,
+            String reviewerOrganizationName
+    ) {
         return SupplierCertificateResponseDto.builder()
                 .publicId(entity.getPublicId())
                 .supplierPublicId(entity.getSupplierPublicId())
@@ -47,6 +58,9 @@ public class SupplierCertificateResponseDto {
                 .issuerName(entity.getIssuerName())
                 .attachmentPublicId(entity.getAttachmentPublicId())
                 .rejectReason(entity.getRejectReason())
+                .reviewedByOrganizationPublicId(entity.getReviewedByOrganizationPublicId())
+                .reviewerOrganizationName(reviewerOrganizationName)
+                .reviewedAt(entity.getReviewedAt())
                 .build();
     }
 }

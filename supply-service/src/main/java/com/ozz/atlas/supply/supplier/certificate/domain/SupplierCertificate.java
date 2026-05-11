@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -54,6 +55,11 @@ public class SupplierCertificate extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT")
     private String rejectReason;
 
+    @Column(length = 26)
+    private String reviewedByOrganizationPublicId;
+
+    private LocalDateTime reviewedAt;
+
     @PrePersist
     public void prePersist() {
         if (this.publicId == null) {
@@ -77,14 +83,18 @@ public class SupplierCertificate extends BaseTimeEntity {
         this.certificateStatus = CertificateStatus.REVIEW_REQUESTED;
     }
 
-    public void approve() {
+    public void approve(String reviewerOrganizationPublicId) {
         this.certificateStatus = CertificateStatus.APPROVED;
         this.rejectReason = null; // Clear rejection reason if any
+        this.reviewedByOrganizationPublicId = reviewerOrganizationPublicId;
+        this.reviewedAt = LocalDateTime.now();
     }
 
-    public void reject(String rejectReason) {
+    public void reject(String rejectReason, String reviewerOrganizationPublicId) {
         this.certificateStatus = CertificateStatus.REJECTED;
         this.rejectReason = rejectReason;
+        this.reviewedByOrganizationPublicId = reviewerOrganizationPublicId;
+        this.reviewedAt = LocalDateTime.now();
     }
 
     public void expire() {
@@ -100,5 +110,8 @@ public class SupplierCertificate extends BaseTimeEntity {
         
         // Re-request review when updated
         this.certificateStatus = CertificateStatus.REVIEW_REQUESTED;
+        this.rejectReason = null;
+        this.reviewedByOrganizationPublicId = null;
+        this.reviewedAt = null;
     }
 }

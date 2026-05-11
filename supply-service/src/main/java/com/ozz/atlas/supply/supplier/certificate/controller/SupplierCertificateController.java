@@ -87,8 +87,9 @@ public class SupplierCertificateController {
     @PatchMapping("/certificates/{publicId}/approve")
     public ResponseEntity<Void> approveCertificate(
             @PathVariable String publicId,
-            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
-        supplierCertificateService.approveCertificate(publicId, actorPublicId);
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String reviewerOrganizationPublicId) {
+        supplierCertificateService.approveCertificate(publicId, actorPublicId, reviewerOrganizationPublicId);
         return ResponseEntity.ok().build();
     }
 
@@ -97,8 +98,9 @@ public class SupplierCertificateController {
     public ResponseEntity<Void> rejectCertificate(
             @PathVariable String publicId,
             @Valid @RequestBody RejectCertificateRequestDto request,
-            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId) {
-        supplierCertificateService.rejectCertificate(publicId, request, actorPublicId);
+            @RequestHeader(value = "X-User-Public-Id", required = false) String actorPublicId,
+            @RequestHeader(value = "X-Organization-Public-Id", required = false) String reviewerOrganizationPublicId) {
+        supplierCertificateService.rejectCertificate(publicId, request, actorPublicId, reviewerOrganizationPublicId);
         return ResponseEntity.ok().build();
     }
 

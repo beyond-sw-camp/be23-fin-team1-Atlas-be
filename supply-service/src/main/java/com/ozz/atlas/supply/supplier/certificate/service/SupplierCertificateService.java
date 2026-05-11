@@ -41,6 +41,7 @@ public class SupplierCertificateService {
     private final OutboxEventAppender outboxEventAppender;
     private final SupplyDomainEventFactory supplyDomainEventFactory;
     private final SupplyChainContextResolver supplyChainContextResolver;
+    private final CertificateReviewerOrganizationClient certificateReviewerOrganizationClient;
 
     @Transactional
     public SupplierCertificateResponseDto createSupplierCertificate(String supplierPublicId, CreateSupplierCertificateRequestDto request, String actorPublicId) {
@@ -178,12 +179,12 @@ public class SupplierCertificateService {
     }
 
     @Transactional
-    public void approveCertificate(String publicId, String actorPublicId) {
+    public void approveCertificate(String publicId, String actorPublicId, String reviewerOrganizationPublicId) {
         SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
         
         CertificateStatus beforeStatus = cert.getCertificateStatus();
-        cert.approve();
+        cert.approve(reviewerOrganizationPublicId);
         
         saveHistory(cert.getId(), "APPROVE", beforeStatus, cert.getCertificateStatus(), "관리자 승인 처리", actorPublicId);
         appendCertificateEvent(
@@ -197,12 +198,17 @@ public class SupplierCertificateService {
     }
 
     @Transactional
-    public void rejectCertificate(String publicId, RejectCertificateRequestDto request, String actorPublicId) {
+    public void rejectCertificate(
+            String publicId,
+            RejectCertificateRequestDto request,
+            String actorPublicId,
+            String reviewerOrganizationPublicId
+    ) {
         SupplierCertificate cert = supplierCertificateRepository.findByPublicId(publicId)
                 .orElseThrow(() -> new CertificateException(CertificateErrorCode.SUPPLIER_CERTIFICATE_NOT_FOUND));
         
         CertificateStatus beforeStatus = cert.getCertificateStatus();
-        cert.reject(request.getRejectReason());
+        cert.reject(request.getRejectReason(), reviewerOrganizationPublicId);
         
         saveHistory(cert.getId(), "REJECT", beforeStatus, cert.getCertificateStatus(), request.getRejectReason(), actorPublicId);
         appendCertificateEvent(
@@ -258,7 +264,9 @@ public class SupplierCertificateService {
                 supplierName = supplier.getSupplierName();
             }
         }
-        return SupplierCertificateResponseDto.from(cert, supplierName);
+        String reviewerOrganizationName =
+                certificateReviewerOrganizationClient.getOrganizationName(cert.getReviewedByOrganizationPublicId());
+        return SupplierCertificateResponseDto.from(cert, supplierName, reviewerOrganizationName);
     }
 
     private CertificateStatus resolveReviewStatus(String reviewStatus) {
