@@ -28,12 +28,13 @@
   <div class="toc">
   <a href="#team">1. 팀원</a><br />
   <a href="#project-plan">2. 프로젝트 기획서</a><br />
-  <a href="#analysis-design">3. 분석 및 설계</a><br />
+  <a href="#project-flow">3. 공급망형 주문관리 흐름</a><br />
   <a href="#techstack">4. 기술 스택</a><br />
   <a href="#architecture">5. 시스템 아키텍처</a><br />
   <a href="#tech-summary">6. 기술 요약</a><br />
-  <a href="#features">7. 주요 기능</a><br />
+  <a href="#features">7. 주요 기능 상세</a><br />
   <a href="#ui-ux-test">8. 기능 시연 영상</a><br />
+  <a href="#analysis-design">9. 분석 및 설계</a><br />
   </div>
 
 <section id="team">
@@ -77,7 +78,7 @@
 
 
 
-<section id="project-plan">
+<section id="project-flow">
     <h2>3. 공급망형 주문관리 흐름</h2>
     
 <div id="order-supply">
@@ -246,8 +247,8 @@
           <td>Redis는 인증·캐시, Elasticsearch는 검색, Kafka는 이벤트 처리 기반으로 활용했습니다.</td>
         </tr>
         <tr>
-          <td><b>File Service 기반 첨부파일 관리</b></td>
-          <td>인증서, 품목 이미지, 반품 증빙 이미지 등 파일 데이터를 별도 서비스로 관리했습니다.</td>
+          <td><b>File Service 기반 첨부파일 및 썸네일 관리</b></td>
+          <td>인증서 PDF, 품목 이미지, 반품 증빙 이미지 등 업무 파일을 File Service에서 통합 관리했습니다. 이미지 파일은 원본과 별도로 320x320 썸네일을 생성해 S3에 저장하고, 프론트엔드는 fileThumbPath를 활용해 목록/상세 화면에서 경량 이미지를 우선 표시하도록 구성했습니다.</td>
         </tr>
         <tr>
           <td><b>Swagger/OpenAPI 문서화</b></td>
@@ -723,6 +724,7 @@
   ### API 명세서 [상세보기](https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0?view=uiDocs)
   <details>
     <summary><b><a href="https://docs.google.com/spreadsheets/d/1-9XXs_f5A81Zk5Z6et8lepxUo-Pm2fp-omdqqYuDvY/edit?gid=1910787508#gid=1910787508">API 명세서</a></b></summary>
+    <summary><b><a href="https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0?view=uiDocs">Swagger API 문서</a></b></summary>
     
   <img width="" height="" src="images\스크린샷 2026-05-08 101024.png" />
     <img width="" height="" src="images\스크린샷 2026-05-08 101033.png" />
