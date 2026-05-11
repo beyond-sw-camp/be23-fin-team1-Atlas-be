@@ -18,6 +18,8 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
 
     List<Shipment> findAllBySubPoIdIn(Collection<Long> subPoIds);
 
+    List<Shipment> findAllByPoIdIn(Collection<Long> poIds);
+
     List<Shipment> findByPoId(Long poId);
 
     List<Shipment> findBySubPoId(Long subPoId);

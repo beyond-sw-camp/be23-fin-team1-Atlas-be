@@ -505,11 +505,7 @@ public class SupplierService {
                 .sorted(Comparator.comparing(SupplySubPurchaseOrder::getOrderedAt).reversed())
                 .toList();
 
-        List<Shipment> shipments = relatedSubOrders.isEmpty()
-                ? List.of()
-                : shipmentRepository.findAllBySubPoIdIn(
-                relatedSubOrders.stream().map(SupplySubPurchaseOrder::getSubPoId).toList()
-        );
+        List<Shipment> shipments = findShipmentsForOrders(relatedSubOrders, directPurchaseOrders);
 
         List<ConnectedSupplierOrderResponse> orders = Stream.concat(
                         directPurchaseOrders.stream()
@@ -550,12 +546,6 @@ public class SupplierService {
                 SubPoStatus.DELETED
         );
 
-        List<Shipment> shipments = relatedSubOrders.isEmpty()
-                ? List.of()
-                : shipmentRepository.findAllBySubPoIdIn(
-                relatedSubOrders.stream().map(SupplySubPurchaseOrder::getSubPoId).toList()
-        );
-
         List<SupplyPurchaseOrder> directPurchaseOrders = purchaseOrderRepository
                 .findAllByBuyerOrganizationPublicIdAndPoStatusNot(
                         loginSupplier.getOrganizationPublicId(),
@@ -563,6 +553,8 @@ public class SupplierService {
                 ).stream()
                 .filter(po -> po.getSupplier().getId().equals(targetSupplier.getId()))
                 .toList();
+
+        List<Shipment> shipments = findShipmentsForOrders(relatedSubOrders, directPurchaseOrders);
 
         List<ConnectedSupplierOrderResponse> orders = Stream.concat(
                         relatedSubOrders.stream()
@@ -670,6 +662,27 @@ public class SupplierService {
 
         return BigDecimal.valueOf(onTimeShipmentCount * 100.0)
                 .divide(BigDecimal.valueOf(eligibleShipmentCount), 2, RoundingMode.HALF_UP);
+    }
+
+    private List<Shipment> findShipmentsForOrders(
+            List<SupplySubPurchaseOrder> subOrders,
+            List<SupplyPurchaseOrder> purchaseOrders
+    ) {
+        Stream<Shipment> subOrderShipments = subOrders.isEmpty()
+                ? Stream.empty()
+                : shipmentRepository.findAllBySubPoIdIn(
+                        subOrders.stream().map(SupplySubPurchaseOrder::getSubPoId).toList()
+                ).stream();
+
+        Stream<Shipment> purchaseOrderShipments = purchaseOrders.isEmpty()
+                ? Stream.empty()
+                : shipmentRepository.findAllByPoIdIn(
+                        purchaseOrders.stream().map(SupplyPurchaseOrder::getId).toList()
+                ).stream();
+
+        return Stream.concat(subOrderShipments, purchaseOrderShipments)
+                .distinct()
+                .toList();
     }
 
     private BigDecimal sumSubOrderAmounts(List<SupplySubPurchaseOrder> orders) {
