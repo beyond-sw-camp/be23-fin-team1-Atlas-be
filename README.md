@@ -558,8 +558,6 @@
     
 <p><b>관리자 로그인</b></p>
 <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/76f44ef8-3e44-48c4-97bc-5e728111e8eb" /></p>
-<p><b>조직 대표자 로그인</b></p>
-<p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/99cf4345-11b3-4a4f-87e9-8318db319277" /></p>
 <p><b>조직 대표자 비밀번호 변경 후 로그인</b></p>
 <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/54f36297-591e-4ff1-9736-03cde8cadd0d" /></p>
 <p><b>개인 프로필 관리</b></p>
