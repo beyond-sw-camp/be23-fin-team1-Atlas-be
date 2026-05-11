@@ -656,7 +656,7 @@
   <details>
 <summary><b>⑧ 알림 관리</b></summary>
     <p><b>알림 페이지</b></p>
-    <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/63e83947-f6fd-4110-be95-509ea990a00f" /></p>
+    <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/e2601905-50be-48e5-bb1a-b5ce8a13b920" /></p>
   </details>
 
   <details>
