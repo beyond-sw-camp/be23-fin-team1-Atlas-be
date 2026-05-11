@@ -674,7 +674,7 @@
 <summary><b>⑧ 채팅</b></summary>
 <p><b>채팅방 생성</b></p>
     <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/7d99ccd8-71e4-4972-a69e-57abeedf0989" /></p>
-    <p><b>채팅방 수정</b></p>
+    <p><b>채팅방 사용자 초대</b></p>
     <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/2d1a9218-26b0-446b-a694-ef497041f68d" /></p>
     <p><b>채팅방 발주서</b></p>
     <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/b655e96c-3765-4826-946a-90ecdcfe7636" /></p>
