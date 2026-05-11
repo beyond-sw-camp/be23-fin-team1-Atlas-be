@@ -3,7 +3,7 @@ name: Deploy to EKS
 on:
   push:
     branches:
-      - main
+      - prod
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -27,7 +27,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v4
 
     - name: Build service jars
-      run: ./gradlew clean build -x test
+      run: ./gradlew clean build -x main
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v2
