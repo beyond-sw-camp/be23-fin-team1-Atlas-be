@@ -658,6 +658,8 @@
 <summary><b>⑧ 알림 관리</b></summary>
     <p><b>알림 페이지</b></p>
     <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/e2601905-50be-48e5-bb1a-b5ce8a13b920" /></p>
+    <p><b>실시간 알림</b></p>
+    <p align="center"><img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/8f2bd162-8b4c-4d81-8cfb-629e57cdb4aa" /></p>
   </details>
 
   <details>
@@ -721,11 +723,24 @@
     <img width="" height="" src="images\스크린샷 2026-05-08 101540.png" />
   </details>
 
-  ### API 명세서 [상세보기](https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0?view=uiDocs)
+  ### API 명세서 
   <details>
-    <summary><b><a href="https://docs.google.com/spreadsheets/d/1-9XXs_f5A81Zk5Z6et8lepxUo-Pm2fp-omdqqYuDvY/edit?gid=1910787508#gid=1910787508">API 명세서</a></b></summary>
-    <summary><b><a href="https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0?view=uiDocs">Swagger API 문서</a></b></summary>
-    
+    <summary><b>API 명세 및 문서 링크</b></summary>
+<ul>
+    <li>
+      <a href="https://docs.google.com/spreadsheets/d/1-9XXs_f5A81Zk5Z6et8lepxUo-Pm2fp-omdqqYuDvY/edit?gid=1910787508#gid=1910787508">
+        Google Sheets API 명세서
+      </a>
+    </li>
+    <li>
+      <a href="https://app.swaggerhub.com/apis-docs/personal-359/atlas-backend-api/0.1.0?view=uiDocs">
+        SwaggerHub API 문서
+      </a>
+    </li>
+  </ul>
+</details>  
+<details>
+  <summary><b>API 문서 화면</b></summary>  
   <img width="" height="" src="images\스크린샷 2026-05-08 101024.png" />
     <img width="" height="" src="images\스크린샷 2026-05-08 101033.png" />
     <img width="" height="" src="images\스크린샷 2026-05-08 101040.png" />
