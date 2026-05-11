@@ -35,6 +35,7 @@ public class ShipmentStatusService {
     private final ShipmentLineRepository shipmentLineRepository;
     private final ShipmentInventoryService shipmentInventoryService;
     private final SettlementService settlementService;
+    private final ShipmentOrganizationClient shipmentOrganizationClient;
 
     public ShipmentStatusService(
             ShipmentRepository shipmentRepository,
@@ -45,7 +46,8 @@ public class ShipmentStatusService {
             ShipmentMapper shipmentMapper,
             ShipmentLineRepository shipmentLineRepository,
             ShipmentInventoryService shipmentInventoryService,
-            SettlementService settlementService
+            SettlementService settlementService,
+            ShipmentOrganizationClient shipmentOrganizationClient
     ) {
         this.shipmentRepository = shipmentRepository;
         this.logisticsNodeRepository = logisticsNodeRepository;
@@ -56,6 +58,7 @@ public class ShipmentStatusService {
         this.shipmentLineRepository = shipmentLineRepository;
         this.shipmentInventoryService = shipmentInventoryService;
         this.settlementService = settlementService;
+        this.shipmentOrganizationClient = shipmentOrganizationClient;
     }
 
     public ShipmentResponseDto startShipment(
@@ -99,7 +102,8 @@ public class ShipmentStatusService {
                 originNode.getNodeName(),
                 originNode.getLatitude(),
                 originNode.getLongitude(),
-                actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
+                actorUserPublicId != null ? actorUserPublicId : "SYSTEM",
+                organizationPublicId
         );
 
         shipmentSearchService.saveShipmentDocument(savedShipment);
@@ -138,7 +142,8 @@ public class ShipmentStatusService {
                 destinationNode.getNodeName(),
                 destinationNode.getLatitude(),
                 destinationNode.getLongitude(),
-                actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
+                actorUserPublicId != null ? actorUserPublicId : "SYSTEM",
+                organizationPublicId
         );
 
         shipmentSearchService.saveShipmentDocument(savedShipment);
@@ -177,7 +182,8 @@ public class ShipmentStatusService {
                 originNode.getNodeName(),
                 originNode.getLatitude(),
                 originNode.getLongitude(),
-                actorUserPublicId != null ? actorUserPublicId : "SYSTEM"
+                actorUserPublicId != null ? actorUserPublicId : "SYSTEM",
+                organizationPublicId
         );
 
         shipmentSearchService.saveShipmentDocument(savedShipment);
@@ -215,7 +221,8 @@ public class ShipmentStatusService {
             String locationText,
             java.math.BigDecimal latitude,
             java.math.BigDecimal longitude,
-            String recordedBy
+            String recordedBy,
+            String recordedOrganizationPublicId
     ) {
         ShipmentStatusHistory history = ShipmentStatusHistory.builder()
                 .shipmentId(shipment.getId())
@@ -226,6 +233,8 @@ public class ShipmentStatusService {
                 .longitude(longitude)
                 .recordedAt(recordedAt != null ? recordedAt : LocalDateTime.now())
                 .recordedBy(recordedBy)
+                .recordedOrganizationPublicId(recordedOrganizationPublicId)
+                .recordedOrganizationName(shipmentOrganizationClient.getOrganizationName(recordedOrganizationPublicId))
                 .build();
 
         shipmentStatusHistoryRepository.save(history);

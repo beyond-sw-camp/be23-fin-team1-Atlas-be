@@ -45,4 +45,10 @@ public class ShipmentStatusHistory extends BaseTimeEntity {
 
     @Column(length = 50)
     private String recordedBy;
+
+    @Column(length = 26)
+    private String recordedOrganizationPublicId;
+
+    @Column(length = 120)
+    private String recordedOrganizationName;
 }
