@@ -25,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,6 +39,7 @@ import java.util.stream.Stream;
 @Service
 @Transactional(readOnly = true)
 public class FileService {
+    private static final Logger log = LoggerFactory.getLogger(FileService.class);
 
     private final AttachmentRepository attachmentRepository;
     private final MediaFileRepository mediaFileRepository;
@@ -233,10 +236,7 @@ public class FileService {
             if (fileType == FileType.MEDIA_FILE) {
                 String thumbPath = buildS3Url(bucket, objectKey);
                 if (isImage(file.getContentType())) {
-                    byte[] thumbnailBytes = createImageThumbnail(file);
-                    String thumbnailKey = fileKeyGenerator.generateThumbnailKey(objectKey);
-                    s3StorageService.upload(bucket, thumbnailKey, thumbnailBytes, "image/png");
-                    thumbPath = buildS3Url(bucket, thumbnailKey);
+                    thumbPath = uploadImageThumbnailOrOriginal(bucket, objectKey, file, thumbPath);
                 }
 
                 mediaFileRepository.save(MediaFile.builder()
@@ -295,6 +295,22 @@ public class FileService {
                 .outputFormat("png")
                 .toOutputStream(outputStream);
         return outputStream.toByteArray();
+    }
+
+    private String uploadImageThumbnailOrOriginal(String bucket,
+                                                  String objectKey,
+                                                  MultipartFile file,
+                                                  String originalPath) {
+        try {
+            byte[] thumbnailBytes = createImageThumbnail(file);
+            String thumbnailKey = fileKeyGenerator.generateThumbnailKey(objectKey);
+            s3StorageService.upload(bucket, thumbnailKey, thumbnailBytes, "image/png");
+            return buildS3Url(bucket, thumbnailKey);
+        } catch (Exception e) {
+            log.warn("Failed to create image thumbnail. original file will be used as thumbnail. fileName={}, contentType={}",
+                    file.getOriginalFilename(), file.getContentType(), e);
+            return originalPath;
+        }
     }
 
     private String bucketFor(FileType fileType) {
