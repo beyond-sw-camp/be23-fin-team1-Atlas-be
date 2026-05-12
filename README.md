@@ -218,7 +218,7 @@
 <section id="architecture">
   <h2>5. 시스템 아키텍처</h2>
   <h3> 시스템 아키텍처 </h3>
-    <img width="" height="" src="images\ATLAS 시스템 아키텍처.png" />
+    <img width="" height="" src="images\atlas 아키텍처 입니다.png" />
 </section>
 
 <section id="tech-summary">
@@ -339,6 +339,7 @@
 
   <h4>7.2.1 창고 관리</h4>
   <img width="" height="" src="images\창고등록.png" />
+  <img width="" height="" src="images\창고지도.png" />
     <ul>
       <li><strong>창고 등록:</strong> 창고, 센터, 출발지, 도착지 등 창고 정보 등록</li>
       <li><strong>창고 상세 조회:</strong> 창고명, 주소, 좌표, 담당 조직 등 상세 정보 확인</li>
@@ -420,6 +421,7 @@
 
   <h4>7.6.1 출하 관리</h4>
   <img width="" height="" src="images\출하.png" />
+  <img width="" height="" src="images\출하지도.png" />
     <img width="" height="" src="images\출하상세.png" />
     <ul>
       <li><strong>출하 생성:</strong> 확정된 발주를 기준으로 출하 데이터 생성</li>
