@@ -32,6 +32,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +53,7 @@ public class IntegratedSearchService {
     private final SettlementSearchService settlementSearchService;
 
     // 조직 헤더는 발주 검색처럼 조직 기준이 필요한 도메인에 사용
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public IntegratedSearchResponseDto search(
             IntegratedSearchRequestDto request,
             String organizationPublicId,
@@ -75,35 +77,49 @@ public class IntegratedSearchService {
 
         List<IntegratedSearchSectionDto> sections = new ArrayList<>();
 
-        // 공급사 섹션을 추가
-        addSupplierSection(sections, pageable, keyword, size);
 
-        // 품목 섹션을 추가
-        addItemSection(sections, pageable, keyword, size);
+        try {
+            addSupplierSection(sections, pageable, keyword, size);
+        } catch (Exception ignored) {
+            // 공급사 검색 실패가 전체 통합검색을 막지 않게 합니다.
+        }
 
-        // 발주 섹션을 추가
-        // 발주는 조직/뷰타입 정보가 필요해서 가능한 경우에만 조회
-        addPurchaseOrderSection(sections, pageable, keyword, organizationPublicId, organizationType, size);
+        try {
+            addItemSection(sections, pageable, keyword, size);
+        } catch (Exception ignored) {
+            // 품목 검색 실패가 다른 섹션 검색을 막지 않게 합니다.
+        }
 
-        // 출하 섹션을 추가
-        addShipmentSection(sections, pageable, keyword, organizationPublicId, organizationType, userRole, size);
+        try {
+            addPurchaseOrderSection(sections, pageable, keyword, organizationPublicId, organizationType, size);
+        } catch (Exception ignored) {
+            // 발주 검색 실패가 전체 통합검색을 막지 않게 합니다.
+        }
 
-        // 반품 섹션을 추가
-        addReturnSection(
-                sections,
-                pageable,
-                keyword,
-                organizationPublicId,
-                organizationType,
-                userRole,
-                size
-        );
+        try {
+            addShipmentSection(sections, pageable, keyword, organizationPublicId, organizationType, userRole, size);
+        } catch (Exception ignored) {
+            // 출하 검색 실패가 전체 통합검색을 막지 않게 합니다.
+        }
 
-        // 생산라인 섹션을 추가
-        addProductionLineSection(sections, pageable, keyword, size);
+        try {
+            addReturnSection(sections, pageable, keyword, organizationPublicId, organizationType, userRole, size);
+        } catch (Exception ignored) {
+            // 반품 검색 실패가 전체 통합검색을 막지 않게 합니다.
+        }
 
-        // 정산 섹션을 추가
-        addSettlementSection(sections, pageable, keyword, organizationPublicId, size);
+        try {
+            addProductionLineSection(sections, pageable, keyword, size);
+        } catch (Exception ignored) {
+            // 생산라인 검색 실패가 전체 통합검색을 막지 않게 합니다.
+        }
+
+        try {
+            addSettlementSection(sections, pageable, keyword, organizationPublicId, size);
+        } catch (Exception ignored) {
+            // 정산 검색 실패가 전체 통합검색을 막지 않게 합니다.
+        }
+
 
         return IntegratedSearchResponseDto.builder()
                 .keyword(keyword)
@@ -169,7 +185,15 @@ public class IntegratedSearchService {
 
         // 품목은 이름, 코드 기준으로 통합검색용 엄격 필터를 한 번 더 적용
         List<IntegratedSearchItemDto> items = page.getContent().stream()
-                .filter(item -> matchesKeyword(keyword, item.getItemName(), item.getItemCode()))
+                .filter(item -> matchesKeyword(
+                        keyword,
+                        item.getItemName(),
+                        item.getItemCode(),
+                        item.getSupplierName(),
+                        item.getCategoryName(),
+                        item.getSpec()
+                ))
+
                 .map(item -> IntegratedSearchItemDto.builder()
                         .type(IntegratedSearchSectionType.ITEM)
                         .publicId(item.getPublicId())
