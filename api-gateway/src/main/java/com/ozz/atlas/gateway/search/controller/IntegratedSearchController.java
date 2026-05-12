@@ -20,16 +20,20 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/search")
-// 프론트 개발 서버(localhost:5173)에서 오는 검색 요청을 허용
 // 검색 요청 전에 브라우저가 OPTIONS 프리플라이트를 보내기 때문에 OPTIONS도 같이 열어둠
 // Authorization 같은 헤더가 같이 오더라도 막히지 않게 allowedHeaders 를 전체 허용
 // 인증 정보나 커스텀 헤더를 같이 보낼 수 있게 allowCredentials 도 킴
 @CrossOrigin(
-        origins = "http://localhost:5173",
+        origins = {
+                "http://localhost:5173",
+                "https://www.atlas-scm.cloud",
+                "https://atlas-scm.cloud"
+        },
         allowedHeaders = "*",
         methods = {RequestMethod.GET, RequestMethod.OPTIONS},
         allowCredentials = "true"
 )
+
 @Tag(name = "IntegratedSearch")
 public class IntegratedSearchController {
 
