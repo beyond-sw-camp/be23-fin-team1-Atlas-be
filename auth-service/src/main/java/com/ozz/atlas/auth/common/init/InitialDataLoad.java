@@ -81,6 +81,16 @@ public class InitialDataLoad implements CommandLineRunner {
                         "010-9999-9998",
                         "플랫폼 관리자",
                         UserRole.ADMIN
+                ),
+                new SeedUser(
+                        "admin3",
+                        "rlaxoghks04@gmail.com",
+                        "플랫폼",
+                        null,
+                        "관리자",
+                        "010-9999-9997",
+                        "플랫폼 관리자",
+                        UserRole.ADMIN
                 )
         ));
 
