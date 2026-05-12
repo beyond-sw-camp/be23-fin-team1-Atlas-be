@@ -39,12 +39,15 @@ public class SupplierCertificateResponseDto {
     private String reviewedByOrganizationPublicId;
     @Schema(description = "심사자 조직명", example = "아틀라스 본사", nullable = true)
     private String reviewerOrganizationName;
+    @Schema(description = "심사자 이름", example = "관리자", nullable = true)
+    private String reviewerName;
     @Schema(description = "심사 시각", example = "2026-05-11T16:30:00", nullable = true)
     private LocalDateTime reviewedAt;
     public static SupplierCertificateResponseDto from(
             SupplierCertificate entity,
             String supplierName,
-            String reviewerOrganizationName
+            String reviewerOrganizationName,
+            String reviewerName
     ) {
         return SupplierCertificateResponseDto.builder()
                 .publicId(entity.getPublicId())
@@ -60,6 +63,7 @@ public class SupplierCertificateResponseDto {
                 .rejectReason(entity.getRejectReason())
                 .reviewedByOrganizationPublicId(entity.getReviewedByOrganizationPublicId())
                 .reviewerOrganizationName(reviewerOrganizationName)
+                .reviewerName(reviewerName)
                 .reviewedAt(entity.getReviewedAt())
                 .build();
     }

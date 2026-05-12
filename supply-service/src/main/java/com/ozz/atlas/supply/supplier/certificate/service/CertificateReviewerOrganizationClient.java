@@ -1,6 +1,7 @@
 package com.ozz.atlas.supply.supplier.certificate.service;
 
 import com.ozz.atlas.supply.supplier.certificate.dtos.OrganizationNameLookupResponseDto;
+import com.ozz.atlas.supply.supplier.certificate.dtos.ReviewerUserNameLookupResponseDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -39,4 +40,25 @@ public class CertificateReviewerOrganizationClient {
             return organizationPublicId;
         }
     }
+
+    public String getUserName(String userPublicId) {
+        if (userPublicId == null || userPublicId.isBlank()) {
+            return null;
+        }
+
+        try {
+            String url = authServiceBaseUrl + "/api/auth/users/public/" + userPublicId + "/name";
+            ReviewerUserNameLookupResponseDto response =
+                    restTemplate.getForObject(url, ReviewerUserNameLookupResponseDto.class);
+
+            if (response == null || response.getUserName() == null || response.getUserName().isBlank()) {
+                return userPublicId;
+            }
+
+            return response.getUserName();
+        } catch (RestClientException e) {
+            return userPublicId;
+        }
+    }
+
 }
