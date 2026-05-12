@@ -3,6 +3,8 @@ spring:
     active: prod
   application:
     name: api-gateway
+ㅎ  codec:
+    max-in-memory-size: 50MB
 
 springdoc:
   api-docs:
