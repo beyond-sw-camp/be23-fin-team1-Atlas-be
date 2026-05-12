@@ -206,7 +206,7 @@ public class SupplyItemService {
     public ItemResponse getItem(String itemPublicId) {
         SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
                         itemPublicId,
-                        List.of(Status.ACTIVE)
+                        MANAGED_ITEM_STATUSES
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
@@ -414,6 +414,9 @@ public class SupplyItemService {
         if (request.getStatus() != Status.ACTIVE && request.getStatus() != Status.DEACTIVE) {
             throw new ItemException(ItemErrorCode.INVALID_INPUT_VALUE);
         }
+        if (request.getStatus() == Status.DEACTIVE) {
+            validateNoDeactivationBlockingOrders(itemPublicId);
+        }
 
         Status beforeStatus = item.getStatus();
         item.changeActiveYn(request.getStatus());
@@ -469,6 +472,12 @@ public class SupplyItemService {
         );
         itemSearchService.saveItemDocument(item);
         return toItemResponseWithCapability(item);
+    }
+
+    private void validateNoDeactivationBlockingOrders(String itemPublicId) {
+        if (purchaseOrderItemRepository.existsDeactivationBlockingOrderByItemPublicId(itemPublicId)) {
+            throw new ItemException(ItemErrorCode.ITEM_LINKED_ORDER_DEACTIVATE_NOT_ALLOWED);
+        }
     }
 
     public void recordMediaChanged(

@@ -71,4 +71,37 @@ public interface PurchaseOrderItemRepository extends JpaRepository<SupplyPurchas
           )
     """)
     boolean existsEditBlockingOrderByItemPublicId(@Param("itemPublicId") String itemPublicId);
+
+    @Query("""
+        select count(poi) > 0
+        from SupplyPurchaseOrderItem poi
+        join poi.purchaseOrder po
+        where poi.item.publicId = :itemPublicId
+          and po.poStatus in (
+            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.CREATED,
+            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.PARTIALLY_CONFIRMED,
+            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.CONFIRMED
+          )
+          and poi.itemStatus not in (
+            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.REJECTED,
+            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.CANCELLED,
+            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.DELETED
+          )
+          and (
+            poi.itemStatus = com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.OPEN
+            or coalesce(poi.confirmedQty, 0) > (
+              select coalesce(sum(line.quantity), 0)
+              from ShipmentLine line
+              join Shipment shipment on shipment.id = line.shipmentId
+              where line.sourceItemPublicId = poi.publicId
+                and shipment.status in (
+                  com.ozz.atlas.supply.shipment.domain.ShipmentStatus.READY,
+                  com.ozz.atlas.supply.shipment.domain.ShipmentStatus.IN_TRANSIT,
+                  com.ozz.atlas.supply.shipment.domain.ShipmentStatus.DELAYED,
+                  com.ozz.atlas.supply.shipment.domain.ShipmentStatus.ARRIVED
+                )
+            )
+          )
+    """)
+    boolean existsDeactivationBlockingOrderByItemPublicId(@Param("itemPublicId") String itemPublicId);
 }

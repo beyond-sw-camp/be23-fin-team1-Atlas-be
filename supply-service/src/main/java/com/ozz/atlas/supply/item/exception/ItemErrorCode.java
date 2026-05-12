@@ -29,6 +29,7 @@ public enum ItemErrorCode implements ErrorCode {
     ITEM_MEDIA_NOT_FOUND(404, "ITEM_019", "해당 품목의 미디어 파일을 찾을 수 없습니다."),
     ITEM_MEDIA_NOT_IMAGE(400, "ITEM_020", "대표 미디어는 이미지 파일만 지정할 수 있습니다."),
     ITEM_LINKED_ORDER_EDIT_NOT_ALLOWED(409, "ITEM_021", "해당 품목과 관계된 발주가 있어 수정이 불가능합니다."),
+    ITEM_LINKED_ORDER_DEACTIVATE_NOT_ALLOWED(409, "ITEM_022", "출하 등록이 완료되지 않은 발주가 있어 비활성화할 수 없습니다."),
     INTERNAL_SERVER_ERROR(500, "ITEM_999", "서버 내부 오류가 발생했습니다.");
 
     private final int status;
