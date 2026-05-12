@@ -121,7 +121,10 @@ public class SupplyItemService {
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
         validateItemOwner(item, organizationPublicId);
-        validateNoEditBlockingOrders(itemPublicId);
+        validateNoShipmentRegistrationBlockingOrders(
+                itemPublicId,
+                ItemErrorCode.ITEM_LINKED_ORDER_EDIT_NOT_ALLOWED
+        );
 
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(
                         request.getItemCategoryPublicId(),
@@ -206,7 +209,7 @@ public class SupplyItemService {
     public ItemResponse getItem(String itemPublicId) {
         SupplyItem item = supplyItemRepository.findByPublicIdAndStatusIn(
                         itemPublicId,
-                        List.of(Status.ACTIVE)
+                        MANAGED_ITEM_STATUSES
                 )
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
@@ -245,9 +248,9 @@ public class SupplyItemService {
         }
     }
 
-    private void validateNoEditBlockingOrders(String itemPublicId) {
-        if (purchaseOrderItemRepository.existsEditBlockingOrderByItemPublicId(itemPublicId)) {
-            throw new ItemException(ItemErrorCode.ITEM_LINKED_ORDER_EDIT_NOT_ALLOWED);
+    private void validateNoShipmentRegistrationBlockingOrders(String itemPublicId, ItemErrorCode errorCode) {
+        if (purchaseOrderItemRepository.existsShipmentRegistrationBlockingOrderByItemPublicId(itemPublicId)) {
+            throw new ItemException(errorCode);
         }
     }
 
@@ -413,6 +416,12 @@ public class SupplyItemService {
 
         if (request.getStatus() != Status.ACTIVE && request.getStatus() != Status.DEACTIVE) {
             throw new ItemException(ItemErrorCode.INVALID_INPUT_VALUE);
+        }
+        if (request.getStatus() == Status.DEACTIVE) {
+            validateNoShipmentRegistrationBlockingOrders(
+                    itemPublicId,
+                    ItemErrorCode.ITEM_LINKED_ORDER_DEACTIVATE_NOT_ALLOWED
+            );
         }
 
         Status beforeStatus = item.getStatus();
