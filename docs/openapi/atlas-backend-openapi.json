@@ -2514,6 +2514,80 @@
         "description": "품목 카테고리 상세 조회 API입니다. 경로 변수 categoryPublicId 로 대상을 식별합니다."
       }
     },
+    "/api/supply/item-category/{categoryPublicId}/status": {
+      "patch": {
+        "operationId": "changeCategoryStatus",
+        "tags": [
+          "SupplyItemCategory"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemCategoryResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "품목 카테고리 상태 변경",
+        "parameters": [
+          {
+            "name": "categoryPublicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Type",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "요청 조직 유형"
+          },
+          {
+            "name": "X-User-Role",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample"
+            },
+            "description": "X-User-Role 헤더 값"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeItemCategoryStatusRequest"
+              }
+            }
+          }
+        },
+        "description": "품목 카테고리 상태 변경 API입니다. 경로 변수 categoryPublicId 로 대상을 식별합니다. 헤더 X-Organization-Public-Id, X-Organization-Type, X-User-Role 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
+      }
+    },
     "/api/supply/items": {
       "post": {
         "operationId": "createItem",
@@ -8690,9 +8764,19 @@
               "example": "sample_id"
             },
             "description": "요청 사용자 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
           }
         ],
-        "description": "협력사 인증서 승인 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다."
+        "description": "협력사 인증서 승인 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id, X-Organization-Public-Id 값을 함께 전달해야 할 수 있습니다."
       }
     },
     "/api/supply/certificates/{publicId}/reject": {
@@ -8727,6 +8811,16 @@
               "example": "sample_id"
             },
             "description": "요청 사용자 공개 식별자"
+          },
+          {
+            "name": "X-Organization-Public-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "sample_id"
+            },
+            "description": "요청 주체 조직의 공개 식별자"
           }
         ],
         "requestBody": {
@@ -8739,7 +8833,7 @@
             }
           }
         },
-        "description": "협력사 인증서 거절 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
+        "description": "협력사 인증서 거절 API입니다. 경로 변수 publicId 로 대상을 식별합니다. 헤더 X-User-Public-Id, X-Organization-Public-Id 값을 함께 전달해야 할 수 있습니다. 요청 본문 데이터를 기반으로 처리합니다."
       }
     },
     "/api/supply/certificates/expiring": {
@@ -8815,6 +8909,43 @@
           }
         ],
         "description": "협력사 인증서 이력 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다."
+      }
+    },
+    "/api/supply/certificates/{publicId}/review-logs": {
+      "get": {
+        "operationId": "getCertificateReviewLogs",
+        "tags": [
+          "SupplierCertificate"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SupplierCertificateReviewLogResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "협력사 인증서 심사 로그 조회",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "sample_public_id"
+            },
+            "description": "공개 식별자 경로 변수"
+          }
+        ],
+        "description": "협력사 인증서 심사 로그 조회 API입니다. 경로 변수 publicId 로 대상을 식별합니다."
       }
     },
     "/api/supply/suppliers": {
@@ -20346,6 +20477,153 @@
           }
         },
         "description": "Supply Chain 응답 모델"
+      },
+      "ChangeItemCategoryStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "object",
+            "description": "상태 값",
+            "example": "sample"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "description": "Change Item Category Status 요청 모델"
+      },
+      "SupplierCertificateReviewLogResponseDto": {
+        "type": "object",
+        "properties": {
+          "supplierCertificatePublicId": {
+            "type": "string",
+            "description": "인증서 공개 식별자",
+            "example": "sample_public_id"
+          },
+          "certificateNo": {
+            "type": "string",
+            "description": "인증서 번호",
+            "example": "CERT-2026-001"
+          },
+          "certificateTypePublicId": {
+            "type": "string",
+            "description": "인증 유형 공개 식별자",
+            "example": "sample_public_id"
+          },
+          "certificateTypeCode": {
+            "type": "string",
+            "description": "인증 유형 코드",
+            "example": "ISO9001"
+          },
+          "certificateTypeName": {
+            "type": "string",
+            "description": "인증 유형명",
+            "example": "ISO 9001"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date",
+            "description": "발급일",
+            "example": "2026-05-11"
+          },
+          "expiredAt": {
+            "type": "string",
+            "format": "date",
+            "description": "만료일",
+            "example": "2027-05-11"
+          },
+          "issuerName": {
+            "type": "string",
+            "description": "발급 기관",
+            "example": "KAB"
+          },
+          "attachmentPublicId": {
+            "type": "string",
+            "description": "첨부 공개 식별자",
+            "example": "sample_public_id"
+          },
+          "supplierPublicId": {
+            "type": "string",
+            "description": "협력사 공개 식별자",
+            "example": "sample_public_id"
+          },
+          "supplierName": {
+            "type": "string",
+            "description": "협력사명",
+            "example": "아틀라스 협력사"
+          },
+          "requesterUserPublicId": {
+            "type": "string",
+            "description": "신청자 사용자 공개 식별자",
+            "example": "sample_public_id"
+          },
+          "requesterOrganizationPublicId": {
+            "type": "string",
+            "description": "신청 조직 공개 식별자",
+            "example": "sample_public_id"
+          },
+          "requesterOrganizationName": {
+            "type": "string",
+            "description": "신청 조직명",
+            "example": "아틀라스 협력사"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "신청 시각",
+            "example": "2026-05-11T16:30:00"
+          },
+          "beforeStatus": {
+            "$ref": "#/components/schemas/CertificateStatus",
+            "description": "심사 전 상태",
+            "example": "REVIEW_REQUESTED"
+          },
+          "afterStatus": {
+            "$ref": "#/components/schemas/CertificateStatus",
+            "description": "심사 후 상태",
+            "example": "APPROVED"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CertificateReviewDecision",
+            "description": "심사 판단",
+            "example": "APPROVE"
+          },
+          "reviewerUserPublicId": {
+            "type": "string",
+            "description": "심사자 사용자 공개 식별자",
+            "example": "sample_public_id"
+          },
+          "reviewerOrganizationPublicId": {
+            "type": "string",
+            "description": "심사자 조직 공개 식별자",
+            "example": "sample_public_id"
+          },
+          "reviewerOrganizationName": {
+            "type": "string",
+            "description": "심사자 조직명",
+            "example": "아틀라스 본사"
+          },
+          "rejectReason": {
+            "type": "string",
+            "description": "반려 사유",
+            "example": "문서 식별 불가"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "심사 시각",
+            "example": "2026-05-11T16:30:00"
+          }
+        },
+        "description": "Supplier Certificate Review Log 응답 모델"
+      },
+      "CertificateReviewDecision": {
+        "type": "string",
+        "enum": [
+          "APPROVE",
+          "REJECT"
+        ],
+        "description": "Certificate Review Decision 모델"
       }
     },
     "securitySchemes": {

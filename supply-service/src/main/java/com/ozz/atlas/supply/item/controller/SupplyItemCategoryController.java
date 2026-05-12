@@ -1,5 +1,6 @@
 package com.ozz.atlas.supply.item.controller;
 
+import com.ozz.atlas.supply.item.dtos.ChangeItemCategoryStatusRequest;
 import com.ozz.atlas.supply.item.dtos.CreateItemCategoryRequest;
 import com.ozz.atlas.supply.item.dtos.UpdateItemCategoryRequest;
 import com.ozz.atlas.supply.item.service.SupplyItemCategoryService;
@@ -74,6 +75,26 @@ public class SupplyItemCategoryController {
                 userRole
         );
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "품목 카테고리 상태 변경")
+    @PatchMapping("/{categoryPublicId}/status")
+    public ResponseEntity<?> changeCategoryStatus(
+            @PathVariable String categoryPublicId,
+            @RequestHeader("X-Organization-Public-Id") String organizationPublicId,
+            @RequestHeader("X-Organization-Type") String organizationType,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @Valid @RequestBody ChangeItemCategoryStatusRequest request
+    ) {
+        return ResponseEntity.ok(
+                supplyItemCategoryService.changeCategoryStatus(
+                        categoryPublicId,
+                        organizationPublicId,
+                        organizationType,
+                        userRole,
+                        request
+                )
+        );
     }
 
     @Operation(summary = "품목 카테고리 상세 조회")

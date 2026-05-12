@@ -3,6 +3,7 @@ package com.ozz.atlas.supply.item.service;
 import com.ozz.atlas.common.jpa.Status;
 import com.ozz.atlas.supply.item.domain.SupplyItem;
 import com.ozz.atlas.supply.item.domain.SupplyItemCategory;
+import com.ozz.atlas.supply.item.dtos.ChangeItemCategoryStatusRequest;
 import com.ozz.atlas.supply.item.dtos.CreateItemCategoryRequest;
 import com.ozz.atlas.supply.item.dtos.ItemCategoryResponse;
 import com.ozz.atlas.supply.item.dtos.UpdateItemCategoryRequest;
@@ -27,6 +28,7 @@ public class SupplyItemCategoryService {
 
     private static final String ADMIN_ROLE = "ADMIN";
     private static final String BUYER_ORGANIZATION_TYPE = "BUYER";
+    private static final List<Status> MANAGED_CATEGORY_STATUSES = List.of(Status.ACTIVE, Status.DEACTIVE);
 
     private final SupplyItemCategoryRepository supplyItemCategoryRepository;
     private final SupplyItemRepository supplyItemRepository;
@@ -139,6 +141,42 @@ public class SupplyItemCategoryService {
         category.changeActiveYn(Status.DELETE);
     }
 
+    public ItemCategoryResponse changeCategoryStatus(
+            String categoryPublicId,
+            String organizationPublicId,
+            String organizationType,
+            String userRole,
+            ChangeItemCategoryStatusRequest request
+    ) {
+        validateCategoryWriteAuthority(organizationPublicId, organizationType, userRole);
+
+        if (request.getStatus() != Status.ACTIVE && request.getStatus() != Status.DEACTIVE) {
+            throw new ItemException(ItemErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatusIn(
+                        categoryPublicId,
+                        MANAGED_CATEGORY_STATUSES
+                )
+                .orElseThrow(() -> new ItemException(ItemErrorCode.CATEGORY_NOT_FOUND));
+
+        validateCategoryOwner(category, organizationPublicId, userRole);
+
+        if (request.getStatus() == Status.DEACTIVE
+                && supplyItemCategoryRepository.existsByParentCategory_IdAndStatus(category.getId(), Status.ACTIVE)) {
+            throw new ItemException(ItemErrorCode.CATEGORY_CHILD_EXISTS);
+        }
+
+        if (request.getStatus() == Status.ACTIVE
+                && category.getParentCategory() != null
+                && category.getParentCategory().getStatus() != Status.ACTIVE) {
+            throw new ItemException(ItemErrorCode.PARENT_CATEGORY_NOT_FOUND);
+        }
+
+        category.changeActiveYn(request.getStatus());
+        return ItemCategoryResponse.fromEntity(category);
+    }
+
     @Transactional(readOnly = true)
     public ItemCategoryResponse getCategory(String categoryPublicId) {
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(categoryPublicId, Status.ACTIVE)
@@ -149,7 +187,7 @@ public class SupplyItemCategoryService {
 
     @Transactional(readOnly = true)
     public Page<ItemCategoryResponse> getCategoryList(Pageable pageable) {
-        return supplyItemCategoryRepository.findAllByStatus(Status.ACTIVE, pageable)
+        return supplyItemCategoryRepository.findAllByStatusIn(MANAGED_CATEGORY_STATUSES, pageable)
                 .map(ItemCategoryResponse::fromEntity);
     }
 
