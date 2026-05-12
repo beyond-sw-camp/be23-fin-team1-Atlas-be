@@ -69,24 +69,6 @@ public interface PurchaseOrderItemRepository extends JpaRepository<SupplyPurchas
             com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.CANCELLED,
             com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.DELETED
           )
-    """)
-    boolean existsEditBlockingOrderByItemPublicId(@Param("itemPublicId") String itemPublicId);
-
-    @Query("""
-        select count(poi) > 0
-        from SupplyPurchaseOrderItem poi
-        join poi.purchaseOrder po
-        where poi.item.publicId = :itemPublicId
-          and po.poStatus in (
-            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.CREATED,
-            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.PARTIALLY_CONFIRMED,
-            com.ozz.atlas.supply.purchaseorder.domain.PoStatus.CONFIRMED
-          )
-          and poi.itemStatus not in (
-            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.REJECTED,
-            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.CANCELLED,
-            com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.DELETED
-          )
           and (
             poi.itemStatus = com.ozz.atlas.supply.purchaseorder.domain.PurchaseOrderItemStatus.OPEN
             or coalesce(poi.confirmedQty, 0) > (
@@ -103,5 +85,5 @@ public interface PurchaseOrderItemRepository extends JpaRepository<SupplyPurchas
             )
           )
     """)
-    boolean existsDeactivationBlockingOrderByItemPublicId(@Param("itemPublicId") String itemPublicId);
+    boolean existsShipmentRegistrationBlockingOrderByItemPublicId(@Param("itemPublicId") String itemPublicId);
 }

@@ -121,7 +121,10 @@ public class SupplyItemService {
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_FOUND));
 
         validateItemOwner(item, organizationPublicId);
-        validateNoEditBlockingOrders(itemPublicId);
+        validateNoShipmentRegistrationBlockingOrders(
+                itemPublicId,
+                ItemErrorCode.ITEM_LINKED_ORDER_EDIT_NOT_ALLOWED
+        );
 
         SupplyItemCategory category = supplyItemCategoryRepository.findByPublicIdAndStatus(
                         request.getItemCategoryPublicId(),
@@ -245,9 +248,9 @@ public class SupplyItemService {
         }
     }
 
-    private void validateNoEditBlockingOrders(String itemPublicId) {
-        if (purchaseOrderItemRepository.existsEditBlockingOrderByItemPublicId(itemPublicId)) {
-            throw new ItemException(ItemErrorCode.ITEM_LINKED_ORDER_EDIT_NOT_ALLOWED);
+    private void validateNoShipmentRegistrationBlockingOrders(String itemPublicId, ItemErrorCode errorCode) {
+        if (purchaseOrderItemRepository.existsShipmentRegistrationBlockingOrderByItemPublicId(itemPublicId)) {
+            throw new ItemException(errorCode);
         }
     }
 
@@ -415,7 +418,10 @@ public class SupplyItemService {
             throw new ItemException(ItemErrorCode.INVALID_INPUT_VALUE);
         }
         if (request.getStatus() == Status.DEACTIVE) {
-            validateNoDeactivationBlockingOrders(itemPublicId);
+            validateNoShipmentRegistrationBlockingOrders(
+                    itemPublicId,
+                    ItemErrorCode.ITEM_LINKED_ORDER_DEACTIVATE_NOT_ALLOWED
+            );
         }
 
         Status beforeStatus = item.getStatus();
@@ -472,12 +478,6 @@ public class SupplyItemService {
         );
         itemSearchService.saveItemDocument(item);
         return toItemResponseWithCapability(item);
-    }
-
-    private void validateNoDeactivationBlockingOrders(String itemPublicId) {
-        if (purchaseOrderItemRepository.existsDeactivationBlockingOrderByItemPublicId(itemPublicId)) {
-            throw new ItemException(ItemErrorCode.ITEM_LINKED_ORDER_DEACTIVATE_NOT_ALLOWED);
-        }
     }
 
     public void recordMediaChanged(
