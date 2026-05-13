@@ -185,6 +185,8 @@ public class ShipmentSearchService {
                 .currentNodeCode(document.getCurrentNodeCode())
                 .departureEta(document.getDepartureEta())
                 .arrivalEta(document.getArrivalEta())
+                .actualDepartedAt(document.getActualDepartedAt())
+                .actualArrivedAt(document.getActualArrivedAt())
                 .status(document.getStatus())
                 .temperatureRequired(Boolean.TRUE.equals(document.getTemperatureRequired()))
                 .sealedPackagingRequired(Boolean.TRUE.equals(document.getSealedPackagingRequired()))
