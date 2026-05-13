@@ -151,6 +151,8 @@ public class ShipmentMapper {
                 .currentNodeCode(currentNode != null ? currentNode.getNodeCode() : null)
                 .departureEta(shipment.getDepartureEta())
                 .arrivalEta(shipment.getArrivalEta())
+                .actualDepartedAt(shipment.getActualDepartedAt())
+                .actualArrivedAt(shipment.getActualArrivedAt())
                 .status(shipment.getStatus())
                 .temperatureRequired(shipment.isTemperatureRequired())
                 .sealedPackagingRequired(shipment.isSealedPackagingRequired())

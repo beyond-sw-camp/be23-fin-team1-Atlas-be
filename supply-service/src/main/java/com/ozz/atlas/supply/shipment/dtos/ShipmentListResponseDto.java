@@ -53,6 +53,10 @@ public class ShipmentListResponseDto {
     private LocalDateTime departureEta;
     @Schema(description = "예상 도착 시각", example = "2026-04-18T14:00:00")
     private LocalDateTime arrivalEta;
+    @Schema(description = "실제 출발 시각", example = "2026-04-18T08:15:00")
+    private LocalDateTime actualDepartedAt;
+    @Schema(description = "실제 도착 시각", example = "2026-04-18T14:20:00")
+    private LocalDateTime actualArrivedAt;
     @Schema(description = "출하 상태", example = "IN_TRANSIT")
     private ShipmentStatus status;
     @Schema(description = "온도 관리 필요 여부", example = "true")
