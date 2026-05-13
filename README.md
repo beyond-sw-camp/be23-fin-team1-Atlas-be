@@ -35,6 +35,7 @@
   <a href="#features">7. 주요 기능 상세</a><br />
   <a href="#ui-ux-test">8. 기능 시연 영상</a><br />
   <a href="#analysis-design">9. 분석 및 설계</a><br />
+  <a href="#trouble-shooting">10. 피드백 반영 및 트러블슈팅</a><br />
   </div>
 
 <section id="team">
@@ -335,9 +336,44 @@
   </details>
 
   <details>
-    <summary><b>7.2 창고</b></summary>
+    <summary><b>7.2 사용자</b></summary>
 
-  <h4>7.2.1 창고 관리</h4>
+ <h4>7.2.1 로그인 보안 관리</h4>
+
+<img width="900" src="images/중복로그인.png" />
+<img width="900" src="images/다른ip이메일인증.png" />
+<img width="900" src="images/로그인 이력.png" />
+
+<ul>
+  <li>
+    <strong>중복 로그인 감지:</strong>
+    동일 계정이 다른 기기 또는 브라우저에서 로그인될 경우 기존 접속 세션을 만료 처리하고,
+    현재 사용자는 중복 로그인 안내 모달을 통해 재로그인을 유도
+  </li>
+  <li>
+    <strong>다른 IP 로그인 인증:</strong>
+    기존과 다른 IP에서 로그인이 감지되면 이메일 인증 절차를 추가로 요구하여 비정상 접근을 방지
+  </li>
+  <li>
+    <strong>이메일 인증 코드 검증:</strong>
+    사용자 이메일로 전송된 인증 코드를 제한 시간 내 입력해야 로그인을 완료할 수 있도록 처리
+  </li>
+  <li>
+    <strong>세션 보안 강화:</strong>
+    토큰 발급 시점과 최근 로그인 시점을 비교하여 이전 세션의 토큰을 무효화하고 계정 보안을 강화
+  </li>
+  <li>
+    <strong>로그인/보안 이력 관리:</strong>
+    로그인 성공 여부, 접속 IP, 브라우저 정보, 보안 이벤트를 기록하여 사용자가 계정 접근 이력을 확인 가능
+  </li>
+</ul>
+    
+  </details>
+
+  <details>
+    <summary><b>7.3 창고</b></summary>
+
+  <h4>7.3.1 창고 관리</h4>
   <img width="" height="" src="images\창고등록.png" />
   <img width="" height="" src="images\창고지도.png" />
     <ul>
@@ -350,9 +386,9 @@
   </details>
 
   <details>
-    <summary><b>7.3 품목</b></summary>
+    <summary><b>7.4 품목</b></summary>
 
-  <h4>7.3.1 카테고리 관리</h4>
+  <h4>7.4.1 카테고리 관리</h4>
   <img width="" height="" src="images\카테고리생성.png" />
     <ul>
       <li><strong>카테고리 등록:</strong> 식자재 등 품목 분류 기준 등록</li>
@@ -361,7 +397,7 @@
     </ul>
     
 
-  <h4>7.3.2 품목 관리</h4>
+  <h4>7.4.2 품목 관리</h4>
   <img width="" height="" src="images\품목등록.png" />
       <img width="" height="" src="images\품목상세.png" />
     <ul>
@@ -377,9 +413,9 @@
 
 
   <details>
-    <summary><b>7.4 재고</b></summary>
+    <summary><b>7.5 재고</b></summary>
 
-  <h4>7.4.1 재고 관리</h4>
+  <h4>7.5.1 재고 관리</h4>
   <img width="" height="" src="images\재고관리.png" />
     <img width="" height="" src="images\재고상세.png" />
     <ul>
@@ -394,9 +430,9 @@
   </details>
 
   <details>
-    <summary><b>7.5 발주</b></summary>
+    <summary><b>7.6 발주</b></summary>
 
-  <h4>7.5.1 발주 생성 및 조회</h4>
+  <h4>7.6.1 발주 생성 및 조회</h4>
   <img width="" height="" src="images\발주관리.png" />
     <ul>
       <li><strong>발주 생성:</strong> 공급사, 품목, 요청 수량, 납기일 등을 입력하여 발주 생성</li>
@@ -405,7 +441,7 @@
       <li><strong>발주 품목 관리:</strong> 하나의 발주에 여러 품목을 연결하여 주문 처리</li>
     </ul>
 
-  <h4>7.5.2 발주 처리</h4>
+  <h4>7.6.2 발주 처리</h4>
     <img width="" height="" src="images\발주관리.png" />
     <ul>
       <li><strong>발주 수락:</strong> 공급사가 요청된 발주를 수락하고 후속 재고/출하 흐름으로 연결</li>
@@ -417,9 +453,9 @@
   </details>
 
   <details>
-    <summary><b>7.6 출하</b></summary>
+    <summary><b>7.7 출하</b></summary>
 
-  <h4>7.6.1 출하 관리</h4>
+  <h4>7.7.1 출하 관리</h4>
   <img width="" height="" src="images\출하.png" />
   <img width="" height="" src="images\출하지도.png" />
     <img width="" height="" src="images\출하상세.png" />
@@ -434,9 +470,9 @@
   </details>
 
   <details>
-    <summary><b>7.7 반품/교환</b></summary>
+    <summary><b>7.8 반품/교환</b></summary>
 
-  <h4>7.7.1 반품 요청</h4>
+  <h4>7.8.1 반품 요청</h4>
   <img width="" height="" src="images\반품.png" />
     <img width="" height="" src="images\반품요청.png" />
     <ul>
@@ -446,7 +482,7 @@
       <li><strong>반품 상세 조회:</strong> 반품 요청 정보, 품목, 사유, 증빙 자료, 처리 상태 확인</li>
     </ul>
 
-  <h4>7.7.2 교환 및 처리</h4>
+  <h4>7.8.2 교환 및 처리</h4>
     <img width="" height="" src="images\반품.png" />
     <ul>
       <li><strong>검수 결과 등록:</strong> 반품 품목에 대한 검수 결과와 처리 의견 기록</li>
@@ -457,9 +493,9 @@
   </details>
 
   <details>
-    <summary><b>7.8 정산</b></summary>
+    <summary><b>7.9 정산</b></summary>
 
-   <h4>7.8.1 정산 관리</h4>
+   <h4>7.9.1 정산 관리</h4>
    <img width="" height="" src="images\정산관리1.png" />
     <img width="" height="" src="images\정산관리2.png" />
     <ul>
@@ -472,9 +508,9 @@
   </details>
 
   <details>
-    <summary><b>7.9 조직관리</b></summary>
+    <summary><b>7.10 조직관리</b></summary>
 
-  <h4>7.9.1 조직 및 사용자 관리</h4>
+  <h4>7.10.1 조직 및 사용자 관리</h4>
     <img width="" height="" src="images\조직생성.png" />
     <img width="" height="" src="images\조직대표자생성.png" />
     <img width="" height="" src="images\개인프로필.png" />
@@ -488,9 +524,9 @@
   </details>
 
   <details>
-    <summary><b>7.10 알림</b></summary>
+    <summary><b>7.11 알림</b></summary>
 
-  <h4>7.10.1 업무 알림</h4>
+  <h4>7.11.1 업무 알림</h4>
   <img width="" height="" src="images\알림 관리.png" />
     <ul>
       <li><strong>발주 알림:</strong> 신규 발주, 발주 수락/반려, 확정 상태 변경 알림</li>
@@ -502,9 +538,9 @@
   </details>
 
   <details>
-    <summary><b>7.11 채팅</b></summary>
+    <summary><b>7.12 채팅</b></summary>
 
-  <h4>7.11.1 실시간 커뮤니케이션</h4>
+  <h4>7.12.1 실시간 커뮤니케이션</h4>
   <img width="" height="" src="images\채팅.png" />
     <ul>
       <li><strong>업무 채팅:</strong> 발주사와 공급사 간 업무 협의를 위한 채팅 기능</li>
@@ -515,9 +551,9 @@
   </details>
 
   <details>
-    <summary><b>7.12 인증서</b></summary>
+    <summary><b>7.13 인증서</b></summary>
 
-  <h4>7.12.1 공급사 인증서 관리</h4>
+  <h4>7.13.1 공급사 인증서 관리</h4>
   <img width="" height="" src="images\인증분류생성.png" />
     <img width="" height="" src="images\인증서 관리.png" />
     <img width="" height="" src="images\인증서등록.png" />
@@ -532,9 +568,9 @@
   </details>
 
   <details>
-    <summary><b>7.13 프로필</b></summary>
+    <summary><b>7.14 프로필</b></summary>
 
-  <h4>7.13.1 사용자 프로필</h4>
+  <h4>7.14.1 사용자 프로필</h4>
   <img width="" height="" src="images\개인프로필.png" />
     <img width="" height="" src="images\조직대표자비밀번호변경.png" />
     <ul>
@@ -748,6 +784,194 @@
   </details>
 </section>
 
+<section id="trouble-shooting">
+  <h2>10. 피드백 반영 및 트러블 슈팅</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>피드백</th>
+          <th>반영 내용</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>출하와 재고 흐름 분리로 진행 상태 파악 어려움</b></td>
+          <td>발주 → 재고 → 창고 → 출하 → 정산 흐름으로 재정리</td>
+        </tr>
+        <tr>
+          <td><b>창고 위치 직접 입력으로 인한 데이터 오류 가능성</b></td>
+          <td>출하 라인과 재고 예약·차감 구조 추가</td>
+        </tr>
+        <tr>
+          <td><b>출하 상태 변경 기준 불명확</b></td>
+          <td>창고 위치는 주소 검색 및 좌표 저장 방식으로 개선</td>
+        </tr>
+        <tr>
+          <td><b>배송 진행 상태 및 ETA 확인 어려움</b></td>
+          <td>공급사 배송중 / 발주사 도착 처리로 권한 분리</td>
+        </tr>
+        <tr>
+          <td><b>단순 CRUD 중심 구조로 업무 흐름 반영 부족</b></td>
+          <td>출하 지도, 상태 이력, ETA 조회 기능 추가</td>
+        </tr>
+      </tbody>
+    </table>
+
+</section>
+
+<section id="trouble-shooting">
+  <h2>10. 피드백 반영 및 트러블 슈팅</h2>
+
+  <h3>10.1 피드백 반영</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>피드백</th>
+        <th>반영 내용</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>발주, 재고, 출하 흐름이 분리되어 진행 상태 파악이 어려움</b></td>
+        <td>발주 → 재고 예약/차감 → 창고 → 출하 → 반품/정산으로 이어지는 업무 흐름으로 재정리</td>
+      </tr>
+      <tr>
+        <td><b>부분 확정 발주 이후 부족 수량을 놓칠 수 있음</b></td>
+        <td>부분 확정 시 부족 수량을 자동 식별하고, 추가 발주 필요 목록에 노출하도록 개선</td>
+      </tr>
+      <tr>
+        <td><b>창고 위치 직접 입력으로 인한 주소/좌표 데이터 오류 가능성</b></td>
+        <td>주소 검색 및 지오코딩 기반 좌표 저장 방식으로 개선하여 지도 기반 출하 흐름에 활용</td>
+      </tr>
+      <tr>
+        <td><b>출하 가능 여부를 재고 기준으로 검증하기 어려움</b></td>
+        <td>확정 발주 수량, 창고별 재고, 예약 수량을 기준으로 출하 가능 여부를 검증하도록 개선</td>
+      </tr>
+      <tr>
+        <td><b>출하 상태 변경 기준이 불명확함</b></td>
+        <td>공급사는 배송 시작/진행 상태를 처리하고, 발주사는 도착 확인을 처리하도록 역할 기준을 분리</td>
+      </tr>
+      <tr>
+        <td><b>배송 진행 상태 및 ETA 확인이 어려움</b></td>
+        <td>출하 상세 화면에 지도, 출발/도착 창고, 배송 상태, ETA 정보를 함께 표시</td>
+      </tr>
+      <tr>
+        <td><b>반품/교환 처리 결과가 재고와 정산에 연결되지 않음</b></td>
+        <td>반품 사유, 검수 결과, 증빙 이미지, 처리 상태를 관리하고 재고/정산 후속 흐름과 연결</td>
+      </tr>
+      <tr>
+        <td><b>협력사 판단 기준이 단가와 납기 중심으로 제한됨</b></td>
+        <td>협력사 상세 화면에서 ESG 정보와 인증 문서를 함께 확인할 수 있도록 구성</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>10.2 트러블 슈팅</h3>
+
+  <h4>Frontend / UX</h4>
+  <table>
+    <thead>
+      <tr>
+        <th>문제</th>
+        <th>원인</th>
+        <th>해결</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>품목/재고 생성 모달 input 스타일 불일치</b></td>
+        <td>생성·수정 화면과 모달별 입력 컴포넌트 스타일이 통일되지 않음</td>
+        <td>생성/수정 페이지와 모달의 input 배경색, 간격, 상태 스타일을 공통 UI 기준으로 정리</td>
+      </tr>
+      <tr>
+        <td><b>월간 생산량, 주문 가능 수량, MOQ, 단가에 소수 입력 가능</b></td>
+        <td>숫자 필드 검증 기준이 명확하지 않아 소수점 입력이 허용됨</td>
+        <td>정수만 입력 가능하도록 input 속성과 프론트 검증 로직을 보완</td>
+      </tr>
+      <tr>
+        <td><b>확정 발주 품목도 수정 가능한 문제</b></td>
+        <td>발주 확정 여부와 품목 수정 가능 여부가 화면에서 분리되어 있음</td>
+        <td>확정 발주에 포함된 품목은 수정 진입 시 “발주 확정 품목은 수정 불가합니다.” 안내 모달 표시</td>
+      </tr>
+      <tr>
+        <td><b>품목 수정 모달 사용성이 낮음</b></td>
+        <td>수정할 항목만 바꾸기 어려워 상세 정보 확인과 수정 흐름이 분리됨</td>
+        <td>품목 상세 페이지에서 기존 값을 input으로 표시하고 필요한 항목만 직접 수정 가능하도록 개선</td>
+      </tr>
+      <tr>
+        <td><b>재고 상세 화면에서 다른 품목 재고까지 노출</b></td>
+        <td>재고 상태 조회 시 선택한 품목 기준 필터링이 부족함</td>
+        <td>품목 Public ID 기준으로 해당 품목에 연결된 재고만 표시하도록 수정</td>
+      </tr>
+      <tr>
+        <td><b>재고 수정 버튼이 동작하지 않음</b></td>
+        <td>프론트 버튼과 재고 수정 API 연동이 누락됨</td>
+        <td>재고 수정 API를 연결하고 수정 후 상세 데이터가 갱신되도록 처리</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Backend / API</h4>
+  <table>
+    <thead>
+      <tr>
+        <th>문제</th>
+        <th>원인</th>
+        <th>해결</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>품목 수정 시 “유효하지 않은 요청 값입니다” 오류 발생</b></td>
+        <td>프론트 요청 payload와 백엔드 DTO 검증 조건이 맞지 않음</td>
+        <td>수정 요청 값을 DTO 기준에 맞추고, 정수 필드와 상태값 검증 기준을 정리</td>
+      </tr>
+      <tr>
+        <td><b>품목 상세 조회 시 존재하지 않는 데이터로 표시</b></td>
+        <td>내부 DB ID와 Public ID 참조 기준이 일부 혼용됨</td>
+        <td>상세 조회와 수정 요청에서 Public ID 기준으로 Entity를 조회하도록 기준 통일</td>
+      </tr>
+      <tr>
+        <td><b>Swagger 문서에 누락된 API 설명 존재</b></td>
+        <td>일부 Controller에 <code>@Tag</code>, <code>@Operation</code> 누락</td>
+        <td>누락된 Swagger 어노테이션을 추가하여 API 목적과 요청 흐름을 문서화</td>
+      </tr>
+      <tr>
+        <td><b>Swagger 한글 문구 깨짐</b></td>
+        <td>문서 문자열 인코딩 또는 깨진 한글 문구가 소스에 포함됨</td>
+        <td>Swagger summary/description 문구를 UTF-8 기준으로 정리</td>
+      </tr>
+      <tr>
+        <td><b>Spring Batch 결과를 사용자가 확인할 화면 부재</b></td>
+        <td>인증서 만료 경고와 납기 KPI 배치 코드는 있으나 프론트 조회 화면이 구현되지 않음</td>
+        <td>현재는 백엔드 배치 기반으로 분리하고, 향후 관리자 대시보드/알림 화면 연계 고도화 과제로 정리</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Search / Integration</h4>
+  <table>
+    <thead>
+      <tr>
+        <th>문제</th>
+        <th>원인</th>
+        <th>해결</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>Elasticsearch 검색 결과가 최신 데이터와 불일치</b></td>
+        <td>도메인 데이터 변경 후 검색 Document 색인 갱신 흐름이 누락될 수 있음</td>
+        <td>생성·수정·삭제 시점에 검색 Document를 갱신하도록 색인 처리 흐름 점검</td>
+      </tr>
+      <tr>
+        <td><b>채팅에서 업무 맥락 확인이 어려움</b></td>
+        <td>채팅 메시지만 존재하면 어떤 발주 건에 대한 협의인지 파악하기 어려움</td>
+        <td>채팅방에 발주 건 정보를 연결하고, 이미지 첨부를 통해 증빙 자료를 함께 공유하도록 개선</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
 
 
 
