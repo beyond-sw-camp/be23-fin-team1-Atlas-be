@@ -31,10 +31,14 @@ public class SubPurchaseOrderResponse {
     private String parentPoNumber;
     @Schema(description = "공개 식별자", example = "sample_public_id", nullable = true)
     private String issuerSupplierPublicId;
+    @Schema(description = "발행자 조직 공개 식별자", example = "sample_public_id", nullable = true)
+    private String issuerOrganizationPublicId;
     @Schema(description = "이름", example = "샘플 이름", nullable = true)
     private String issuerSupplierName;
     @Schema(description = "협력사 공개 식별자", example = "sample_public_id", nullable = true)
     private String supplierPublicId;
+    @Schema(description = "협력사 조직 공개 식별자", example = "sample_public_id", nullable = true)
+    private String supplierOrganizationPublicId;
     @Schema(description = "코드", example = "CODE-001", nullable = true)
     private String supplierCode;
     @Schema(description = "이름", example = "샘플 이름", nullable = true)
@@ -58,8 +62,10 @@ public class SubPurchaseOrderResponse {
                 .parentPoPublicId(subPo.getParentPurchaseOrder().getPublicId())
                 .parentPoNumber(subPo.getParentPurchaseOrder().getPoNumber())
                 .issuerSupplierPublicId(subPo.getParentPurchaseOrder().getSupplier().getPublicId())
+                .issuerOrganizationPublicId(subPo.getParentPurchaseOrder().getSupplier().getOrganizationPublicId())
                 .issuerSupplierName(subPo.getParentPurchaseOrder().getSupplier().getSupplierName())
                 .supplierPublicId(subPo.getSupplier().getPublicId())
+                .supplierOrganizationPublicId(subPo.getSupplier().getOrganizationPublicId())
                 .supplierCode(subPo.getSupplier().getSupplierCode())
                 .supplierName(subPo.getSupplier().getSupplierName())
                 .totalAmount(subPo.getTotalAmount())
