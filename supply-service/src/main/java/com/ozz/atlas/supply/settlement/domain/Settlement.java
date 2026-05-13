@@ -86,6 +86,15 @@ public class Settlement extends BaseTimeEntity {
         }
     }
 
+    public void updateSettlementPeriod(LocalDate start, LocalDate end) {
+        if (start != null) {
+            this.settlementPeriodStart = start;
+        }
+        if (end != null) {
+            this.settlementPeriodEnd = end;
+        }
+    }
+
 //    대기 상태의 정산 승인 처리(정산 상태, 완료 시각, 승인자 기록)
     public void approve(String approvedByUserPublicId) {
         if (this.settlementStatus != SettlementStatus.PENDING) {

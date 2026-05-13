@@ -87,6 +87,15 @@ public class SettlementService {
             String actorOrganizationPublicId,
             String userRole
     ) {
+        return createSettlement(request, actorOrganizationPublicId, userRole, false);
+    }
+
+    private SettlementResponseDto createSettlement(
+            CreateSettlementRequestDto request,
+            String actorOrganizationPublicId,
+            String userRole,
+            boolean autoApprove
+    ) {
         validateSettlementActorHeader(actorOrganizationPublicId, userRole);
         validateCreateRequest(request);
 
@@ -122,6 +131,9 @@ public class SettlementService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         savedSettlement.updateAmount(totalAmount);
+        if (autoApprove) {
+            approveSettlementInternal(savedSettlement, savedDetails, "SYSTEM");
+        }
 
         settlementSearchService.saveSettlementDocument(savedSettlement);
 
@@ -154,10 +166,13 @@ public class SettlementService {
                 CreateSettlementRequestDto.builder()
                         .targetType(SettlementTargetType.SHIPMENT)
                         .targetPublicId(shipmentPublicId)
+                        .settlementPeriodStart(toLocalDate(shipment.getActualDepartedAt(), shipment.getCreatedAt()))
+                        .settlementPeriodEnd(toLocalDate(shipment.getActualArrivedAt(), shipment.getUpdatedAt()))
                         .currencyCode(resolveShipmentCurrencyCode(shipment))
                         .build(),
                 destinationNode.getOrganizationPublicId(),
-                "SYSTEM"
+                "SYSTEM",
+                true
         );
     }
 
@@ -580,7 +595,7 @@ public class SettlementService {
     }
 
     // 정산 상세 조회
-    @Transactional(readOnly = true)
+    @Transactional
     public SettlementResponseDto getSettlement(
             String settlementPublicId,
             String actorOrganizationPublicId,
@@ -596,6 +611,9 @@ public class SettlementService {
 
         List<SettlementDetail> details =
                 settlementDetailRepository.findAllBySettlement_IdOrderByIdAsc(settlement.getId());
+
+        fillSettlementPeriodIfMissing(settlement);
+        completeArrivedSettlementIfNeeded(settlement, details);
 
         String supplierPublicId = getSupplierPublicId(settlement.getSupplierId());
 
@@ -622,22 +640,45 @@ public class SettlementService {
             throw new SettlementException(SettlementErrorCode.FORBIDDEN_SETTLEMENT_APPROVAL);
         }
 
-        try {
-            settlement.approve(approvedByUserPublicId);
-        } catch (IllegalStateException e) {
-            throw new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_STATUS_TRANSITION);
-        }
-
         List<SettlementDetail> details =
                 settlementDetailRepository.findAllBySettlement_IdOrderByIdAsc(settlement.getId());
 
-        details.forEach(SettlementDetail::approve);
+        try {
+            approveSettlementInternal(settlement, details, approvedByUserPublicId);
+        } catch (IllegalStateException e) {
+            throw new SettlementException(SettlementErrorCode.INVALID_SETTLEMENT_STATUS_TRANSITION);
+        }
 
         settlementSearchService.saveSettlementDocument(settlement);
 
         String supplierPublicId = getSupplierPublicId(settlement.getSupplierId());
 
         return toResponseDto(settlement, supplierPublicId, details);
+    }
+
+    private void approveSettlementInternal(
+            Settlement settlement,
+            List<SettlementDetail> details,
+            String approvedByUserPublicId
+    ) {
+        settlement.approve(approvedByUserPublicId);
+        details.forEach(SettlementDetail::approve);
+    }
+
+    private void completeArrivedSettlementIfNeeded(
+            Settlement settlement,
+            List<SettlementDetail> details
+    ) {
+        if (settlement.getSettlementStatus() != SettlementStatus.PENDING) {
+            return;
+        }
+
+        if (!isAutoCompletableArrivedSettlement(settlement)) {
+            return;
+        }
+
+        approveSettlementInternal(settlement, details, "SYSTEM");
+        settlementSearchService.saveSettlementDocument(settlement);
     }
 
     // 정산 취소 -> 연결된 모든 상세 항목 취소 상태로 전환
@@ -1008,11 +1049,78 @@ public class SettlementService {
                 CreateSettlementRequestDto.builder()
                         .targetType(SettlementTargetType.ORDER)
                         .targetPublicId(orderPublicId)
+                        .settlementPeriodStart(toLocalDate(purchaseOrder.getOrderedAt(), purchaseOrder.getCreatedAt()))
+                        .settlementPeriodEnd(resolvePurchaseOrderSettlementEndDate(purchaseOrder))
                         .currencyCode(toSettlementCurrency(purchaseOrder.getCurrencyCode().name()))
                         .build(),
                 purchaseOrder.getBuyerOrganizationPublicId(),
-                "SYSTEM"
+                "SYSTEM",
+                true
         );
+    }
+
+    private boolean isAutoCompletableArrivedSettlement(Settlement settlement) {
+        if (settlement.getTargetType() == SettlementTargetType.ORDER) {
+            return purchaseOrderRepository.findByPublicIdAndPoStatusNot(
+                            settlement.getTargetPublicId(),
+                            PoStatus.DELETED
+                    )
+                    .map(this::isPurchaseOrderFullyArrived)
+                    .orElse(false);
+        }
+
+        if (settlement.getTargetType() == SettlementTargetType.SHIPMENT) {
+            return shipmentRepository.findByPublicId(settlement.getTargetPublicId())
+                    .map(shipment -> shipment.getStatus() == ShipmentStatus.ARRIVED)
+                    .orElse(false);
+        }
+
+        return false;
+    }
+
+    private void fillSettlementPeriodIfMissing(Settlement settlement) {
+        if (settlement.getSettlementPeriodStart() != null && settlement.getSettlementPeriodEnd() != null) {
+            return;
+        }
+
+        if (settlement.getTargetType() == SettlementTargetType.ORDER) {
+            purchaseOrderRepository.findByPublicIdAndPoStatusNot(
+                            settlement.getTargetPublicId(),
+                            PoStatus.DELETED
+                    )
+                    .ifPresent(purchaseOrder -> settlement.updateSettlementPeriod(
+                            toLocalDate(purchaseOrder.getOrderedAt(), purchaseOrder.getCreatedAt()),
+                            resolvePurchaseOrderSettlementEndDate(purchaseOrder)
+                    ));
+            return;
+        }
+
+        if (settlement.getTargetType() == SettlementTargetType.SHIPMENT) {
+            shipmentRepository.findByPublicId(settlement.getTargetPublicId())
+                    .ifPresent(shipment -> settlement.updateSettlementPeriod(
+                            toLocalDate(shipment.getActualDepartedAt(), shipment.getCreatedAt()),
+                            toLocalDate(shipment.getActualArrivedAt(), shipment.getUpdatedAt())
+                    ));
+        }
+    }
+
+    private LocalDate resolvePurchaseOrderSettlementEndDate(SupplyPurchaseOrder purchaseOrder) {
+        return shipmentRepository.findByPoId(purchaseOrder.getId()).stream()
+                .filter(shipment -> shipment.getStatus() != ShipmentStatus.CANCELLED)
+                .map(shipment -> toLocalDate(shipment.getActualArrivedAt(), shipment.getUpdatedAt()))
+                .filter(Objects::nonNull)
+                .max(LocalDate::compareTo)
+                .orElse(toLocalDate(purchaseOrder.getUpdatedAt(), purchaseOrder.getOrderedAt()));
+    }
+
+    private LocalDate toLocalDate(java.time.LocalDateTime primary, java.time.LocalDateTime fallback) {
+        if (primary != null) {
+            return primary.toLocalDate();
+        }
+        if (fallback != null) {
+            return fallback.toLocalDate();
+        }
+        return null;
     }
 
     private boolean isPurchaseOrderFullyArrived(SupplyPurchaseOrder purchaseOrder) {
